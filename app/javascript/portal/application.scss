@@ -18,6 +18,12 @@ body {
   letter-spacing: 0.2px;
 }
 
+html[lang="ar"] {
+  body {
+      direction: rtl;
+  }
+}
+
 
 // Taking these utils from tailwind 3.x.x, need to remove once we upgrade
 .scroll-mt-24 {
