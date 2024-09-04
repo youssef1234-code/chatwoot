@@ -31,10 +31,11 @@ class ArticlesAPI extends PortalsAPI {
     return axios.get(url);
   }
 
-  searchArticles({ portalSlug, query }) {
+  searchArticles({ portalSlug, query,page }) {
     const url = getArticleSearchURL({
       portalSlug,
       query,
+      pageNumber: page,
       host: this.url,
     });
     return axios.get(url);
