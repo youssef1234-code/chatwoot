@@ -31,15 +31,21 @@ class ArticlesAPI extends PortalsAPI {
     return axios.get(url);
   }
 
-  searchArticles({ portalSlug, query,page }) {
-    const url = getArticleSearchURL({
-      portalSlug,
-      query,
-      pageNumber: page,
-      host: this.url,
+searchArticles({ portalSlug, query, page }) {
+  const url = getArticleSearchURL({
+    portalSlug,
+    query,
+    pageNumber: page,
+    host: this.url,
+  });
+
+  return axios.get(url)
+    .then(response => response.data)
+    .catch(error => {
+      console.error('Error fetching articles:', error);
+      throw error;  // Re-throw to handle it in the component
     });
-    return axios.get(url);
-  }
+}
 
   getArticle({ id, portalSlug }) {
     return axios.get(`${this.url}/${portalSlug}/articles/${id}`);
