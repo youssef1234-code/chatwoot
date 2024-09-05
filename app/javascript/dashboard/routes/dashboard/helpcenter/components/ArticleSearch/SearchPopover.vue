@@ -53,7 +53,7 @@ export default {
     searchResultsWithUrl() {
       return this.searchResults.map(article => ({
         ...article,
-        localeName: this.localeName(article.category.locale || 'en'),
+        localeName: this.localeName((article.category && article.category.locale) || 'en'),  // Safely accessing category and locale
         url: this.generateArticleUrl(article),
       }));
     },
@@ -91,7 +91,7 @@ export default {
     },
     async fetchArticlesByQuery(query, append = false) {
       if (this.currentPage > this.totalPages) return; // Stop if no more pages
-
+      console.log("Fetched articles:", data.payload);  // Log the articles to inspect their structure
       try {
         const sort = query ? '' : 'views';
         this.isLoading = !append;
@@ -115,7 +115,7 @@ export default {
           this.currentPage++;
         }
       } catch (error) {
-        // Handle error appropriately
+        console.log("Error Occured while trying to fetch the articles")
       } finally {
         this.isLoading = false;
         this.isLoadingMore = false;
