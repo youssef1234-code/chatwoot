@@ -1,7 +1,6 @@
 <script>
 import { debounce } from '@chatwoot/utils';
 import { useAlert } from 'dashboard/composables';
-
 import SearchHeader from './Header.vue';
 import SearchResults from './SearchResults.vue';
 import ArticleView from './ArticleView.vue';
