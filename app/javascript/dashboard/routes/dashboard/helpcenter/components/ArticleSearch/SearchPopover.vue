@@ -27,8 +27,11 @@ export default {
     return {
       searchQuery: '',
       isLoading: false,
+      isLoadingMore: false,
       searchResults: [],
       activeId: '',
+      currentPage: 1,
+      totalPages: 1,
       debounceSearch: () => {},
     };
   },
@@ -50,7 +53,7 @@ export default {
     searchResultsWithUrl() {
       return this.searchResults.map(article => ({
         ...article,
-        localeName: this.localeName(article.category.locale || 'en'),
+        localeName: this.localeName((article.category && article.category.locale) || 'en'),  // Safely accessing category and locale
         url: this.generateArticleUrl(article),
       }));
     },
@@ -58,6 +61,7 @@ export default {
   mounted() {
     this.fetchArticlesByQuery(this.searchQuery);
     this.debounceSearch = debounce(this.fetchArticlesByQuery, 500, false);
+    this.setupScrollListener();
   },
   methods: {
     generateArticleUrl(article) {
@@ -74,6 +78,8 @@ export default {
     onSearch(query) {
       this.searchQuery = query;
       this.activeId = '';
+      this.currentPage = 1;
+      this.searchResults = [];
       this.debounceSearch(query);
     },
     onClose() {
@@ -81,26 +87,38 @@ export default {
       this.searchQuery = '';
       this.activeId = '';
       this.searchResults = [];
+      this.currentPage = 1;
     },
-    async fetchArticlesByQuery(query) {
-      try {
-        const sort = query ? '' : 'views';
-        this.isLoading = true;
-        this.searchResults = [];
-        const { data } = await ArticlesAPI.searchArticles({
-          portalSlug: this.selectedPortalSlug,
-          query,
-          sort,
-        });
-        this.searchResults = data.payload;
-        this.isLoading = true;
-      } catch (error) {
-        // Show something wrong message
-      } finally {
-        this.isLoading = false;
+async fetchArticlesByQuery(query, append = false) {
+  if (this.currentPage > this.totalPages && !append) return; // Stop if no more pages and not appending
+
+  try {
+    const sort = query ? '' : 'views';
+    this.isLoading = !append;
+    this.isLoadingMore = append;
+
+    const { payload, meta } = await ArticlesAPI.searchArticles({
+      portalSlug: this.selectedPortalSlug,
+      query,
+      page: this.currentPage,
+    });
+
+    if (payload) {
+      this.searchResults = append ? [...this.searchResults, ...payload] : payload;
+      this.totalPages = meta.total_pages || 1; // Default to 1 if total_pages is not available
+
+      if (append) {
+        this.currentPage++;
       }
-    },
-    handlePreview(id) {
+    }
+  } catch (error) {
+    console.error("Error occurred while trying to fetch the articles:", error);
+  } finally {
+    this.isLoading = false;
+    this.isLoadingMore = false;
+  }
+}
+,    handlePreview(id) {
       this.activeId = id;
     },
     onBack() {
@@ -112,6 +130,19 @@ export default {
       this.$emit('insert', article);
       useAlert(this.$t('HELP_CENTER.ARTICLE_SEARCH.SUCCESS_ARTICLE_INSERTED'));
       this.onClose();
+    },
+    setupScrollListener() {
+      const container = this.$el.querySelector('.search-results-container');
+      container.addEventListener('scroll', this.handleScroll);
+    },
+    handleScroll() {
+      const container = this.$el.querySelector('.search-results-container');
+      if (container.scrollHeight - container.scrollTop === container.clientHeight) {
+        // User has scrolled to the bottom
+        if (!this.isLoading && this.currentPage <= this.totalPages) {
+          this.fetchArticlesByQuery(this.searchQuery, true);
+        }
+      }
     },
   },
 };
@@ -138,15 +169,23 @@ export default {
         @back="onBack"
         @insert="onInsert"
       />
-      <SearchResults
-        v-else
-        :search-query="searchQuery"
-        :is-loading="isLoading"
-        :portal-slug="selectedPortalSlug"
-        :articles="searchResultsWithUrl"
-        @preview="handlePreview"
-        @insert="onInsert"
-      />
+      <div class="search-results-container overflow-y-auto" v-else>
+        <SearchResults
+          :search-query="searchQuery"
+          :is-loading="isLoading"
+          :portal-slug="selectedPortalSlug"
+          :articles="searchResultsWithUrl"
+          @preview="handlePreview"
+          @insert="onInsert"
+        />
+
+        <!-- Spinner for loading more articles -->
+        <div v-if="isLoadingMore" class="loading-more-spinner flex justify-center items-center py-4">
+          <div class="spinner"></div>
+          <span class="ml-2">Loading more articles...</span>
+        </div>
+      </div>
+
     </div>
   </div>
 </template>
