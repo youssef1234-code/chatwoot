@@ -89,39 +89,40 @@ export default {
       this.searchResults = [];
       this.currentPage = 1;
     },
-    async fetchArticlesByQuery(query, append = false) {
-      if (this.currentPage > this.totalPages) return; // Stop if no more pages
-      console.log("Fetched articles:", data.payload);  // Log the articles to inspect their structure
-      try {
-        const sort = query ? '' : 'views';
-        this.isLoading = !append;
-        this.isLoadingMore = append;
+async fetchArticlesByQuery(query, append = false) {
+  if (this.currentPage > this.totalPages && !append) return; // Stop if no more pages and not appending
 
-        const { data } = await ArticlesAPI.searchArticles({
-          portalSlug: this.selectedPortalSlug,
-          query,
-          page: this.currentPage, // Pass the current page
-        });
+  try {
+    const sort = query ? '' : 'views';
+    this.isLoading = !append;
+    this.isLoadingMore = append;
 
-        if (append) {
-          this.searchResults = [...this.searchResults, ...data.payload];
-        } else {
-          this.searchResults = data.payload;
-        }
+    const { data } = await ArticlesAPI.searchArticles({
+      portalSlug: this.selectedPortalSlug,
+      query,
+      page: this.currentPage, // Pass the current page
+    });
 
-        this.totalPages = data.meta.total_pages; // Update total pages
-
-        if (append) {
-          this.currentPage++;
-        }
-      } catch (error) {
-        console.log("Error Occured while trying to fetch the articles")
-      } finally {
-        this.isLoading = false;
-        this.isLoadingMore = false;
+    if (data && data.payload) {
+      if (append) {
+        this.searchResults = [...this.searchResults, ...data.payload];
+      } else {
+        this.searchResults = data.payload;
       }
-    },
-    handlePreview(id) {
+
+      this.totalPages = data.meta.total_pages || 1; // Default to 1 if total_pages is not available
+
+      if (append) {
+        this.currentPage++;
+      }
+    }
+  } catch (error) {
+    console.error("Error occurred while trying to fetch the articles:", error);
+  } finally {
+    this.isLoading = false;
+    this.isLoadingMore = false;
+  }
+},    handlePreview(id) {
       this.activeId = id;
     },
     onBack() {
