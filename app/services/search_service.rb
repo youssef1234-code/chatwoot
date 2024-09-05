@@ -1,6 +1,8 @@
 class SearchService
   pattr_initialize [:current_user!, :current_account!, :params!, :search_type!]
 
+  MAX_QUERY_LENGTH = 10000  # Adjust as needed
+
   def perform
     case search_type
     when 'Message'
@@ -21,7 +23,8 @@ class SearchService
   end
 
   def search_query
-    @search_query ||= params[:q].to_s.strip
+    query = params[:q].to_s.strip
+    query.length > MAX_QUERY_LENGTH ? query[0...MAX_QUERY_LENGTH] : query
   end
 
   def filter_conversations
