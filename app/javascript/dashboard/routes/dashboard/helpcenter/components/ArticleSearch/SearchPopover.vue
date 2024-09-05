@@ -88,8 +88,8 @@ export default {
       this.searchResults = [];
       this.currentPage = 1;
     },
-async fetchArticlesByQuery(query, append = false) {
-  if (this.currentPage > this.totalPages && !append) return; // Stop if no more pages and not appending
+    async fetchArticlesByQuery(query, append = false) {
+  if (!append && this.currentPage > this.totalPages) return; // Stop if no more pages and not appending
 
   try {
     const sort = query ? '' : 'views';
@@ -99,15 +99,17 @@ async fetchArticlesByQuery(query, append = false) {
     const { payload, meta } = await ArticlesAPI.searchArticles({
       portalSlug: this.selectedPortalSlug,
       query,
-      page: this.currentPage,
+      page: this.currentPage,  // Current page number
     });
 
     if (payload) {
+      // If appending, add to the existing results; otherwise, replace with new results
       this.searchResults = append ? [...this.searchResults, ...payload] : payload;
-      this.totalPages = meta.total_pages || 1; // Default to 1 if total_pages is not available
-
-      if (append) {
-        this.currentPage++;
+      this.totalPages = meta.total_pages || 1; // Default to 1 if `meta.total_pages` is not available
+      console.log("Total pages are: " , this.totalPages )
+      if (append && this.currentPage < this.totalPages) {
+        console.log("Incrementing the page!")
+        this.currentPage++;  // Increment page only if appending and there are more pages
       }
     }
   } catch (error) {
