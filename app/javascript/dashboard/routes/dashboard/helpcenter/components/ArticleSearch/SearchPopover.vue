@@ -97,20 +97,15 @@ async fetchArticlesByQuery(query, append = false) {
     this.isLoading = !append;
     this.isLoadingMore = append;
 
-    const { data } = await ArticlesAPI.searchArticles({
+    const { payload, meta } = await ArticlesAPI.searchArticles({
       portalSlug: this.selectedPortalSlug,
       query,
-      page: this.currentPage, // Pass the current page
+      page: this.currentPage,
     });
 
-    if (data && data.payload) {
-      if (append) {
-        this.searchResults = [...this.searchResults, ...data.payload];
-      } else {
-        this.searchResults = data.payload;
-      }
-
-      this.totalPages = data.meta.total_pages || 1; // Default to 1 if total_pages is not available
+    if (payload) {
+      this.searchResults = append ? [...this.searchResults, ...payload] : payload;
+      this.totalPages = meta.total_pages || 1; // Default to 1 if total_pages is not available
 
       if (append) {
         this.currentPage++;
@@ -122,7 +117,8 @@ async fetchArticlesByQuery(query, append = false) {
     this.isLoading = false;
     this.isLoadingMore = false;
   }
-},    handlePreview(id) {
+}
+,    handlePreview(id) {
       this.activeId = id;
     },
     onBack() {
