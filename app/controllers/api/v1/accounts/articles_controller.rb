@@ -6,25 +6,14 @@ class Api::V1::Accounts::ArticlesController < Api::V1::Accounts::BaseController
 
   def index
     @portal_articles = @portal.articles
-    @all_articles = @portal_articles.search(list_params) # Search logic based on the provided params
-    @articles_count = @all_articles.count                # Total count of articles
-  
-    # Paginate the results
+    @all_articles = @portal_articles.search(list_params)
+    @articles_count = @all_articles.count
+
     @articles = if list_params[:category_slug].present?
                   @all_articles.order_by_position.page(@current_page)
                 else
                   @all_articles.order_by_updated_at.page(@current_page)
                 end
-  
-    # Respond with the articles and pagination metadata
-    render json: {
-      payload: @articles,           # The paginated articles
-      meta: {
-        total_count: @articles_count,          # Total number of articles
-        total_pages: @articles.total_pages,    # Total pages based on per_page (default is 25 per page with Kaminari)
-        current_page: @current_page.to_i       # Current page number
-      }
-    }
   end
 
   def show; end
