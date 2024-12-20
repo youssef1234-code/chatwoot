@@ -133,7 +133,6 @@ const confirmDeletion = () => {
 
     <template #body>
       <table
-        v-else
         class="min-w-full overflow-x-auto divide-y divide-slate-75 dark:divide-slate-700"
       >
         <thead>
