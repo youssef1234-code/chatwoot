@@ -34,7 +34,7 @@ export function useConfig() {
    * Returns "community" or "enterprise"
    * @type {string|undefined}
    */
-  const enterprisePlanName = config.enterprisePlanName;
+  const enterprisePlanName = 'enterprise';
 
   return {
     hostURL,
