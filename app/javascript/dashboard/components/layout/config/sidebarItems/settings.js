@@ -176,7 +176,7 @@ const settings = accountId => ({
       },
       toState: frontendURL(`accounts/${accountId}/settings/audit-logs/list`),
       toStateName: 'auditlogs_list',
-      isEnterpriseOnly: false,
+      isEnterpriseOnly: true,
       featureFlag: FEATURE_FLAGS.AUDIT_LOGS,
     },
     {
@@ -188,7 +188,7 @@ const settings = accountId => ({
       },
       toState: frontendURL(`accounts/${accountId}/settings/custom-roles/list`),
       toStateName: 'custom_roles_list',
-      isEnterpriseOnly: false,
+      isEnterpriseOnly: true,
       beta: true,
     },
     {
@@ -200,7 +200,7 @@ const settings = accountId => ({
       },
       toState: frontendURL(`accounts/${accountId}/settings/sla/list`),
       toStateName: 'sla_list',
-      isEnterpriseOnly: false,
+      isEnterpriseOnly: true,
       featureFlag: FEATURE_FLAGS.SLA,
       beta: true,
     },
