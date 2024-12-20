@@ -34,19 +34,6 @@ const deleteMessage = computed(() => {
   return ` ${activeResponse.value.name} ? `;
 });
 
-const isFeatureEnabledOnAccount = useMapGetter(
-  'accounts/isFeatureEnabledonAccount'
-);
-
-const currentAccountId = useMapGetter('getCurrentAccountId');
-
-const isBehindAPaywall = computed(() => {
-  return !isFeatureEnabledOnAccount.value(
-    currentAccountId.value,
-    'custom_roles'
-  );
-});
-
 const fetchCustomRoles = async () => {
   try {
     await store.dispatch('customRole/getCustomRole');
@@ -75,7 +62,6 @@ const showAlertMessage = message => {
 };
 
 const openAddModal = () => {
-  if (isBehindAPaywall.value) return;
   customRoleModalMode.value = 'add';
   selectedRole.value = null;
   showCustomRoleModal.value = true;
@@ -123,7 +109,7 @@ const confirmDeletion = () => {
   <SettingsLayout
     :is-loading="uiFlags.fetchingList"
     :loading-message="$t('CUSTOM_ROLE.LOADING')"
-    :no-records-found="!records.length && !isBehindAPaywall"
+    :no-records-found="!records.length"
     :no-records-message="$t('CUSTOM_ROLE.LIST.404')"
   >
     <template #header>
@@ -137,7 +123,6 @@ const confirmDeletion = () => {
           <woot-button
             class="rounded-md button nice"
             icon="add-circle"
-            :disabled="isBehindAPaywall"
             @click="openAddModal"
           >
             {{ $t('CUSTOM_ROLE.HEADER_BTN_TXT') }}
@@ -147,7 +132,6 @@ const confirmDeletion = () => {
     </template>
 
     <template #body>
-      <CustomRolePaywall v-if="isBehindAPaywall" />
       <table
         v-else
         class="min-w-full overflow-x-auto divide-y divide-slate-75 dark:divide-slate-700"
