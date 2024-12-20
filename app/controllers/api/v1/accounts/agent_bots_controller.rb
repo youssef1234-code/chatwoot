@@ -7,6 +7,7 @@ class Api::V1::Accounts::AgentBotsController < Api::V1::Accounts::BaseController
     @agent_bots = AgentBot.where(account_id: [nil, Current.account.id])
   end
 
+  
   def show; end
 
   def create
