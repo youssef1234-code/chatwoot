@@ -349,7 +349,6 @@ Rails.application.routes.draw do
     end
   end
 
-  if true?
     namespace :enterprise, defaults: { format: 'json' } do
       namespace :api do
         namespace :v1 do
@@ -365,7 +364,6 @@ Rails.application.routes.draw do
 
       post 'webhooks/stripe', to: 'webhooks/stripe#process_payload'
     end
-  end
 
   # ----------------------------------------------------------------------
   # Routes for platform APIs
