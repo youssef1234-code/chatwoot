@@ -76,7 +76,6 @@ class Article < ApplicationRecord
     against: %i[
       title
       description
-      content
     ],
     using: {
       tsearch: {
