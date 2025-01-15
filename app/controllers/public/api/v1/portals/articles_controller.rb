@@ -38,13 +38,12 @@ class Public::Api::V1::Portals::ArticlesController < Public::Api::V1::Portals::B
     return if permitted_params[:category_slug].blank?
 
     @category = @portal.categories.find_by!(
-      slug: permitted_params[:category_slug],
-      locale: permitted_params[:locale]
+      slug: permitted_params[:category_slug]
     )
   end
 
   def list_params
-    params.permit(:query, :locale, :sort, :status)
+    params.permit(:query,:sort, :status)
   end
 
   def permitted_params
