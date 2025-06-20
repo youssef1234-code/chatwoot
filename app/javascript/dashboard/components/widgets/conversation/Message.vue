@@ -313,6 +313,7 @@ export default {
     bubbleClass() {
       return {
         bubble: this.isBubble,
+        'relative': this.isBubble, // Add relative positioning for quick reply button
         'is-private': this.data.private,
         'is-unsupported': this.isUnsupported,
         'is-image': this.hasMediaAttachment('image'),
@@ -436,6 +437,17 @@ export default {
       LocalStorage.updateJsonStore(replyStorageKey, conversationId, replyTo);
       emitter.emit(BUS_EVENTS.TOGGLE_REPLY_TO_MESSAGE, this.data);
     },
+    handleQuickReply() {
+      // Same functionality as handleReplyTo but triggered by the quick reply button
+      this.handleReplyTo();
+      // Optional: Focus the message editor after setting up reply
+      this.$nextTick(() => {
+        const messageEditor = document.querySelector('.input, .message-editor');
+        if (messageEditor) {
+          messageEditor.focus();
+        }
+      });
+    },
     setupHighlightTimer() {
       if (Number(this.$route.query.messageId) !== Number(this.data.id)) {
         return;
@@ -474,6 +486,17 @@ export default {
         />
       </div>
       <div :class="bubbleClass" @contextmenu="openContextMenu($event)">
+        <!-- Quick Reply Button (appears on hover for incoming messages) -->
+        <div v-if="!data.private && inboxSupportsReplyTo.outgoing && (isIncoming || isOutgoing)" class="quick-reply-button">
+          <NextButton
+            v-tooltip.top="$t('CONVERSATION.CONTEXT_MENU.REPLY_TO')"
+            ghost
+            xs
+            slate
+            icon="i-lucide-reply"
+            @click="handleQuickReply"
+          />
+        </div>
         <BubbleMailHead
           :email-attributes="contentAttributes.email"
           :cc="emailHeadAttributes.cc"
@@ -742,6 +765,27 @@ li.right {
 
 .has-context-menu {
   @apply bg-slate-50 dark:bg-slate-700;
+}
+
+.quick-reply-button {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 10;
+}
+
+.quick-reply-button button {
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.group\/context-menu:hover .quick-reply-button button {
+  opacity: 1;
+}
+
+/* Fallback for browsers that don't support arbitrary value groups */
+li:hover .quick-reply-button button {
+  opacity: 1;
 }
 
 .context-menu {

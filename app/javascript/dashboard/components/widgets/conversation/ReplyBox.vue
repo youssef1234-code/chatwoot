@@ -123,6 +123,7 @@ export default {
       updateEditorSelectionWith: '',
       undefinedVariableMessage: '',
       newConversationModalActive: false,
+      inReplyTo: null, // Add the missing inReplyTo data property
     };
   },
   computed: {
@@ -553,6 +554,22 @@ export default {
       this.resetAudioRecorderInput();
       // Reset attached files
       this.attachedFiles = [];
+    },
+    resetAudioRecorderInput() {
+      // Reset audio recording state
+      this.isRecordingAudio = false;
+      this.recordingAudioState = '';
+      this.recordingAudioDurationText = '';
+      
+      // Reset the audio recorder component if it exists
+      if (this.$refs.audioRecorderInput) {
+        try {
+          this.$refs.audioRecorderInput.resetRecorder();
+        } catch (error) {
+          // Fail silently if the method doesn't exist
+          console.warn('Audio recorder reset method not available:', error);
+        }
+      }
     },
     saveDraft(conversationId, replyType) {
       if (this.message || this.message === '') {

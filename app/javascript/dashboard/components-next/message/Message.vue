@@ -412,6 +412,16 @@ function handleReplyTo() {
   emitter.emit(BUS_EVENTS.TOGGLE_REPLY_TO_MESSAGE, props);
 }
 
+function handleQuickReply() {
+  // Same functionality as handleReplyTo but triggered by the quick reply button
+  handleReplyTo();
+  // Optional: Focus the message editor after setting up reply
+  const messageEditor = document.querySelector('.input, .message-editor, [contenteditable="true"]');
+  if (messageEditor) {
+    messageEditor.focus();
+  }
+}
+
 const avatarInfo = computed(() => {
   // If no sender, return bot info
   if (!props.sender) {
@@ -508,7 +518,7 @@ provideMessageContext({
         <Avatar v-bind="avatarInfo" :size="24" />
       </div>
       <div
-        class="[grid-area:bubble] flex"
+        class="[grid-area:bubble] flex relative group"
         :class="{
           'ltr:ml-8 rtl:mr-8 justify-end': orientation === ORIENTATION.RIGHT,
           'ltr:mr-8 rtl:ml-8': orientation === ORIENTATION.LEFT,
@@ -516,6 +526,17 @@ provideMessageContext({
         }"
         @contextmenu="openContextMenu($event)"
       >
+        <!-- Quick Reply Button for incoming messages -->
+        <button
+          v-if="!props.private && props.inboxSupportsReplyTo?.outgoing"
+          @click="handleQuickReply"
+          class="absolute top-1 right-1 z-10 p-1 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-slate-50 dark:hover:bg-slate-700"
+          :title="t('CONVERSATION.CONTEXT_MENU.REPLY_TO')"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 17l-5-5 5-5M4 12h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
         <Component :is="componentToRender" />
       </div>
       <MessageError
