@@ -5,11 +5,17 @@ class Enterprise::Api::V1::AccountsController < Api::BaseController
   before_action :check_cloud_env, only: [:limits, :toggle_deletion]
 
   def subscription
-    if stripe_customer_id.blank? && @account.custom_attributes['is_creating_customer'].blank?
-      @account.update(custom_attributes: { is_creating_customer: true })
-      Enterprise::CreateStripeCustomerJob.perform_later(@account)
-    end
+    # DISABLED: Prevent automatic Stripe customer creation in fork
+    # This prevents any billing integration from being accidentally triggered
+    Rails.logger.info "Billing subscription endpoint called but disabled in fork"
     head :no_content
+    
+    # Original code (commented out):
+    # if stripe_customer_id.blank? && @account.custom_attributes['is_creating_customer'].blank?
+    #   @account.update(custom_attributes: { is_creating_customer: true })
+    #   Enterprise::CreateStripeCustomerJob.perform_later(@account)
+    # end
+    # head :no_content
   end
 
   def limits
@@ -37,9 +43,13 @@ class Enterprise::Api::V1::AccountsController < Api::BaseController
   end
 
   def checkout
-    return create_stripe_billing_session(stripe_customer_id) if stripe_customer_id.present?
-
-    render_invalid_billing_details
+    # DISABLED: Prevent billing portal access in fork
+    Rails.logger.info "Billing checkout endpoint called but disabled in fork"
+    render json: { message: 'Billing is disabled in this fork' }, status: :ok
+    
+    # Original code (commented out):
+    # return create_stripe_billing_session(stripe_customer_id) if stripe_customer_id.present?
+    # render_invalid_billing_details
   end
 
   def toggle_deletion
