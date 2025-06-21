@@ -351,16 +351,16 @@ onMounted(() => {
           <div
             v-for="attachment in attachments"
             :key="attachment.id"
-            class="flex items-center justify-between p-2 bg-n-alpha-1 rounded"
+            class="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-700 rounded"
           >
             <div class="flex items-center gap-2">
-              <i class="ri-file-line text-n-slate-10" />
-              <span class="text-sm">{{ attachment.name }}</span>
-              <span class="text-xs text-n-slate-8">({{ formatFileSize(attachment.size) }})</span>
+              <i class="ri-file-line text-slate-500 dark:text-slate-400" />
+              <span class="text-sm text-slate-900 dark:text-slate-100">{{ attachment.name }}</span>
+              <span class="text-xs text-slate-500 dark:text-slate-400">({{ formatFileSize(attachment.size) }})</span>
             </div>
             <button
               type="button"
-              class="text-red-500 hover:text-red-700"
+              class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
               @click="removeAttachment(attachment.id)"
             >
               <i class="ri-close-line" />
@@ -371,7 +371,7 @@ onMounted(() => {
     </div>
 
     <!-- Footer -->
-    <div class="flex justify-end gap-3 pt-4 border-t border-n-weak">
+    <div class="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-600">
       <Button ghost slate :label="$t('INTEGRATION_SETTINGS.JIRA.CANCEL')" @click="onClose" />
       <Button
         blue

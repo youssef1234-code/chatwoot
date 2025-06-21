@@ -42,7 +42,7 @@
     <button
       v-if="hasMoreJiraIssues"
       type="button"
-      class="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50/70 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-md transition-all duration-200 cursor-pointer border border-blue-200/60 dark:border-blue-700/60 hover:border-blue-300 dark:hover:border-blue-600"
+      class="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/50 hover:bg-blue-200 dark:hover:bg-blue-800/60 rounded-md transition-all duration-200 cursor-pointer border border-blue-300 dark:border-blue-700 hover:border-blue-400 dark:hover:border-blue-600"
       @click="toggleShowAllJiraIssues"
     >
       <i class="i-lucide-chevron-down text-xs mr-1"></i>

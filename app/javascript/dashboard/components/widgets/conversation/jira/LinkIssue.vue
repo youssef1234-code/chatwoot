@@ -149,20 +149,20 @@ const getStatusColor = (status) => {
             @update:modelValue="onSearch"
           />
           <div class="max-h-48 overflow-y-auto p-2">
-            <div v-if="isFetching" class="p-2 text-sm text-n-slate-11">
+            <div v-if="isFetching" class="p-2 text-sm text-slate-600 dark:text-slate-400">
               {{ $t('INTEGRATION_SETTINGS.JIRA.LINK.LOADING') }}
             </div>
             <div
               v-for="issue in issues"
               :key="issue.id"
-              class="p-2 cursor-pointer hover:bg-n-alpha-black2 rounded"
-              :class="{ 'bg-n-alpha-black2': selectedOption.id === issue.id }"
+              class="p-2 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 rounded"
+              :class="{ 'bg-slate-100 dark:bg-slate-700': selectedOption.id === issue.id }"
               @click="onSelectIssue(issue)"
             >
-              <div class="font-medium">{{ issue.key }}</div>
-              <div class="text-sm text-n-slate-11">{{ issue.summary }}</div>
+              <div class="font-medium text-slate-900 dark:text-slate-100">{{ issue.key }}</div>
+              <div class="text-sm text-slate-600 dark:text-slate-400">{{ issue.summary }}</div>
             </div>
-            <div v-if="issues.length === 0 && searchQuery && !isFetching" class="p-2 text-sm text-n-slate-11">
+            <div v-if="issues.length === 0 && searchQuery && !isFetching" class="p-2 text-sm text-slate-600 dark:text-slate-400">
               {{ $t('INTEGRATION_SETTINGS.JIRA.LINK.EMPTY_LIST') }}
             </div>
           </div>
@@ -170,14 +170,14 @@ const getStatusColor = (status) => {
       </div>
 
       <div v-if="!shouldShowDropdown && !selectedOption.id" class="mt-2">
-        <p class="text-xs text-n-slate-10">
+        <p class="text-xs text-slate-500 dark:text-slate-400">
           {{ $t('INTEGRATION_SETTINGS.JIRA.LINK.EMPTY_LIST') }}
         </p>
       </div>
     </div>
 
     <!-- Footer -->
-    <div class="flex justify-end gap-3 pt-4 border-t border-n-weak">
+    <div class="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-600">
       <Button ghost slate :label="$t('INTEGRATION_SETTINGS.JIRA.CANCEL')" @click="onClose" />
       <Button
         blue

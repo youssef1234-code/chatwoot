@@ -50,22 +50,22 @@ const conversationTitle = computed(() => {
     <div class="w-full max-w-2xl mx-auto">
       <div class="flex flex-col h-[600px]">
         <!-- Header -->
-        <div class="flex items-center justify-between p-6 border-b border-n-weak">
-          <h2 class="text-lg font-semibold text-n-slate-12">
+        <div class="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-600">
+          <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
             {{ $t('INTEGRATION_SETTINGS.JIRA.ADD_OR_LINK.TITLE') }}
           </h2>
         </div>
 
         <!-- Tab Navigation -->
-        <div class="flex border-b border-n-weak">
+        <div class="flex border-b border-slate-200 dark:border-slate-600">
           <button
             v-for="tab in tabs"
             :key="tab.key"
             class="flex-1 px-6 py-3 text-sm font-medium transition-colors"
             :class="[
               activeTab === tab.key
-                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                : 'text-n-slate-11 hover:text-n-slate-12 hover:bg-n-alpha-2'
+                ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/30'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700'
             ]"
             @click="switchToTab(tab.key)"
           >

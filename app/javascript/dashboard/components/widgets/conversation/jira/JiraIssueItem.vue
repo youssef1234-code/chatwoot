@@ -126,7 +126,7 @@ const getStatusColor = (status) => {
 </script>
 
 <template>
-  <div class="p-4 rounded-xl bg-white hover:bg-n-alpha-1 transition-all duration-200 shadow-sm hover:shadow-md border border-n-weak">
+  <div class="p-4 rounded-xl hover:bg-n-alpha-1 transition-all duration-200 shadow-sm hover:shadow-md border border-n-weak">
     <div class="flex items-start justify-between gap-4">
       <div class="flex-1 min-w-0">
         <!-- Issue header -->

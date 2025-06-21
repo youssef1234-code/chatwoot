@@ -126,7 +126,7 @@ watch(() => props.items, (newItems) => {
 <template>
   <div class="relative mb-4">
     <!-- Label -->
-    <label class="block text-sm font-medium text-n-slate-12 mb-2">
+    <label class="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">
       {{ label }}
     </label>
     
@@ -135,7 +135,7 @@ watch(() => props.items, (newItems) => {
       <input
         :value="displayText"
         :placeholder="placeholder"
-        class="w-full px-3 py-2 pr-10 border border-n-weak rounded-lg bg-white text-n-slate-12 placeholder:text-n-slate-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+        class="w-full px-3 py-2 pr-10 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
         :class="{
           'border-red-500 focus:ring-red-500 focus:border-red-500': errorMessage,
           'rounded-b-none border-b-0': isOpen
@@ -149,7 +149,7 @@ watch(() => props.items, (newItems) => {
       <button
         v-if="selectedItem"
         type="button"
-        class="absolute right-8 top-1/2 transform -translate-y-1/2 p-1 text-n-slate-10 hover:text-n-slate-12 transition-colors"
+        class="absolute right-8 top-1/2 transform -translate-y-1/2 p-1 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
         @click="clearSelection"
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -160,7 +160,7 @@ watch(() => props.items, (newItems) => {
       <!-- Dropdown arrow -->
       <div class="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
         <svg 
-          class="w-4 h-4 text-n-slate-10 transition-transform duration-200"
+          class="w-4 h-4 text-slate-500 dark:text-slate-400 transition-transform duration-200"
           :class="{ 'rotate-180': isOpen }"
           fill="none" 
           stroke="currentColor" 
@@ -173,9 +173,9 @@ watch(() => props.items, (newItems) => {
       <!-- Dropdown menu -->
       <div
         v-if="isOpen"
-        class="absolute z-50 w-full bg-white border border-n-weak border-t-0 rounded-b-lg shadow-lg max-h-48 overflow-y-auto"
+        class="absolute z-50 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 border-t-0 rounded-b-lg shadow-lg max-h-48 overflow-y-auto"
       >
-        <div v-if="searchText && filteredItems.length === 0" class="px-3 py-2 text-sm text-n-slate-10">
+        <div v-if="searchText && filteredItems.length === 0" class="px-3 py-2 text-sm text-slate-500 dark:text-slate-400">
           No results found for "{{ searchText }}"
         </div>
         <button
@@ -183,14 +183,14 @@ watch(() => props.items, (newItems) => {
           :key="item.id"
           type="button"
           :class="{
-            'bg-blue-50 border-blue-100': selectedItem && selectedItem.id === item.id
+            'bg-blue-50 dark:bg-blue-900/30 border-blue-100 dark:border-blue-700': selectedItem && selectedItem.id === item.id
           }"
-          class="w-full px-3 py-2 text-left text-sm hover:bg-n-alpha-2 focus:bg-n-alpha-2 focus:outline-none border-b border-n-alpha-1 last:border-b-0 transition-colors"
+          class="w-full px-3 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-700 focus:bg-slate-50 dark:focus:bg-slate-700 focus:outline-none border-b border-slate-200 dark:border-slate-600 last:border-b-0 transition-colors"
           @click="selectItem(item)"
         >
           <div class="flex justify-between items-center">
-            <span class="font-medium text-n-slate-12">{{ item.name }}</span>
-            <span v-if="item.id && item.id !== item.name" class="text-xs text-n-slate-8">{{ item.id }}</span>
+            <span class="font-medium text-slate-900 dark:text-slate-100">{{ item.name }}</span>
+            <span v-if="item.id && item.id !== item.name" class="text-xs text-slate-500 dark:text-slate-400">{{ item.id }}</span>
           </div>
         </button>
       </div>

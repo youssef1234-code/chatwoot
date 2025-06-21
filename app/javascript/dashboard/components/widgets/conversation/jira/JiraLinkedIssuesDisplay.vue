@@ -7,7 +7,7 @@
         :title="issue.key"
         :description="issue.summary || issue.title || ''"
         show-close
-        color="#0052CC"
+        color="var(--color-primary)"
         variant="smooth"
         class="max-w-[calc(100%-0.5rem)] cursor-pointer"
         @click="handleJiraLabelClick(issue, $event)"
@@ -28,7 +28,7 @@
       <button
         v-if="hasMoreIssues"
         type="button"
-        class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50/70 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-md transition-all duration-200 cursor-pointer border border-blue-200/60 dark:border-blue-700/60 hover:border-blue-300 dark:hover:border-blue-600 active:scale-95"
+        class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/50 hover:bg-blue-200 dark:hover:bg-blue-800/60 rounded-md transition-all duration-200 cursor-pointer border border-blue-300 dark:border-blue-700 hover:border-blue-400 dark:hover:border-blue-600 active:scale-95"
         @click.stop="showAllIssues"
       >
         <i class="i-lucide-chevron-down text-xs mr-0.5"></i>
@@ -39,7 +39,7 @@
       <button
         v-if="showAll && linkedIssues.length > 2"
         type="button"
-        class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 bg-slate-50/70 dark:bg-slate-800/30 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-md transition-all duration-200 cursor-pointer border border-slate-200/60 dark:border-slate-700/60 hover:border-slate-300 dark:hover:border-slate-600 active:scale-95"
+        class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/50 hover:bg-slate-200 dark:hover:bg-slate-700/60 rounded-md transition-all duration-200 cursor-pointer border border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600 active:scale-95"
         @click.stop="showLessIssues"
       >
         <i class="i-lucide-chevron-up text-xs mr-0.5"></i>
@@ -171,8 +171,11 @@ onUnmounted(() => {
 
 <style scoped>
 .jira-linked-issues {
-  border-top: 1px solid var(--n-border);
+  border-top: 1px solid var(--color-border);
   padding-top: 0.75rem;
   margin-top: 0.75rem;
+  background-color: var(--color-background-light);
+  border-radius: 0.5rem;
+  padding: 1rem;
 }
 </style>
