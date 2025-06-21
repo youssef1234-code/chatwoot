@@ -10,7 +10,7 @@
         color="#0052CC"
         variant="smooth"
         class="max-w-[calc(100%-0.5rem)] cursor-pointer"
-        @click="openIssue(issue)"
+        @click="handleJiraLabelClick(issue, $event)"
         @remove="unlinkIssue(issue.key)"
       >
         <template #default>
@@ -74,17 +74,13 @@ const hasLinkedIssues = computed(() => {
 });
 
 const displayedIssues = computed(() => {
-  const result = showAll.value || linkedIssues.value.length <= 2 
+  return showAll.value || linkedIssues.value.length <= 2 
     ? linkedIssues.value 
     : linkedIssues.value.slice(0, 2);
-  console.log('JiraLinkedIssuesDisplay - displayedIssues computed:', result.length, 'showAll:', showAll.value);
-  return result;
 });
 
 const hasMoreIssues = computed(() => {
-  const result = !showAll.value && linkedIssues.value.length > 2;
-  console.log('JiraLinkedIssuesDisplay - hasMoreIssues computed:', result, 'total issues:', linkedIssues.value.length);
-  return result;
+  return !showAll.value && linkedIssues.value.length > 2;
 });
 
 const remainingCount = computed(() => 
@@ -92,12 +88,10 @@ const remainingCount = computed(() =>
 );
 
 const loadLinkedIssues = async () => {
-  console.log('JiraLinkedIssuesDisplay - Loading linked issues for conversation:', props.conversationId);
   isLoading.value = true;
   try {
     const response = await JiraAPI.getLinkedIssues(props.conversationId);
     linkedIssues.value = response.data || [];
-    console.log('JiraLinkedIssuesDisplay - Loaded linked issues:', linkedIssues.value);
   } catch (error) {
     console.error('Failed to load linked JIRA issues:', error);
     linkedIssues.value = [];
@@ -108,11 +102,10 @@ const loadLinkedIssues = async () => {
 
 const unlinkIssue = async (issueKey) => {
   try {
-    // Find the issue to get the comment ID
-    const issue = linkedIssues.value.find(i => i.key === issueKey);
-    if (!issue) return;
+    // Since we're using database-backed linking, we don't need a real commentId
+    const commentId = 'database-link';
 
-    await JiraAPI.unlinkIssue(issueKey, issue.commentId, props.conversationId);
+    await JiraAPI.unlinkIssue(issueKey, commentId, props.conversationId);
     
     // Remove from local state
     linkedIssues.value = linkedIssues.value.filter(i => i.key !== issueKey);
@@ -136,13 +129,28 @@ const openIssue = (issue) => {
   }
 };
 
+const handleJiraLabelClick = (issue, event) => {
+  // Check if the click was on the close button or its child elements
+  const isCloseButton = event.target.closest('.label-close--button') || 
+                       event.target.closest('.close--icon');
+  
+  // If it's not the close button, open the JIRA issue
+  if (!isCloseButton) {
+    openIssue(issue);
+  }
+};
+
 const showAllIssues = () => {
-  console.log('Showing all JIRA issues. Current count:', linkedIssues.value.length);
   showAll.value = true;
+  
+  // Emit event to open full view in JIRA sidebar or modal
+  const event = new CustomEvent('jira:open-all-issues', {
+    detail: { conversationId: props.conversationId }
+  });
+  window.dispatchEvent(event);
 };
 
 const showLessIssues = () => {
-  console.log('Showing less JIRA issues');
   showAll.value = false;
 };
 
@@ -152,13 +160,11 @@ const handleJiraIssuesUpdated = () => {
 };
 
 onMounted(() => {
-  console.log('JiraLinkedIssuesDisplay - Component mounted for conversation:', props.conversationId);
   loadLinkedIssues();
   window.addEventListener('jira:issues-updated', handleJiraIssuesUpdated);
 });
 
 onUnmounted(() => {
-  console.log('JiraLinkedIssuesDisplay - Component unmounted');
   window.removeEventListener('jira:issues-updated', handleJiraIssuesUpdated);
 });
 </script>

@@ -10,6 +10,7 @@ import inboxMixin from 'shared/mixins/inboxMixin';
 import ConversationContextMenu from './contextMenu/Index.vue';
 import TimeAgo from 'dashboard/components/ui/TimeAgo.vue';
 import CardLabels from './conversationCardComponents/CardLabels.vue';
+import ConversationLabels from './ConversationLabels.vue';
 import PriorityMark from './PriorityMark.vue';
 import SLACardLabel from './components/SLACardLabel.vue';
 import ContextMenu from 'dashboard/components/ui/ContextMenu.vue';
@@ -17,6 +18,7 @@ import ContextMenu from 'dashboard/components/ui/ContextMenu.vue';
 export default {
   components: {
     CardLabels,
+    ConversationLabels,
     InboxName,
     Thumbnail,
     ConversationContextMenu,
@@ -242,6 +244,16 @@ export default {
       this.$emit('deleteConversation', this.chat.id);
       this.closeContextMenu();
     },
+    onLabelClick(label) {
+      // Handle label click - could navigate to label view or show label details
+      this.$router.push({
+        name: 'label_conversations',
+        params: {
+          accountId: this.accountId,
+          label: label.title
+        }
+      });
+    },
   },
 };
 </script>
@@ -343,11 +355,17 @@ export default {
           {{ unreadCount > 9 ? '9+' : unreadCount }}
         </span>
       </div>
-      <CardLabels :conversation-labels="chat.labels" class="mt-0.5 mx-2 mb-0">
-        <template v-if="hasSlaPolicyId" #before>
-          <SLACardLabel :chat="chat" class="ltr:mr-1 rtl:ml-1" />
+      <!-- Use new ConversationLabels component that includes JIRA issues -->
+      <ConversationLabels 
+        :conversation="chat" 
+        :max-jira-labels="2"
+        class="mt-0.5 mx-2 mb-0"
+        @label-click="onLabelClick"
+      >
+        <template #before>
+          <SLACardLabel v-if="hasSlaPolicyId" :chat="chat" class="ltr:mr-1 rtl:ml-1" />
         </template>
-      </CardLabels>
+      </ConversationLabels>
     </div>
     <ContextMenu
       v-if="showContextMenu"

@@ -53,12 +53,24 @@ class Api::V1::Accounts::Integrations::JiraController < Api::V1::Accounts::BaseC
   end
 
   def create_issue
-    # Add agent information to the issue description
+    # Extract organization labels
+    org_labels = extract_organization_labels
+    
+    # Combine user-provided labels with organization labels
+    all_labels = []
+    all_labels.concat(permitted_params[:labels]) if permitted_params[:labels].present?
+    all_labels.concat(org_labels)
+    all_labels << 'chatwoot' # Add a Chatwoot label to identify issues created from Chatwoot
+    
+    # Add agent information and organization data to the issue description
     enhanced_params = permitted_params.merge(
-      description: enhanced_description_with_agent(permitted_params[:description] || ''),
+      description: enhanced_description_with_agent_and_org(permitted_params[:description] || ''),
       reporter_name: Current.user.name,
-      reporter_email: Current.user.email
+      reporter_email: Current.user.email,
+      labels: all_labels.uniq.compact # Remove duplicates and nil values
     )
+    
+    Rails.logger.info("JIRA: Creating issue with labels: #{enhanced_params[:labels]}")
     
     issue = jira_processor_service.create_issue(enhanced_params)
     if issue[:error]
@@ -66,7 +78,18 @@ class Api::V1::Accounts::Integrations::JiraController < Api::V1::Accounts::BaseC
     else
       # Automatically link the created issue to the conversation
       issue_key = issue[:data][:key]
-      link_result = jira_processor_service.link_issue(conversation_link, issue_key, "Created from Chatwoot by #{Current.user.name}")
+      
+      conversation_data = {
+        conversation: @conversation,
+        url: conversation_link
+      }
+      
+      link_result = jira_processor_service.link_issue(
+        conversation_data, 
+        issue_key, 
+        "Created from Chatwoot by #{Current.user.name}",
+        user: Current.user
+      )
       
       # Log activity even if linking fails
       Jira::ActivityMessageService.new(
@@ -87,10 +110,25 @@ class Api::V1::Accounts::Integrations::JiraController < Api::V1::Accounts::BaseC
   def link_issue
     issue_key = permitted_params[:issue_key]
     title = permitted_params[:title]
-    issue = jira_processor_service.link_issue(conversation_link, issue_key, title)
+    
+    conversation_data = {
+      conversation: @conversation,
+      url: conversation_link
+    }
+    
+    issue = jira_processor_service.link_issue(
+      conversation_data, 
+      issue_key, 
+      title,
+      user: Current.user
+    )
+    
     if issue[:error]
       render json: { error: issue[:error] }, status: :unprocessable_entity
     else
+      # Add organization labels to the issue when linking
+      add_organization_labels_to_issue(issue_key)
+      
       Jira::ActivityMessageService.new(
         conversation: @conversation,
         action_type: :issue_linked,
@@ -103,8 +141,8 @@ class Api::V1::Accounts::Integrations::JiraController < Api::V1::Accounts::BaseC
 
   def unlink_issue
     issue_key = permitted_params[:issue_key]
-    comment_id = permitted_params[:comment_id]
-    issue = jira_processor_service.unlink_issue(issue_key, comment_id)
+    # comment_id is no longer needed since we're using database-backed linking
+    issue = jira_processor_service.unlink_issue(@conversation.id, issue_key)
 
     if issue[:error]
       render json: { error: issue[:error] }, status: :unprocessable_entity
@@ -120,7 +158,7 @@ class Api::V1::Accounts::Integrations::JiraController < Api::V1::Accounts::BaseC
   end
 
   def linked_issues
-    issues = jira_processor_service.linked_issues(conversation_link)
+    issues = jira_processor_service.linked_issues(@conversation.id)
 
     if issues[:error]
       render json: { error: issues[:error] }, status: :unprocessable_entity
@@ -236,6 +274,23 @@ class Api::V1::Accounts::Integrations::JiraController < Api::V1::Accounts::BaseC
 
   private
 
+  def enhanced_description_with_agent_and_org(description)
+    # Get organization data from conversation contact
+    org_data = extract_organization_data
+    
+    agent_info = "\n\n---\n*Created by:* #{Current.user.name} (#{Current.user.email})\n*Source:* Chatwoot - #{conversation_link}\n*Conversation ID:* #{@conversation.display_id}"
+    
+    if org_data.present?
+      agent_info += "\n*Organization(s):* #{org_data}"
+    end
+    
+    if description.present?
+      "#{description}#{agent_info}"
+    else
+      "Issue created from Chatwoot conversation#{agent_info}"
+    end
+  end
+
   def enhanced_description_with_agent(description)
     agent_info = "\n\n---\n*Created by:* #{Current.user.name} (#{Current.user.email})\n*Source:* Chatwoot - #{conversation_link}\n*Conversation ID:* #{@conversation.display_id}"
     
@@ -244,6 +299,38 @@ class Api::V1::Accounts::Integrations::JiraController < Api::V1::Accounts::BaseC
     else
       "Issue created from Chatwoot conversation#{agent_info}"
     end
+  end
+
+  def extract_organization_data
+    return nil unless @conversation&.contact
+    
+    contact = @conversation.contact
+    orgs = []
+    
+    # Check contact's custom attributes for organization data
+    if contact.custom_attributes.present?
+      # Common organization field names to check
+      org_fields = ['organization', 'company', 'org', 'company_name', 'organisation', 'slug']
+      
+      org_fields.each do |field|
+        if contact.custom_attributes[field].present?
+          orgs << contact.custom_attributes[field]
+        end
+      end
+    end
+    
+    # Also check additional attributes
+    if contact.additional_attributes.present?
+      if contact.additional_attributes['company_name'].present?
+        orgs << contact.additional_attributes['company_name']
+      end
+      if contact.additional_attributes['organization'].present?
+        orgs << contact.additional_attributes['organization']
+      end
+    end
+    
+    return nil if orgs.empty?
+    orgs.uniq.join(', ')
   end
 
   def enhanced_comment_with_agent(comment_body)
@@ -271,5 +358,147 @@ class Api::V1::Accounts::Integrations::JiraController < Api::V1::Accounts::BaseC
 
   def fetch_hook
     @hook = Current.account.hooks.find_by!(app_id: 'jira')
+  end
+
+  def extract_organization_labels
+    return [] unless @conversation&.contact
+    
+    contact = @conversation.contact
+    org_labels = []
+    
+    # Check contact's custom attributes for organization data
+    if contact.custom_attributes.present?
+      # Common organization field names to check
+      org_fields = ['organization', 'company', 'org', 'company_name', 'organisation', 'slug']
+      
+      org_fields.each do |field|
+        if contact.custom_attributes[field].present?
+          # Convert organization name to a valid JIRA label format
+          # JIRA labels can't have spaces, special characters, etc.
+          label = sanitize_jira_label(contact.custom_attributes[field])
+          org_labels << label if label.present?
+        end
+      end
+    end
+    
+    # Also check additional attributes
+    if contact.additional_attributes.present?
+      if contact.additional_attributes['company_name'].present?
+        label = sanitize_jira_label(contact.additional_attributes['company_name'])
+        org_labels << label if label.present?
+      end
+      if contact.additional_attributes['organization'].present?
+        label = sanitize_jira_label(contact.additional_attributes['organization'])
+        org_labels << label if label.present?
+      end
+    end
+    
+    # Remove duplicates and return
+    org_labels.uniq.compact
+  end
+
+  def sanitize_jira_label(text)
+    return nil if text.blank?
+    
+    # JIRA labels must be alphanumeric with no spaces
+    # Convert to lowercase, replace spaces/special chars with underscores, limit length
+    sanitized = text.to_s
+                   .downcase
+                   .gsub(/[^a-z0-9_-]/, '_')  # Replace non-alphanumeric chars with underscore
+                   .gsub(/_+/, '_')           # Replace multiple underscores with single
+                   .gsub(/^_+|_+$/, '')       # Remove leading/trailing underscores
+                   .slice(0, 50)              # Limit to 50 characters
+    
+    # Ensure it doesn't start with a number (JIRA requirement)
+    sanitized = "org_#{sanitized}" if sanitized.match?(/^\d/)
+    
+    sanitized.present? ? sanitized : nil
+  end
+
+  # Add method to update labels on an existing JIRA issue
+  def add_organization_labels_to_issue(issue_key)
+    org_labels = extract_organization_labels
+    return if org_labels.empty?
+
+    # Add Chatwoot label as well
+    labels_to_add = org_labels + ['chatwoot']
+    
+    Rails.logger.info("JIRA: Adding organization labels to issue #{issue_key}: #{labels_to_add}")
+    
+    begin
+      # Get current issue to retrieve existing labels
+      current_issue = jira_processor_service.get_issue(issue_key)
+      if current_issue[:error]
+        Rails.logger.warn("JIRA: Could not retrieve issue #{issue_key} to add labels: #{current_issue[:error]}")
+        return
+      end
+      
+      # Get existing labels from the issue
+      existing_labels = current_issue.dig(:data, :labels) || []
+      Rails.logger.info("JIRA: Issue #{issue_key} existing labels: #{existing_labels}")
+      
+      # Get all organizations from ALL conversations linked to this issue
+      all_org_labels = get_all_organization_labels_for_issue(issue_key)
+      Rails.logger.info("JIRA: All organization labels for issue #{issue_key}: #{all_org_labels}")
+      
+      # Combine existing labels with all organization labels, removing duplicates
+      all_labels = (existing_labels + all_org_labels + ['chatwoot']).uniq
+      Rails.logger.info("JIRA: Final labels for issue #{issue_key}: #{all_labels}")
+      
+      # Update the issue with the new labels
+      update_result = jira_processor_service.update_issue_labels(issue_key, all_labels)
+      if update_result[:error]
+        Rails.logger.warn("JIRA: Could not add labels to issue #{issue_key}: #{update_result[:error]}")
+      else
+        Rails.logger.info("JIRA: Successfully updated labels for issue #{issue_key}")
+      end
+    rescue StandardError => e
+      Rails.logger.error("JIRA: Error adding labels to issue #{issue_key}: #{e.message}")
+    end
+  end
+
+  # Get organization labels from all conversations linked to this JIRA issue
+  def get_all_organization_labels_for_issue(issue_key)
+    all_org_labels = []
+    
+    # Find all conversations linked to this JIRA issue
+    linked_conversations = JiraIssueLink.for_issue(issue_key)
+                                       .includes(:conversation)
+                                       .where(account: Current.account)
+    
+    Rails.logger.info("JIRA: Found #{linked_conversations.count} conversations linked to issue #{issue_key}")
+    
+    linked_conversations.each do |link|
+      conversation = link.conversation
+      next unless conversation&.contact
+      
+      # Extract organization labels for this conversation's contact
+      contact = conversation.contact
+      
+      # Check custom attributes
+      if contact.custom_attributes.present?
+        org_fields = ['organization', 'company', 'org', 'company_name', 'organisation', 'slug']
+        org_fields.each do |field|
+          if contact.custom_attributes[field].present?
+            label = sanitize_jira_label(contact.custom_attributes[field])
+            all_org_labels << label if label.present?
+          end
+        end
+      end
+      
+      # Check additional attributes
+      if contact.additional_attributes.present?
+        if contact.additional_attributes['company_name'].present?
+          label = sanitize_jira_label(contact.additional_attributes['company_name'])
+          all_org_labels << label if label.present?
+        end
+        if contact.additional_attributes['organization'].present?
+          label = sanitize_jira_label(contact.additional_attributes['organization'])
+          all_org_labels << label if label.present?
+        end
+      end
+    end
+    
+    all_org_labels.uniq.compact
   end
 end

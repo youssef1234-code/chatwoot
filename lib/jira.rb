@@ -278,14 +278,22 @@ class Jira
     raise ArgumentError, 'Missing link' if url.blank?
 
     begin
+      Rails.logger.info("JIRA: Searching for issues linked to URL: #{url}")
+      
       # Search for issues that contain the URL in comments
       escaped_url = url.gsub('"', '\\"')
       jql_query = "comment ~ \"#{escaped_url}\""
       
+      Rails.logger.info("JIRA: Using JQL query: #{jql_query}")
+      
       issues = @client.Issue.jql(jql_query, max_results: 50)
-      issues.map do |issue|
+      Rails.logger.info("JIRA: Found #{issues.length} issues")
+      
+      result = issues.map do |issue|
         # Find the comment ID that contains the URL
         comment_id = find_comment_with_url(issue, url)
+        
+        Rails.logger.info("JIRA: Issue #{issue.key} has comment_id: #{comment_id || 'nil'}")
         
         {
           'id' => issue.id,
@@ -294,6 +302,9 @@ class Jira
           'comment_id' => comment_id
         }
       end
+      
+      Rails.logger.info("JIRA: Returning #{result.length} linked issues")
+      result
     rescue StandardError => e
       Rails.logger.error("JIRA linked_issues error: #{e.message}")
       { error: e.message }
@@ -410,10 +421,35 @@ class Jira
   end
 
   # Delete a comment
-  def delete_comment(_issue_key, comment_id)
+  def delete_comment(issue_key, comment_id)
+    raise ArgumentError, 'Missing issue key' if issue_key.blank?
+    raise ArgumentError, 'Missing comment id' if comment_id.blank?
+
     begin
-      comment = @client.Comment.find(comment_id)
-      comment.delete
+      Rails.logger.info("JIRA: Deleting comment #{comment_id} from issue #{issue_key}")
+      
+      # Use HTTParty to delete the comment
+      response = HTTParty.delete(
+        "#{@site_url}/rest/api/2/issue/#{issue_key}/comment/#{comment_id}",
+        headers: auth_headers,
+        timeout: 30
+      )
+      
+      Rails.logger.info("JIRA: Delete comment response code: #{response.code}")
+      
+      if response.code.to_i >= 400
+        error_message = if response.parsed_response.is_a?(Hash) && response.parsed_response['errorMessages']
+                          response.parsed_response['errorMessages'].join(', ')
+                        elsif response.parsed_response.is_a?(Hash) && response.parsed_response['errors']
+                          response.parsed_response['errors'].values.join(', ')
+                        else
+                          "HTTP #{response.code}: #{response.message}"
+                        end
+        
+        Rails.logger.error("JIRA: Delete comment failed: #{error_message}")
+        return { error: error_message }
+      end
+      
       { success: true }
     rescue StandardError => e
       Rails.logger.error("JIRA delete_comment error: #{e.message}")
@@ -617,13 +653,72 @@ class Jira
   # Find comment ID that contains a specific URL
   def find_comment_with_url(issue, url)
     begin
-      issue.comments.each do |comment|
-        return comment.id if comment.body&.include?(url)
+      Rails.logger.info("JIRA: Looking for comment with URL '#{url}' in issue #{issue.key}")
+      
+      if issue.comments.nil? || issue.comments.empty?
+        Rails.logger.warn("JIRA: No comments found for issue #{issue.key}")
+        return nil
       end
+      
+      issue.comments.each do |comment|
+        if comment.body&.include?(url)
+          Rails.logger.info("JIRA: Found matching comment #{comment.id} in issue #{issue.key}")
+          return comment.id
+        end
+      end
+      
+      Rails.logger.warn("JIRA: No comment containing URL found in issue #{issue.key}")
       nil
     rescue StandardError => e
-      Rails.logger.error("JIRA find_comment_with_url error: #{e.message}")
+      Rails.logger.error("JIRA find_comment_with_url error for issue #{issue.key}: #{e.message}")
       nil
+    end
+  end
+
+  # Update labels on an existing JIRA issue
+  def update_issue_labels(issue_key, labels)
+    raise ArgumentError, 'Missing issue key' if issue_key.blank?
+    
+    begin
+      Rails.logger.info("JIRA: Updating labels for issue #{issue_key} with: #{labels}")
+      
+      # Prepare the update data
+      update_data = {
+        'fields' => {
+          'labels' => labels || []
+        }
+      }
+
+      # Use HTTParty to update the issue
+      response = HTTParty.put(
+        "#{@site_url}/rest/api/2/issue/#{issue_key}",
+        headers: auth_headers.merge({
+          'Content-Type' => 'application/json',
+          'Accept' => 'application/json'
+        }),
+        body: update_data.to_json,
+        timeout: 30
+      )
+      
+      Rails.logger.info("JIRA: Update labels response code: #{response.code}")
+      
+      if response.code.to_i >= 400
+        error_message = if response.parsed_response.is_a?(Hash) && response.parsed_response['errorMessages']
+                          response.parsed_response['errorMessages'].join(', ')
+                        elsif response.parsed_response.is_a?(Hash) && response.parsed_response['errors']
+                          response.parsed_response['errors'].values.join(', ')
+                        else
+                          "HTTP #{response.code}: #{response.message}"
+                        end
+        
+        Rails.logger.error("JIRA: Update labels failed: #{error_message}")
+        return { error: error_message }
+      end
+      
+      { success: true, labels: labels }
+    rescue StandardError => e
+      Rails.logger.error("JIRA update_issue_labels error: #{e.message}")
+      { error: e.message }
     end
   end
 end

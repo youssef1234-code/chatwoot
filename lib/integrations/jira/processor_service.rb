@@ -53,34 +53,44 @@ class Integrations::Jira::ProcessorService
     }
   end
 
-  def link_issue(url, issue_key, title)
-    response = jira_client.link_issue(issue_key, url, title)
-    
-    # Handle error responses (can have string or symbol keys)
-    if response.is_a?(Hash) && (response[:error] || response['error'])
-      return response
-    end
+  def link_issue(conversation_data, issue_key, title, user: nil)
+    begin
+      # Add a comment to JIRA (optional - for reference)
+      comment_response = jira_client.link_issue(issue_key, conversation_data[:url], title)
+      comment_id = comment_response.is_a?(Hash) && !comment_response[:error] ? comment_response['id'] : nil
+      
+      # Store the link in our database
+      link = JiraIssueLink.link_issue(
+        conversation_data[:conversation], 
+        issue_key, 
+        comment_id: comment_id,
+        user: user
+      )
 
-    {
-      data: {
-        issue_key: issue_key,
-        url: url,
-        comment_id: response['id']
+      {
+        data: {
+          issue_key: issue_key,
+          url: conversation_data[:url],
+          comment_id: comment_id,
+          linked_at: link.linked_at
+        }
       }
-    }
+    rescue StandardError => e
+      Rails.logger.error("JIRA link_issue error: #{e.message}")
+      { error: e.message }
+    end
   end
 
-  def unlink_issue(issue_key, comment_id)
-    response = jira_client.unlink_issue(issue_key, comment_id)
-    
-    # Handle error responses (can have string or symbol keys)
-    if response.is_a?(Hash) && (response[:error] || response['error'])
-      return response
+  def unlink_issue(conversation_id, issue_key, _comment_id = nil)
+    begin
+      # Simply remove from our database - don't touch JIRA
+      JiraIssueLink.unlink_issue(conversation_id, issue_key)
+      
+      { data: { success: true, issue_key: issue_key } }
+    rescue StandardError => e
+      Rails.logger.error("JIRA unlink_issue error: #{e.message}")
+      { error: e.message }
     end
-
-    {
-      data: { issue_key: issue_key, comment_id: comment_id }
-    }
   end
 
   def search_issue(query)
@@ -108,30 +118,45 @@ class Integrations::Jira::ProcessorService
     { data: issues }
   end
 
-  def linked_issues(url)
-    response = jira_client.linked_issues(url)
-    
-    # Handle error responses (can have string or symbol keys)
-    if response.is_a?(Hash) && (response[:error] || response['error'])
-      return response
-    end
+  def linked_issues(conversation_id)
+    begin
+      # Get linked issue keys from our database
+      linked_issue_keys = JiraIssueLink.linked_issues_for_conversation(conversation_id)
+      
+      if linked_issue_keys.empty?
+        return { data: [] }
+      end
 
-    # Handle successful response (array of issues)
-    issues_array = response.is_a?(Array) ? response : []
-    issues = issues_array.map do |issue|
-      {
-        key: issue['key'],
-        summary: issue['fields']['summary'],
-        status: issue['fields']['status']['name'],
-        assignee: issue['fields']['assignee']&.dig('displayName'),
-        priority: issue['fields']['priority']&.dig('name'),
-        issueType: issue['fields']['issuetype']['name'],
-        url: "#{jira_site_url}/browse/#{issue['key']}",
-        id: issue['key'] # Use key as ID for frontend compatibility
-      }
-    end
+      # Fetch issue details from JIRA for each linked issue
+      issues = []
+      linked_issue_keys.each do |issue_key|
+        begin
+          issue_response = jira_client.get_issue(issue_key)
+          next if issue_response.is_a?(Hash) && (issue_response[:error] || issue_response['error'])
 
-    { data: issues }
+          issue = issue_response
+          issues << {
+            key: issue['key'],
+            summary: issue['fields']['summary'],
+            status: issue['fields']['status']['name'],
+            assignee: issue['fields']['assignee']&.dig('displayName'),
+            priority: issue['fields']['priority']&.dig('name'),
+            issueType: issue['fields']['issuetype']['name'],
+            url: "#{jira_site_url}/browse/#{issue['key']}",
+            id: issue['key'], # Use key as ID for frontend compatibility
+            commentId: issue_key # Use issue_key as commentId for backward compatibility
+          }
+        rescue StandardError => e
+          Rails.logger.error("JIRA: Error fetching issue #{issue_key}: #{e.message}")
+          # Continue with other issues
+        end
+      end
+
+      { data: issues }
+    rescue StandardError => e
+      Rails.logger.error("JIRA linked_issues error: #{e.message}")
+      { error: e.message }
+    end
   end
 
   def get_issue(issue_key)
@@ -154,6 +179,7 @@ class Integrations::Jira::ProcessorService
         issueType: issue['fields']['issuetype']['name'],
         created: issue['fields']['created'],
         updated: issue['fields']['updated'],
+        labels: issue['fields']['labels'] || [],
         url: "#{jira_site_url}/browse/#{issue['key']}"
       }
     }
@@ -195,6 +221,17 @@ class Integrations::Jira::ProcessorService
     end
 
     { data: response }
+  end
+
+  def update_issue_labels(issue_key, labels)
+    response = jira_client.update_issue_labels(issue_key, labels)
+    
+    # Handle error responses (can have string or symbol keys)
+    if response.is_a?(Hash) && (response[:error] || response['error'])
+      return response
+    end
+
+    { data: { success: true, labels: labels } }
   end
 
   private

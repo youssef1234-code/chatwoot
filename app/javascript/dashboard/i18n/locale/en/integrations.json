@@ -9,6 +9,11 @@
       "REFRESH_ERROR": "Failed to refresh issue status",
       "LINKED_ISSUES_COUNT": "{count} linked issue(s)",
       "ISSUE_NOT_FOUND": "Issue not found",
+      "UNLINK": {
+        "TITLE": "Unlink",
+        "SUCCESS": "Issue unlinked successfully",
+        "ERROR": "There was an error unlinking the issue, please try again"
+      },
       "COMMENTS": {
         "TITLE": "Comments",
         "ADD_COMMENT": "Add Comment",
@@ -489,6 +494,9 @@
       },
       "NO_LINKED_ISSUES": "No linked issues found",
       "MORE_ISSUES": "more",
+      "VIEW_ALL": "View all JIRA issues",
+      "SHOW_LESS": "Show less",
+      "UNLINK_ISSUE": "Unlink issue",
       "DELETE": {
         "TITLE": "Are you sure you want to delete the integration?",
         "MESSAGE": "Are you sure you want to delete the integration?",

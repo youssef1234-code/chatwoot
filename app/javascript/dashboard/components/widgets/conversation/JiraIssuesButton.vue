@@ -2,6 +2,7 @@
 import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { useStore } from 'vuex';
 import { useI18n } from 'vue-i18n';
+import { useDebounceFn } from '@vueuse/core';
 import ButtonV4 from 'dashboard/components-next/button/Button.vue';
 import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
 import { useToggle } from '@vueuse/core';
@@ -61,7 +62,20 @@ const menuItems = computed(() => {
 const fetchLinkedIssues = async () => {
   if (!isJiraConnected.value) return;
   
+  // Prevent concurrent calls but allow retries if stuck
+  if (isLoading.value) {
+    console.log('JIRA fetch already in progress, skipping...');
+    return;
+  }
+  
   isLoading.value = true;
+  
+  // Add a timeout to prevent stuck loading state
+  const timeoutId = setTimeout(() => {
+    console.warn('JIRA API call timed out, resetting loading state');
+    isLoading.value = false;
+  }, 10000); // 10 second timeout
+  
   try {
     const response = await JiraAPI.getLinkedIssues(props.conversationId);
     linkedIssues.value = response.data || [];
@@ -69,9 +83,14 @@ const fetchLinkedIssues = async () => {
     console.error('Failed to fetch linked JIRA issues:', error);
     linkedIssues.value = [];
   } finally {
+    // Ensure loading state is always reset
+    clearTimeout(timeoutId);
     isLoading.value = false;
   }
 };
+
+// Debounce the fetch function to prevent rapid successive calls
+const debouncedFetchLinkedIssues = useDebounceFn(fetchLinkedIssues, 500);
 
 const handleAction = ({ action, value, url }) => {
   toggleDropdown(false);
@@ -116,20 +135,25 @@ const handleOpenAllIssues = (event) => {
   }
 };
 
+const handleJiraIssuesUpdated = () => {
+  // Force reload of issues when updated
+  debouncedFetchLinkedIssues();
+};
+
 onMounted(() => {
   if (isJiraConnected.value) {
-    fetchLinkedIssues();
+    debouncedFetchLinkedIssues();
   }
   
   // Listen for updates from other JIRA components
-  window.addEventListener('jira:issues-updated', fetchLinkedIssues);
+  window.addEventListener('jira:issues-updated', handleJiraIssuesUpdated);
   
   // Listen for "open all issues" event from JIRA tags
   window.addEventListener('jira:open-all-issues', handleOpenAllIssues);
 });
 
 onUnmounted(() => {
-  window.removeEventListener('jira:issues-updated', fetchLinkedIssues);
+  window.removeEventListener('jira:issues-updated', handleJiraIssuesUpdated);
   window.removeEventListener('jira:open-all-issues', handleOpenAllIssues);
 });
 </script>

@@ -5,6 +5,7 @@ import { useAlert } from 'dashboard/composables';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import JiraAPI from 'dashboard/api/integrations/jira';
 import JiraComments from './JiraComments.vue';
+import { parseJiraAPIErrorResponse } from './helpers/apiErrorHelper';
 
 const props = defineProps({
   issue: {
@@ -39,10 +40,11 @@ const lastUpdated = computed(() => {
 });
 
 const handleUnlink = () => {
-  // In JIRA, we need both issue key and comment ID to unlink
-  // For simplicity, we'll use the issue key as comment_id for now
-  // In a full implementation, you'd store the actual comment ID when linking
-  emit('unlink', issueKey.value, issueKey.value);
+  // Since we're using database-backed linking, we don't need to validate commentId anymore
+  // Just pass a dummy value to maintain API compatibility
+  const commentId = issueDetails.value.commentId || issueDetails.value.comment_id || 'database-link';
+  
+  emit('unlink', issueKey.value, commentId);
 };
 
 const openIssue = () => {
@@ -209,20 +211,20 @@ const getStatusColor = (status) => {
             <i class="ri-external-link-line" />
             {{ $t('INTEGRATION.JIRA.VIEW_IN_JIRA') }}
           </NextButton>
+          
+          <NextButton
+            v-tooltip="$t('INTEGRATION.JIRA.UNLINK.TITLE')"
+            size="tiny"
+            variant="ghost"
+            color-scheme="alert"
+            class="hover:bg-red-50 hover:text-red-700"
+            @click="handleUnlink"
+          >
+            <i class="ri-link-unlink" />
+            {{ $t('INTEGRATION.JIRA.UNLINK.TITLE') }}
+          </NextButton>
         </div>
       </div>
-
-      <!-- Unlink button -->
-      <NextButton
-        v-tooltip="$t('INTEGRATION.JIRA.UNLINK_ISSUE')"
-        size="tiny"
-        variant="ghost"
-        color-scheme="alert"
-        class="hover:bg-red-50 hover:text-red-700 flex-shrink-0"
-        @click="handleUnlink"
-      >
-        <i class="ri-link-unlink" />
-      </NextButton>
     </div>
   </div>
 
