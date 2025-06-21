@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 import { useStore } from 'vuex';
 import NextButton from 'dashboard/components-next/button/Button.vue';
+import FluentIcon from 'shared/components/FluentIcon/Index.vue';
 import JiraAPI from 'dashboard/api/integrations/jira';
 
 const props = defineProps({
@@ -123,115 +124,103 @@ const isFromChatwoot = (comment) => {
   return comment.author?.chatwootAgent || comment.body?.includes('[Chatwoot Agent]');
 };
 
+const showModal = ref(true);
+
+const closeModal = () => {
+  showModal.value = false;
+  emit('close');
+};
+
 onMounted(() => {
   loadComments();
 });
 </script>
 
 <template>
-  <!-- Blurred Background Overlay -->
-  <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-    <!-- Backdrop with blur -->
-    <div 
-      class="absolute inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm"
-      @click="emit('close')"
-    ></div>
-    
-    <!-- Modal Content -->
-    <div class="relative bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col">
-      <!-- Header -->
-      <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-600 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-slate-700 dark:to-slate-600 rounded-t-xl">
-        <div class="flex items-center">
-          <div class="flex items-center justify-center w-10 h-10 bg-blue-100 dark:bg-blue-900/50 rounded-lg mr-3">
-            <!-- Fallback: Use emoji or text instead of icon -->
-            <i class="ri-chat-3-line text-blue-600 dark:text-blue-400 text-lg"></i>
-            <!-- Fallback option if icon doesn't work -->
-            <span class="text-blue-600 dark:text-blue-400 text-lg font-bold" style="display: none;">💬</span>
-          </div>
-          <div>
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-slate-100">
-              {{ t('INTEGRATION.JIRA.COMMENTS.TITLE') }}
-            </h3>
-            <p class="text-sm text-gray-600 dark:text-slate-400">{{ issueKey }}</p>
-          </div>
+  <woot-modal v-model:show="showModal" :on-close="closeModal" size="medium">
+    <div class="flex flex-col h-auto overflow-hidden">
+      <!-- Modal Header -->
+      <woot-modal-header 
+        :header-title="t('INTEGRATION.JIRA.COMMENTS.TITLE')"
+        :header-content="issueKey"
+      >
+        <div class="flex items-center mt-3">
+          <FluentIcon icon="chat" size="20" class="text-blue-600 dark:text-blue-400 mr-2" />
+          <span class="text-sm text-slate-600 dark:text-slate-400">
+            {{ t('INTEGRATION.JIRA.COMMENTS.SUBTITLE') }}
+          </span>
         </div>
-        <NextButton
-          size="small"
-          variant="ghost"
-          color-scheme="secondary"
-          class="hover:bg-gray-100 dark:hover:bg-slate-700"
-          @click="emit('close')"
-        >
-          <!-- Fallback for close icon -->
-          <i class="ri-close-line text-lg"></i>
-          <span class="text-lg" style="display: none;">✕</span>
-        </NextButton>
-      </div>
+      </woot-modal-header>
 
       <!-- Comments List -->
-      <div class="flex-1 overflow-y-auto p-6 bg-gray-50 dark:bg-slate-900">
-        <div v-if="isLoading" class="text-center py-12">
-          <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-blue-600 dark:border-blue-400 border-t-transparent"></div>
-          <p class="mt-4 text-sm text-gray-600 dark:text-slate-400">{{ t('INTEGRATION.JIRA.COMMENTS.LOADING') }}</p>
+      <div class="flex-1 overflow-y-auto max-h-96 px-8">
+        <!-- Loading State -->
+        <div v-if="isLoading" class="flex flex-col items-center justify-center py-12">
+          <div class="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          <p class="mt-4 text-sm text-slate-600 dark:text-slate-400">
+            {{ t('INTEGRATION.JIRA.COMMENTS.LOADING') }}
+          </p>
         </div>
 
-        <div v-else-if="!hasComments" class="text-center py-12">
-          <div class="flex items-center justify-center w-16 h-16 bg-gray-200 dark:bg-slate-600 rounded-full mx-auto mb-4">
-            <!-- Fallback for empty state icon -->
-            <i class="ri-chat-3-line text-gray-500 dark:text-slate-400 text-2xl"></i>
-            <span class="text-gray-500 dark:text-slate-400 text-2xl" style="display: none;">💬</span>
-          </div>
-          <p class="text-gray-500 dark:text-slate-400 text-lg">{{ t('INTEGRATION.JIRA.COMMENTS.NO_COMMENTS') }}</p>
-          <p class="text-gray-400 dark:text-slate-500 text-sm mt-2">Be the first to add a comment</p>
+        <!-- Empty State -->
+        <div v-else-if="!hasComments" class="flex flex-col items-center justify-center py-12">
+          <FluentIcon icon="chat" size="48" class="text-slate-400 dark:text-slate-500 mb-4" />
+          <h3 class="text-lg font-medium text-slate-900 dark:text-slate-100 mb-2">
+            {{ t('INTEGRATION.JIRA.COMMENTS.NO_COMMENTS') }}
+          </h3>
+          <p class="text-sm text-slate-600 dark:text-slate-400">
+            {{ t('INTEGRATION.JIRA.COMMENTS.NO_COMMENTS_DESC') }}
+          </p>
         </div>
 
-        <div v-else class="space-y-4">
+        <!-- Comments -->
+        <div v-else class="space-y-4 py-4">
           <div
             v-for="comment in sortedComments"
             :key="comment.id"
+            class="border border-slate-200 dark:border-slate-700 rounded-lg p-4"
             :class="{
-              'bg-blue-50 dark:bg-blue-950/50': isFromChatwoot(comment),
+              'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800': isFromChatwoot(comment),
               'bg-white dark:bg-slate-800': !isFromChatwoot(comment)
             }"
-            class="rounded-lg p-4 shadow-sm border border-gray-200 dark:border-slate-600"
           >
+            <!-- Comment Header -->
             <div class="flex items-start justify-between mb-3">
               <div class="flex items-center">
-                <!-- User Avatar with proper fallback -->
                 <div class="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full text-white text-sm font-medium mr-3 flex-shrink-0">
                   {{ (comment.author?.displayName || 'U').charAt(0).toUpperCase() }}
                 </div>
                 <div>
-                  <span class="font-medium text-sm text-gray-900 dark:text-slate-100">
-                    {{ getAuthorDisplayName(comment) }}
-                  </span>
-                  <div class="flex items-center mt-1">
-                    <span class="text-xs text-gray-500 dark:text-slate-400">
-                      {{ formatDate(comment.created) }}
+                  <div class="flex items-center">
+                    <span class="font-medium text-sm text-slate-900 dark:text-slate-100">
+                      {{ getAuthorDisplayName(comment) }}
                     </span>
-                    <span v-if="isFromChatwoot(comment)" class="ml-2 px-2 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-xs rounded-full">
+                    <span v-if="isFromChatwoot(comment)" class="ml-2 px-2 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-xs rounded-full font-medium">
                       Chatwoot
                     </span>
                   </div>
+                  <span class="text-xs text-slate-500 dark:text-slate-400">
+                    {{ formatDate(comment.created) }}
+                  </span>
                 </div>
               </div>
             </div>
-            <div class="prose prose-sm max-w-none">
-              <div class="text-sm text-gray-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">{{ comment.body }}</div>
+
+            <!-- Comment Body -->
+            <div class="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
+              {{ comment.body }}
             </div>
             
             <!-- Comment Attachments -->
-            <div v-if="comment.attachments && comment.attachments.length > 0" class="mt-3 pt-3 border-t border-gray-200 dark:border-slate-500">
+            <div v-if="comment.attachments && comment.attachments.length > 0" class="mt-3 pt-3 border-t border-slate-200 dark:border-slate-600">
               <div class="flex flex-wrap gap-2">
                 <div
                   v-for="attachment in comment.attachments"
                   :key="attachment.id"
-                  class="flex items-center px-3 py-2 bg-gray-100 dark:bg-slate-700 rounded-lg text-xs"
+                  class="flex items-center px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg text-xs"
                 >
-                  <!-- Fallback for attachment icon -->
-                  <i class="ri-attachment-line mr-2 text-gray-500 dark:text-slate-400"></i>
-                  <span class="mr-2 text-gray-500 dark:text-slate-400" style="display: none;">📎</span>
-                  <span class="text-gray-700 dark:text-slate-300">{{ attachment.filename }}</span>
+                  <FluentIcon icon="attach" size="12" class="mr-2 text-slate-500 dark:text-slate-400" />
+                  <span class="text-slate-700 dark:text-slate-300">{{ attachment.filename }}</span>
                 </div>
               </div>
             </div>
@@ -240,51 +229,51 @@ onMounted(() => {
       </div>
 
       <!-- Add Comment Form -->
-      <div class="border-t border-gray-200 dark:border-slate-600 p-6 bg-white dark:bg-slate-800 rounded-b-xl">
+      <div class="border-t border-slate-200 dark:border-slate-700 px-8 pb-8 pt-6">
         <!-- Attachments Preview -->
-        <div v-if="attachments.length > 0" class="mb-4 p-3 bg-gray-100 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-600">
+        <div v-if="attachments.length > 0" class="mb-4 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-600">
           <div class="flex items-center justify-between mb-2">
-            <span class="text-sm font-medium text-gray-700 dark:text-slate-200">Attachments</span>
-            <span class="text-xs text-gray-500 dark:text-slate-400">{{ attachments.length }} file(s)</span>
+            <span class="text-sm font-medium text-slate-700 dark:text-slate-200">
+              {{ t('INTEGRATION.JIRA.ATTACHMENTS.TITLE') }}
+            </span>
+            <span class="text-xs text-slate-500 dark:text-slate-400">
+              {{ attachments.length }} {{ t('INTEGRATION.JIRA.ATTACHMENTS.FILES') }}
+            </span>
           </div>
           <div class="space-y-2">
             <div
               v-for="(attachment, index) in attachments"
               :key="index"
-              class="flex items-center justify-between p-2 bg-white dark:bg-slate-700 rounded border border-gray-100 dark:border-slate-600"
+              class="flex items-center justify-between p-2 bg-white dark:bg-slate-700 rounded border border-slate-100 dark:border-slate-600"
             >
               <div class="flex items-center">
-                <!-- Fallback for file icon -->
-                <i class="ri-file-line mr-2 text-gray-500 dark:text-slate-400"></i>
-                <span class="mr-2 text-gray-500 dark:text-slate-400" style="display: none;">📄</span>
-                <span class="text-sm text-gray-700 dark:text-slate-200">{{ attachment.filename }}</span>
-                <span class="text-xs text-gray-500 dark:text-slate-400 ml-2">({{ formatFileSize(attachment.size) }})</span>
+                <FluentIcon icon="document" size="16" class="mr-2 text-slate-500 dark:text-slate-400" />
+                <span class="text-sm text-slate-700 dark:text-slate-200">{{ attachment.filename }}</span>
+                <span class="text-xs text-slate-500 dark:text-slate-400 ml-2">
+                  ({{ formatFileSize(attachment.size) }})
+                </span>
               </div>
               <button
                 type="button"
-                class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1"
+                class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
                 @click="removeAttachment(index)"
               >
-                <!-- Fallback for close icon -->
-                <i class="ri-close-line text-sm"></i>
-                <span class="text-sm" style="display: none;">✕</span>
+                <FluentIcon icon="delete" size="14" />
               </button>
             </div>
           </div>
         </div>
 
-        <div class="flex flex-col space-y-4">
-          <div class="relative">
-            <textarea
-              v-model="newComment"
-              :placeholder="t('INTEGRATION.JIRA.COMMENTS.PLACEHOLDER')"
-              class="w-full p-4 border border-gray-300 dark:border-slate-600 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 placeholder-gray-400 dark:placeholder-slate-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
-              rows="4"
-            />
-            <div class="absolute bottom-3 right-3 text-xs text-gray-400 dark:text-slate-500">
-              {{ newComment.length }}/10000
-            </div>
-          </div>
+        <!-- Comment Input -->
+        <div class="space-y-4">
+          <woot-input
+            v-model="newComment"
+            type="textarea"
+            :rows="4"
+            :placeholder="t('INTEGRATION.JIRA.COMMENTS.PLACEHOLDER')"
+            :label="t('INTEGRATION.JIRA.COMMENTS.INPUT_LABEL')"
+            class="w-full"
+          />
           
           <!-- File Upload -->
           <div class="flex items-center gap-3">
@@ -303,26 +292,26 @@ onMounted(() => {
               :is-loading="isUploadingAttachment"
               @click="fileInput?.click()"
             >
-              <!-- Fallback for attachment icon -->
-              <i class="ri-attachment-line mr-2"></i>
-              <span class="mr-2" style="display: none;">📎</span>
+              <FluentIcon icon="attach" size="16" class="mr-2" />
               {{ t('INTEGRATION.JIRA.ATTACHMENTS.UPLOAD') }}
             </NextButton>
-            <span class="text-xs text-gray-500 dark:text-slate-400">
+            <span class="text-xs text-slate-500 dark:text-slate-400">
               {{ t('INTEGRATION.JIRA.ATTACHMENTS.SUPPORTED_FORMATS') }}
             </span>
           </div>
           
-          <div class="flex justify-between items-center">
-            <div class="text-xs text-gray-500 dark:text-slate-400">
-              Comments will be posted as <strong>{{ currentUser.name }}</strong> (Chatwoot Agent)
+          <!-- Footer -->
+          <div class="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700">
+            <div class="text-xs text-slate-500 dark:text-slate-400">
+              {{ t('INTEGRATION.JIRA.COMMENTS.POSTING_AS') }} 
+              <strong>{{ currentUser.name }}</strong> ({{ t('INTEGRATION.JIRA.COMMENTS.CHATWOOT_AGENT') }})
             </div>
             <div class="flex space-x-3">
               <NextButton
                 size="medium"
                 variant="ghost"
                 color-scheme="secondary"
-                @click="emit('close')"
+                @click="closeModal"
               >
                 {{ t('INTEGRATION.JIRA.COMMENTS.CANCEL') }}
               </NextButton>
@@ -341,41 +330,5 @@ onMounted(() => {
         </div>
       </div>
     </div>
-  </div>
+  </woot-modal>
 </template>
-
-<style scoped>
-/* Fallback CSS for when icons don't load */
-.ri-chat-3-line:empty::before,
-.ri-close-line:empty::before,
-.ri-attachment-line:empty::before,
-.ri-file-line:empty::before,
-.ri-send-plane-line:empty::before {
-  content: '';
-}
-
-/* Show emoji fallbacks if icons are empty */
-.ri-chat-3-line:empty + span,
-.ri-close-line:empty + span,
-.ri-attachment-line:empty + span,
-.ri-file-line:empty + span,
-.ri-send-plane-line:empty + span {
-  display: inline !important;
-}
-
-/* Ensure proper border for textarea */
-textarea {
-  border: 1px solid #d1d5db;
-}
-
-/* Ensure user avatar circles are properly sized and visible */
-.w-8.h-8 {
-  min-width: 2rem;
-  min-height: 2rem;
-}
-
-.w-10.h-10 {
-  min-width: 2.5rem;
-  min-height: 2.5rem;
-}
-</style>

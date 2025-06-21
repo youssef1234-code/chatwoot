@@ -16,16 +16,21 @@
       },
       "COMMENTS": {
         "TITLE": "Comments",
+        "SUBTITLE": "Add and view comments for this Jira issue",
         "ADD_COMMENT": "Add Comment",
         "VIEW_ALL": "View All Comments",
         "PLACEHOLDER": "Add a comment...",
+        "INPUT_LABEL": "Add your comment",
         "SUBMIT": "Add Comment",
         "CANCEL": "Cancel",
         "LOADING": "Loading comments...",
         "LOAD_ERROR": "Failed to load comments",
         "ADD_SUCCESS": "Comment added successfully",
         "ADD_ERROR": "Failed to add comment",
-        "NO_COMMENTS": "No comments yet"
+        "NO_COMMENTS": "No comments yet",
+        "NO_COMMENTS_DESC": "Be the first to add a comment to this issue",
+        "POSTING_AS": "Posting as",
+        "CHATWOOT_AGENT": "Chatwoot Agent"
       },
       "ATTACHMENTS": {
         "TITLE": "Attachments",
