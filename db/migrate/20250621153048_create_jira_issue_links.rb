@@ -14,6 +14,5 @@ class CreateJiraIssueLinks < ActiveRecord::Migration[7.1]
     # Add indexes for efficient querying
     add_index :jira_issue_links, %i[conversation_id issue_key], unique: true
     add_index :jira_issue_links, :issue_key
-    add_index :jira_issue_links, :account_id
   end
 end
