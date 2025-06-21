@@ -126,8 +126,14 @@ class Api::V1::Accounts::Integrations::JiraController < Api::V1::Accounts::BaseC
     if issue[:error]
       render json: { error: issue[:error] }, status: :unprocessable_entity
     else
-      # Add organization labels to the issue when linking
-      add_organization_labels_to_issue(issue_key)
+      # Add organization labels to the issue when linking (asynchronously to avoid blocking)
+      # This ensures the linking succeeds even if label updating fails
+      begin
+        add_organization_labels_to_issue(issue_key)
+      rescue StandardError => e
+        Rails.logger.error("JIRA: Failed to update organization labels for issue #{issue_key}: #{e.message}")
+        # Continue with the response even if label update fails
+      end
       
       Jira::ActivityMessageService.new(
         conversation: @conversation,
@@ -147,6 +153,14 @@ class Api::V1::Accounts::Integrations::JiraController < Api::V1::Accounts::BaseC
     if issue[:error]
       render json: { error: issue[:error] }, status: :unprocessable_entity
     else
+      # Update organization labels after unlinking (remove labels if no more conversations from those companies)
+      begin
+        add_organization_labels_to_issue(issue_key)
+      rescue StandardError => e
+        Rails.logger.error("JIRA: Failed to update organization labels after unlinking issue #{issue_key}: #{e.message}")
+        # Continue with the response even if label update fails
+      end
+      
       Jira::ActivityMessageService.new(
         conversation: @conversation,
         action_type: :issue_unlinked,
@@ -417,32 +431,35 @@ class Api::V1::Accounts::Integrations::JiraController < Api::V1::Accounts::BaseC
 
   # Add method to update labels on an existing JIRA issue
   def add_organization_labels_to_issue(issue_key)
-    org_labels = extract_organization_labels
-    return if org_labels.empty?
+    Rails.logger.info("JIRA: Starting to add organization labels to issue #{issue_key}")
+    
+    # Get all organizations from ALL conversations linked to this issue
+    all_org_labels = get_all_organization_labels_for_issue(issue_key)
+    Rails.logger.info("JIRA: All organization labels for issue #{issue_key}: #{all_org_labels}")
+    
+    return if all_org_labels.empty?
 
     # Add Chatwoot label as well
-    labels_to_add = org_labels + ['chatwoot']
+    labels_to_add = all_org_labels + ['chatwoot']
     
     Rails.logger.info("JIRA: Adding organization labels to issue #{issue_key}: #{labels_to_add}")
     
     begin
       # Get current issue to retrieve existing labels
       current_issue = jira_processor_service.get_issue(issue_key)
-      if current_issue[:error]
-        Rails.logger.warn("JIRA: Could not retrieve issue #{issue_key} to add labels: #{current_issue[:error]}")
+      if current_issue.is_a?(Hash) && (current_issue[:error] || current_issue['error'])
+        Rails.logger.warn("JIRA: Could not retrieve issue #{issue_key} to add labels: #{current_issue[:error] || current_issue['error']}")
         return
       end
       
-      # Get existing labels from the issue
+      # Get existing labels from the issue (labels are in data.labels)
       existing_labels = current_issue.dig(:data, :labels) || []
+      # JIRA labels can be strings or objects with 'name' property
+      existing_labels = existing_labels.map { |label| label.is_a?(Hash) ? label['name'] : label }.compact
       Rails.logger.info("JIRA: Issue #{issue_key} existing labels: #{existing_labels}")
       
-      # Get all organizations from ALL conversations linked to this issue
-      all_org_labels = get_all_organization_labels_for_issue(issue_key)
-      Rails.logger.info("JIRA: All organization labels for issue #{issue_key}: #{all_org_labels}")
-      
       # Combine existing labels with all organization labels, removing duplicates
-      all_labels = (existing_labels + all_org_labels + ['chatwoot']).uniq
+      all_labels = (existing_labels + labels_to_add).uniq.compact
       Rails.logger.info("JIRA: Final labels for issue #{issue_key}: #{all_labels}")
       
       # Update the issue with the new labels
@@ -454,6 +471,7 @@ class Api::V1::Accounts::Integrations::JiraController < Api::V1::Accounts::BaseC
       end
     rescue StandardError => e
       Rails.logger.error("JIRA: Error adding labels to issue #{issue_key}: #{e.message}")
+      Rails.logger.error("JIRA: Error backtrace: #{e.backtrace}")
     end
   end
 
@@ -463,7 +481,7 @@ class Api::V1::Accounts::Integrations::JiraController < Api::V1::Accounts::BaseC
     
     # Find all conversations linked to this JIRA issue
     linked_conversations = JiraIssueLink.for_issue(issue_key)
-                                       .includes(:conversation)
+                                       .includes(conversation: :contact)
                                        .where(account: Current.account)
     
     Rails.logger.info("JIRA: Found #{linked_conversations.count} conversations linked to issue #{issue_key}")
@@ -472,8 +490,11 @@ class Api::V1::Accounts::Integrations::JiraController < Api::V1::Accounts::BaseC
       conversation = link.conversation
       next unless conversation&.contact
       
+      Rails.logger.debug("JIRA: Processing conversation #{conversation.id} for issue #{issue_key}")
+      
       # Extract organization labels for this conversation's contact
       contact = conversation.contact
+      org_labels_for_contact = []
       
       # Check custom attributes
       if contact.custom_attributes.present?
@@ -481,7 +502,10 @@ class Api::V1::Accounts::Integrations::JiraController < Api::V1::Accounts::BaseC
         org_fields.each do |field|
           if contact.custom_attributes[field].present?
             label = sanitize_jira_label(contact.custom_attributes[field])
-            all_org_labels << label if label.present?
+            if label.present?
+              org_labels_for_contact << label
+              Rails.logger.debug("JIRA: Found org label '#{label}' from custom_attributes.#{field} for contact #{contact.id}")
+            end
           end
         end
       end
@@ -490,15 +514,52 @@ class Api::V1::Accounts::Integrations::JiraController < Api::V1::Accounts::BaseC
       if contact.additional_attributes.present?
         if contact.additional_attributes['company_name'].present?
           label = sanitize_jira_label(contact.additional_attributes['company_name'])
-          all_org_labels << label if label.present?
+          if label.present?
+            org_labels_for_contact << label
+            Rails.logger.debug("JIRA: Found org label '#{label}' from additional_attributes.company_name for contact #{contact.id}")
+          end
         end
         if contact.additional_attributes['organization'].present?
           label = sanitize_jira_label(contact.additional_attributes['organization'])
-          all_org_labels << label if label.present?
+          if label.present?
+            org_labels_for_contact << label
+            Rails.logger.debug("JIRA: Found org label '#{label}' from additional_attributes.organization for contact #{contact.id}")
+          end
         end
       end
+      
+      # Check if contact name itself could be an organization
+      if contact.name.present? && org_labels_for_contact.empty?
+        potential_org = contact.name.strip
+      
+        # If name is in format: customerName(companyName), extract and use companyName directly
+        if potential_org =~ /\(([^)]+)\)/
+          potential_org = $1.strip
+        else
+          # Only check further if no (companyName) format
+          if potential_org.match?(/\b(ltd|llc|inc|corp|company|group|enterprises|solutions|technologies|systems|services)\b/i) ||
+             potential_org.length > 30 ||
+             !potential_org.match?(/\A[A-Z][a-z]+ [A-Z][a-z]+\z/) # Not a "First Last" format
+            # keep as-is
+          else
+            potential_org = nil # Not considered an org
+          end
+        end
+      
+        if potential_org.present?
+          label = sanitize_jira_label(potential_org)
+          if label.present?
+            org_labels_for_contact << label
+            Rails.logger.debug("JIRA: Found org label '#{label}' from contact name for contact #{contact.id}")
+          end
+        end
+      end
+      all_org_labels.concat(org_labels_for_contact)
+      Rails.logger.debug("JIRA: Contact #{contact.id} contributed labels: #{org_labels_for_contact}")
     end
     
-    all_org_labels.uniq.compact
+    final_labels = all_org_labels.uniq.compact
+    Rails.logger.info("JIRA: Final organization labels for issue #{issue_key}: #{final_labels}")
+    final_labels
   end
 end

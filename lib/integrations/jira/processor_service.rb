@@ -302,7 +302,13 @@ class Integrations::Jira::ProcessorService
   end
 
   def extract_description(description_obj)
-    return '' unless description_obj&.dig('content')
+    return '' unless description_obj
+    
+    # Handle string descriptions (plain text)
+    return description_obj if description_obj.is_a?(String)
+    
+    # Handle hash descriptions (Atlassian Document Format)
+    return '' unless description_obj.is_a?(Hash) && description_obj.dig('content')
 
     # Extract plain text from Atlassian Document Format
     description_obj['content'].map do |content_block|

@@ -237,20 +237,9 @@ const createIssue = async () => {
 
   try {
     isCreating.value = true;
-    
-    // Enhance description with conversation context
-    const conversationContext = `
-
----
-**Conversation Context:**
-- Conversation ID: #${props.conversationId}
-- Created from Chatwoot conversation
-- Link to conversation: ${window.location.origin}/app/accounts/${accountId}/conversations/${props.conversationId}
-`;
-
     const payload = {
       ...formState.value,
-      description: (formState.value.description || '') + conversationContext,
+      description: (formState.value.description || ''),
       conversation_id: props.conversationId
     };
 

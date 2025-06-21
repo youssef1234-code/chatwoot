@@ -565,6 +565,58 @@ class Jira
     client.add_comment(issue_key, comment_body)
   end
 
+  def self.update_issue_labels(access_token, site_url, issue_key, labels)
+    client = new(access_token, site_url)
+    client.update_issue_labels(issue_key, labels)
+  end
+
+  # Update labels on an existing JIRA issue
+  def update_issue_labels(issue_key, labels)
+    raise ArgumentError, 'Missing issue key' if issue_key.blank?
+    
+    begin
+      Rails.logger.info("JIRA: Updating labels for issue #{issue_key} with: #{labels}")
+      
+      # Prepare the update data
+      update_data = {
+        'fields' => {
+          'labels' => labels || []
+        }
+      }
+
+      # Use HTTParty to update the issue
+      response = HTTParty.put(
+        "#{@site_url}/rest/api/2/issue/#{issue_key}",
+        headers: auth_headers.merge({
+          'Content-Type' => 'application/json',
+          'Accept' => 'application/json'
+        }),
+        body: update_data.to_json,
+        timeout: 30
+      )
+      
+      Rails.logger.info("JIRA: Update labels response code: #{response.code}")
+      
+      if response.code.to_i >= 400
+        error_message = if response.parsed_response.is_a?(Hash) && response.parsed_response['errorMessages']
+                          response.parsed_response['errorMessages'].join(', ')
+                        elsif response.parsed_response.is_a?(Hash) && response.parsed_response['errors']
+                          response.parsed_response['errors'].values.join(', ')
+                        else
+                          "HTTP #{response.code}: #{response.message}"
+                        end
+        
+        Rails.logger.error("JIRA: Update labels failed: #{error_message}")
+        return { error: error_message }
+      end
+      
+      { success: true, labels: labels }
+    rescue StandardError => e
+      Rails.logger.error("JIRA update_issue_labels error: #{e.message}")
+      { error: e.message }
+    end
+  end
+
   private
 
   # Normalize site URL to ensure proper format
@@ -672,53 +724,6 @@ class Jira
     rescue StandardError => e
       Rails.logger.error("JIRA find_comment_with_url error for issue #{issue.key}: #{e.message}")
       nil
-    end
-  end
-
-  # Update labels on an existing JIRA issue
-  def update_issue_labels(issue_key, labels)
-    raise ArgumentError, 'Missing issue key' if issue_key.blank?
-    
-    begin
-      Rails.logger.info("JIRA: Updating labels for issue #{issue_key} with: #{labels}")
-      
-      # Prepare the update data
-      update_data = {
-        'fields' => {
-          'labels' => labels || []
-        }
-      }
-
-      # Use HTTParty to update the issue
-      response = HTTParty.put(
-        "#{@site_url}/rest/api/2/issue/#{issue_key}",
-        headers: auth_headers.merge({
-          'Content-Type' => 'application/json',
-          'Accept' => 'application/json'
-        }),
-        body: update_data.to_json,
-        timeout: 30
-      )
-      
-      Rails.logger.info("JIRA: Update labels response code: #{response.code}")
-      
-      if response.code.to_i >= 400
-        error_message = if response.parsed_response.is_a?(Hash) && response.parsed_response['errorMessages']
-                          response.parsed_response['errorMessages'].join(', ')
-                        elsif response.parsed_response.is_a?(Hash) && response.parsed_response['errors']
-                          response.parsed_response['errors'].values.join(', ')
-                        else
-                          "HTTP #{response.code}: #{response.message}"
-                        end
-        
-        Rails.logger.error("JIRA: Update labels failed: #{error_message}")
-        return { error: error_message }
-      end
-      
-      { success: true, labels: labels }
-    rescue StandardError => e
-      Rails.logger.error("JIRA update_issue_labels error: #{e.message}")
-      { error: e.message }
     end
   end
 end
