@@ -22,3 +22,8 @@ json.messages do
   end
 end
 json.account_id conversation.account_id
+json.jira_issue_links conversation.jira_issue_links do |link|
+  json.issue_key link.issue_key
+  json.linked_at link.linked_at
+  json.comment_id link.comment_id
+end

@@ -937,6 +937,7 @@ watch(conversationFilters, (newVal, oldVal) => {
               item.labels,
               item.uuid,
               item.inbox_id,
+              item.jira_issue_links,
             ]"
           >
             <ConversationItem

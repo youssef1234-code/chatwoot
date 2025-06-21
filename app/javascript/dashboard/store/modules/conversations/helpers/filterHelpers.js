@@ -143,6 +143,13 @@ const equalTo = (filterValue, conversationValue) => {
     }
   }
 
+  // Handle case where filterValue is single value but conversationValue is array
+  // This is needed for attributes like jira_issue_key where we want to check if
+  // the single filter value exists in the array of conversation values
+  if (Array.isArray(conversationValue)) {
+    return conversationValue.includes(filterValue);
+  }
+
   return conversationValue === filterValue;
 };
 
