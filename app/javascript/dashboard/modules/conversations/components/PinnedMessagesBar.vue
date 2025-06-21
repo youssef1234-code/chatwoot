@@ -119,8 +119,13 @@ export default {
 
 <style scoped lang="scss">
 .pinned-messages-bar {
-  border-bottom: 1px solid var(--color-border);
-  background-color: var(--color-background-light);
+  border-bottom: 1px solid rgb(var(--color-ash-200));
+  background-color: rgb(var(--color-ash-50));
+  
+  :global(.dark) & {
+    border-bottom-color: rgb(var(--color-ash-200));
+    background-color: rgb(var(--color-ash-50));
+  }
 }
 
 .pinned-message-preview {
@@ -131,12 +136,16 @@ export default {
   cursor: pointer;
 
   &:hover {
-    background-color: var(--color-background);
+    background-color: rgb(var(--color-ash-100));
+    
+    :global(.dark) & {
+      background-color: rgb(var(--color-ash-100));
+    }
   }
 }
 
 .pinned-icon {
-  color: var(--color-primary);
+  color: rgb(var(--color-primary-600));
   flex-shrink: 0;
 }
 
@@ -151,8 +160,12 @@ export default {
   gap: 8px;
   font-size: 12px;
   font-weight: 500;
-  color: var(--color-body);
+  color: rgb(var(--color-ash-700));
   margin-bottom: 4px;
+  
+  :global(.dark) & {
+    color: rgb(var(--color-ash-700));
+  }
 }
 
 .pinned-text {
@@ -161,16 +174,23 @@ export default {
 }
 
 .pinned-count {
-  color: var(--color-body);
-  opacity: 0.7;
+  color: rgb(var(--color-ash-600));
+  
+  :global(.dark) & {
+    color: rgb(var(--color-ash-600));
+  }
 }
 
 .pinned-message-content {
   font-size: 14px;
-  color: var(--color-body);
+  color: rgb(var(--color-ash-800));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  
+  :global(.dark) & {
+    color: rgb(var(--color-ash-800));
+  }
 }
 
 .pinned-actions {
@@ -185,25 +205,45 @@ export default {
   border-radius: 4px;
   border: none;
   background: transparent;
-  color: var(--color-body);
+  color: rgb(var(--color-ash-600));
   cursor: pointer;
   transition: all 0.2s ease;
 
   &:hover {
-    background-color: var(--color-background);
+    background-color: rgb(var(--color-ash-100));
+    color: rgb(var(--color-ash-800));
+    
+    :global(.dark) & {
+      background-color: rgb(var(--color-ash-100));
+      color: rgb(var(--color-ash-800));
+    }
   }
 
   &.close-button:hover {
-    background-color: var(--color-error-light);
-    color: var(--color-error);
+    background-color: rgb(var(--color-ruby-100));
+    color: rgb(var(--color-ruby-600));
+    
+    :global(.dark) & {
+      background-color: rgb(var(--color-ruby-100));
+      color: rgb(var(--color-ruby-600));
+    }
+  }
+  
+  :global(.dark) & {
+    color: rgb(var(--color-ash-600));
   }
 }
 
 .all-pinned-messages {
-  border-top: 1px solid var(--color-border);
-  background-color: var(--color-background-light);
+  border-top: 1px solid rgb(var(--color-ash-200));
+  background-color: rgb(var(--color-ash-50));
   max-height: 256px;
   overflow-y: auto;
+  
+  :global(.dark) & {
+    border-top-color: rgb(var(--color-ash-200));
+    background-color: rgb(var(--color-ash-50));
+  }
 }
 
 .pinned-message-item {
@@ -212,39 +252,58 @@ export default {
   gap: 12px;
   padding: 12px;
   cursor: pointer;
-  border-bottom: 1px solid var(--color-border-light);
+  border-bottom: 1px solid rgb(var(--color-ash-100));
 
   &:hover {
-    background-color: var(--color-background);
+    background-color: rgb(var(--color-ash-100));
+    
+    :global(.dark) & {
+      background-color: rgb(var(--color-ash-100));
+    }
   }
 
   &:last-child {
     border-bottom: none;
+  }
+  
+  :global(.dark) & {
+    border-bottom-color: rgb(var(--color-ash-100));
   }
 }
 
 .message-sender {
   font-size: 12px;
   font-weight: 500;
-  color: var(--color-body);
+  color: rgb(var(--color-ash-700));
   flex-shrink: 0;
   width: 80px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  
+  :global(.dark) & {
+    color: rgb(var(--color-ash-700));
+  }
 }
 
 .message-preview {
   flex: 1;
   min-width: 0;
   font-size: 14px;
-  color: var(--color-body);
+  color: rgb(var(--color-ash-800));
+  
+  :global(.dark) & {
+    color: rgb(var(--color-ash-800));
+  }
 }
 
 .message-time {
   font-size: 12px;
-  color: var(--color-body);
-  opacity: 0.6;
+  color: rgb(var(--color-ash-600));
   flex-shrink: 0;
+  
+  :global(.dark) & {
+    color: rgb(var(--color-ash-600));
+  }
 }
 </style>

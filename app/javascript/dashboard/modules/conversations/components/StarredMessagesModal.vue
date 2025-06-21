@@ -207,6 +207,10 @@ export default {
   height: 100%;
   background-color: rgba(0, 0, 0, 0.5);
   z-index: 9998;
+  
+  :global(.dark) & {
+    background-color: rgba(0, 0, 0, 0.7);
+  }
 }
 
 .starred-messages-popup {
@@ -217,7 +221,7 @@ export default {
   width: 90%;
   max-width: 600px;
   max-height: 80vh;
-  background-color: var(--color-background);
+  background-color: rgb(var(--color-ash-25));
   border-radius: 12px;
   box-shadow:
     0 20px 25px -5px rgba(0, 0, 0, 0.1),
@@ -226,6 +230,13 @@ export default {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  
+  :global(.dark) & {
+    background-color: rgb(var(--color-ash-25));
+    box-shadow:
+      0 20px 25px -5px rgba(0, 0, 0, 0.3),
+      0 10px 10px -5px rgba(0, 0, 0, 0.2);
+  }
 }
 
 .modal-header {
@@ -233,8 +244,13 @@ export default {
   align-items: center;
   justify-content: space-between;
   padding: 20px 24px;
-  border-bottom: 1px solid var(--color-border);
-  background-color: var(--color-background);
+  border-bottom: 1px solid rgb(var(--color-ash-200));
+  background-color: rgb(var(--color-ash-25));
+  
+  :global(.dark) & {
+    border-bottom-color: rgb(var(--color-ash-200));
+    background-color: rgb(var(--color-ash-25));
+  }
 }
 
 .header-content {
@@ -244,14 +260,22 @@ export default {
 }
 
 .header-content .fluent-icon {
-  color: var(--color-warning);
+  color: rgb(var(--color-amber-500));
+  
+  :global(.dark) & {
+    color: rgb(var(--color-amber-500));
+  }
 }
 
 .header-title {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
-  color: var(--color-body);
+  color: rgb(var(--color-ash-900));
+  
+  :global(.dark) & {
+    color: rgb(var(--color-ash-900));
+  }
 }
 
 .close-button {
@@ -259,19 +283,34 @@ export default {
   border: none;
   background: transparent;
   border-radius: 6px;
-  color: var(--color-body);
+  color: rgb(var(--color-ash-700));
   cursor: pointer;
   transition: all 0.2s ease;
 
   &:hover {
-    background-color: var(--color-background-light);
+    background-color: rgb(var(--color-ash-100));
+    color: rgb(var(--color-ash-900));
+    
+    :global(.dark) & {
+      background-color: rgb(var(--color-ash-100));
+      color: rgb(var(--color-ash-900));
+    }
+  }
+  
+  :global(.dark) & {
+    color: rgb(var(--color-ash-700));
   }
 }
 
 .search-container {
   padding: 16px 24px;
-  border-bottom: 1px solid var(--color-border-light);
-  background-color: var(--color-background);
+  border-bottom: 1px solid rgb(var(--color-ash-100));
+  background-color: rgb(var(--color-ash-25));
+  
+  :global(.dark) & {
+    border-bottom-color: rgb(var(--color-ash-100));
+    background-color: rgb(var(--color-ash-25));
+  }
 }
 
 .search-input-wrapper {
@@ -285,31 +324,48 @@ export default {
   left: 14px;
   top: 50%;
   transform: translateY(-50%);
-  color: var(--color-body);
-  opacity: 0.6;
+  color: rgb(var(--color-ash-600));
   z-index: 1;
   pointer-events: none;
+  
+  :global(.dark) & {
+    color: rgb(var(--color-ash-600));
+  }
 }
 
 .search-input {
   width: 100%;
   padding: 12px 44px 12px 44px;
-  border: 1px solid var(--color-border);
+  border: 1px solid rgb(var(--color-ash-200));
   border-radius: 8px;
-  background-color: var(--color-background);
-  color: var(--color-body);
+  background-color: rgb(var(--color-ash-50));
+  color: rgb(var(--color-ash-900));
   font-size: 14px;
   outline: none;
   transition: all 0.2s ease;
 
   &:focus {
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px var(--color-primary-light);
+    border-color: rgb(var(--color-primary-600));
+    box-shadow: 0 0 0 3px rgba(var(--color-primary-600), 0.2);
+    
+    :global(.dark) & {
+      border-color: rgb(var(--color-primary-600));
+      box-shadow: 0 0 0 3px rgba(var(--color-primary-600), 0.2);
+    }
   }
 
   &::placeholder {
-    color: var(--color-body);
-    opacity: 0.5;
+    color: rgb(var(--color-ash-600));
+    
+    :global(.dark) & {
+      color: rgb(var(--color-ash-600));
+    }
+  }
+  
+  :global(.dark) & {
+    border-color: rgb(var(--color-ash-200));
+    background-color: rgb(var(--color-ash-50));
+    color: rgb(var(--color-ash-900));
   }
 }
 
@@ -322,14 +378,22 @@ export default {
   border: none;
   background: transparent;
   border-radius: 4px;
-  color: var(--color-body);
-  opacity: 0.6;
+  color: rgb(var(--color-ash-600));
   cursor: pointer;
   transition: all 0.2s ease;
 
   &:hover {
-    opacity: 1;
-    background-color: var(--color-background-light);
+    background-color: rgb(var(--color-ash-100));
+    color: rgb(var(--color-ash-800));
+    
+    :global(.dark) & {
+      background-color: rgb(var(--color-ash-100));
+      color: rgb(var(--color-ash-800));
+    }
+  }
+  
+  :global(.dark) & {
+    color: rgb(var(--color-ash-600));
   }
 }
 
@@ -351,11 +415,16 @@ export default {
 .spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid var(--color-border);
-  border-top: 3px solid var(--color-primary);
+  border: 3px solid rgb(var(--color-ash-200));
+  border-top: 3px solid rgb(var(--color-primary-600));
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 16px;
+  
+  :global(.dark) & {
+    border-color: rgb(var(--color-ash-200));
+    border-top-color: rgb(var(--color-primary-600));
+  }
 }
 
 @keyframes spin {
@@ -379,14 +448,21 @@ export default {
     margin: 16px 0 8px;
     font-size: 16px;
     font-weight: 600;
-    color: var(--color-body);
+    color: rgb(var(--color-ash-800));
+    
+    :global(.dark) & {
+      color: rgb(var(--color-ash-800));
+    }
   }
 
   p {
     margin: 0;
     font-size: 14px;
-    color: var(--color-body);
-    opacity: 0.7;
+    color: rgb(var(--color-ash-600));
+    
+    :global(.dark) & {
+      color: rgb(var(--color-ash-600));
+    }
   }
 }
 
@@ -395,11 +471,15 @@ export default {
 }
 
 .message-item {
-  border-bottom: 1px solid var(--color-border-light);
+  border-bottom: 1px solid rgb(var(--color-ash-100));
   padding: 16px 0;
 
   &:last-child {
     border-bottom: none;
+  }
+  
+  :global(.dark) & {
+    border-bottom-color: rgb(var(--color-ash-100));
   }
 }
 
@@ -418,14 +498,21 @@ export default {
 .sender-name {
   font-size: 14px;
   font-weight: 500;
-  color: var(--color-body);
+  color: rgb(var(--color-ash-800));
   margin-bottom: 4px;
+  
+  :global(.dark) & {
+    color: rgb(var(--color-ash-800));
+  }
 }
 
 .message-time {
   font-size: 12px;
-  color: var(--color-body);
-  opacity: 0.6;
+  color: rgb(var(--color-ash-600));
+  
+  :global(.dark) & {
+    color: rgb(var(--color-ash-600));
+  }
 }
 
 .message-actions {
@@ -440,32 +527,58 @@ export default {
   border: none;
   background: transparent;
   border-radius: 6px;
-  color: var(--color-body);
+  color: rgb(var(--color-ash-600));
   cursor: pointer;
   transition: all 0.2s ease;
-  opacity: 0.7;
 
   &:hover {
-    background-color: var(--color-background-light);
-    opacity: 1;
+    background-color: rgb(var(--color-ash-100));
+    color: rgb(var(--color-ash-800));
+    
+    :global(.dark) & {
+      background-color: rgb(var(--color-ash-100));
+      color: rgb(var(--color-ash-800));
+    }
   }
 
   &.scroll-btn {
-    color: var(--color-primary);
+    color: rgb(var(--color-primary-600));
 
     &:hover {
-      background-color: var(--color-primary-light);
-      color: var(--color-primary-dark);
+      background-color: rgb(var(--color-primary-100));
+      color: rgb(var(--color-primary-700));
+      
+      :global(.dark) & {
+        background-color: rgb(var(--color-primary-100));
+        color: rgb(var(--color-primary-700));
+      }
+    }
+    
+    :global(.dark) & {
+      color: rgb(var(--color-primary-600));
     }
   }
 
   &.unstar-btn {
-    color: var(--color-warning);
+    color: rgb(var(--color-amber-600));
 
     &:hover {
-      background-color: var(--color-warning-light);
-      color: var(--color-warning-dark);
+      background-color: rgb(var(--color-amber-100));
+      color: rgb(var(--color-amber-700));
+      
+      :global(.dark) & {
+        background-color: rgb(var(--color-amber-100));
+        color: rgb(var(--color-amber-700));
+      }
     }
+    
+    :global(.dark) & {
+      color: rgb(var(--color-amber-600));
+    }
+  }
+  
+  :global(.dark) & {
+    color: rgb(var(--color-ash-600));
   }
 }
 
@@ -476,7 +589,11 @@ export default {
   transition: all 0.2s ease;
 
   &:hover {
-    background-color: var(--color-background-light);
+    background-color: rgb(var(--color-ash-100));
+    
+    :global(.dark) & {
+      background-color: rgb(var(--color-ash-100));
+    }
   }
 
   // Override MessagePreview truncation for starred messages
@@ -485,7 +602,7 @@ export default {
     white-space: normal;
     text-overflow: initial;
     display: -webkit-box;
-    -webkit-line-clamp: 8; // Allow up to 4 lines
+    -webkit-line-clamp: 8; // Allow up to 8 lines
     -webkit-box-orient: vertical;
     overflow: hidden;
     line-height: 1.4;
