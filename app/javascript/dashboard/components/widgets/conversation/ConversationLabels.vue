@@ -5,7 +5,7 @@
     
     <!-- Regular conversation labels -->
     <woot-label
-      v-for="label in conversation.labels"
+      v-for="label in conversationLabels"
       :key="label.id"
       :title="label.title"
       :description="label.description"
@@ -69,6 +69,7 @@
 import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
+import { useMapGetter } from 'dashboard/composables/store';
 import JiraAPI from 'dashboard/api/integrations/jira';
 import { parseJiraAPIErrorResponse } from './jira/helpers/apiErrorHelper';
 
@@ -87,9 +88,26 @@ const props = defineProps({
 
 const emit = defineEmits(['labelClick']);
 
+const accountLabels = useMapGetter('labels/getLabels');
 const jiraIssues = ref([]);
 const showAllJiraIssues = ref(false);
 const maxJiraLabels = computed(() => props.maxJiraLabels);
+
+// Get complete label objects from the store based on conversation label names
+const conversationLabels = computed(() => {
+  if (!props.conversation.labels || !accountLabels.value) return [];
+  
+  return accountLabels.value.filter(label => {
+    // Match labels by title/name
+    return props.conversation.labels.some(conversationLabel => {
+      // Handle both string format and object format
+      const labelName = typeof conversationLabel === 'string' 
+        ? conversationLabel 
+        : conversationLabel.title || conversationLabel.name;
+      return label.title === labelName;
+    });
+  });
+});
 
 // Function to get status-based color for JIRA issues
 const getJiraStatusColor = (status) => {
@@ -136,8 +154,7 @@ const getJiraStatusColor = (status) => {
 };
 
 const hasLabelsOrIssues = computed(() => {
-  return (props.conversation.labels && props.conversation.labels.length > 0) || 
-         jiraIssues.value.length > 0;
+  return conversationLabels.value.length > 0 || jiraIssues.value.length > 0;
 });
 
 const hasMoreJiraIssues = computed(() => {
