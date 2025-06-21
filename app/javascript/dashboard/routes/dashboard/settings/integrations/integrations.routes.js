@@ -8,6 +8,7 @@ import DashboardApps from './DashboardApps/Index.vue';
 import Slack from './Slack.vue';
 import SettingsContent from '../Wrapper.vue';
 import Linear from './Linear.vue';
+import Jira from './Jira.vue';
 import Shopify from './Shopify.vue';
 
 export default {
@@ -89,6 +90,14 @@ export default {
             permissions: ['administrator'],
           },
           props: route => ({ code: route.query.code }),
+        },
+        {
+          path: 'jira',
+          name: 'settings_integrations_jira',
+          component: Jira,
+          meta: {
+            permissions: ['administrator'],
+          },
         },
         {
           path: 'shopify',

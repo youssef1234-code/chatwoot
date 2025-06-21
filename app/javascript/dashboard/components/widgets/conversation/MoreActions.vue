@@ -9,6 +9,8 @@ import EmailTranscriptModal from './EmailTranscriptModal.vue';
 import ResolveAction from '../../buttons/ResolveAction.vue';
 import ButtonV4 from 'dashboard/components-next/button/Button.vue';
 import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
+import JiraIssuesButton from './JiraIssuesButton.vue';
+import JiraLinkedIssues from './JiraLinkedIssues.vue';
 
 import {
   CMD_MUTE_CONVERSATION,
@@ -92,6 +94,8 @@ onUnmounted(() => {
 
 <template>
   <div class="relative flex items-center gap-2 actions--container">
+    <JiraIssuesButton :conversation-id="currentChat.id" />
+    <JiraLinkedIssues :conversation-id="currentChat.id" />
     <ResolveAction
       :conversation-id="currentChat.id"
       :status="currentChat.status"

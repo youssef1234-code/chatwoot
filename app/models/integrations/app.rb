@@ -1,5 +1,6 @@
 class Integrations::App
   include Linear::IntegrationHelper
+  include Jira::IntegrationHelper
   attr_accessor :params
 
   def initialize(params)
@@ -43,6 +44,8 @@ class Integrations::App
       "#{params[:action]}&client_id=#{client_id}&redirect_uri=#{self.class.slack_integration_url}"
     when 'linear'
       build_linear_action
+    when 'jira'
+      build_jira_action
     else
       params[:action]
     end
@@ -54,6 +57,10 @@ class Integrations::App
       GlobalConfigService.load('SLACK_CLIENT_SECRET', nil).present?
     when 'linear'
       GlobalConfigService.load('LINEAR_CLIENT_ID', nil).present?
+    when 'jira'
+      GlobalConfigService.load('JIRA_SITE_URL', nil).present? && 
+      GlobalConfigService.load('JIRA_EMAIL', nil).present? && 
+      GlobalConfigService.load('JIRA_API_TOKEN', nil).present?
     when 'shopify'
       account.feature_enabled?('shopify_integration') && GlobalConfigService.load('SHOPIFY_CLIENT_ID', nil).present?
     when 'leadsquared'
@@ -73,6 +80,12 @@ class Integrations::App
       'scope=read,write',
       'prompt=consent'
     ].join('&')
+  end
+
+  def build_jira_action
+    # For JIRA, we'll handle connection directly without OAuth redirect
+    # The frontend will show a connection form instead
+    '/jira/connect'
   end
 
   def enabled?(account)
@@ -96,6 +109,10 @@ class Integrations::App
 
   def self.linear_integration_url
     "#{ENV.fetch('FRONTEND_URL', nil)}/linear/callback"
+  end
+
+  def self.jira_integration_url
+    "#{ENV.fetch('FRONTEND_URL', nil)}/jira/callback"
   end
 
   class << self

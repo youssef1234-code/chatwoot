@@ -37,12 +37,21 @@ export const getters = {
 };
 
 export const actions = {
-  get: async ({ commit }) => {
+  get: async ({ commit }, integrationId = null) => {
     commit(types.default.SET_INTEGRATIONS_UI_FLAG, { isFetching: true });
     try {
       const response = await IntegrationsAPI.get();
       commit(types.default.SET_INTEGRATIONS, response.data.payload);
       commit(types.default.SET_INTEGRATIONS_UI_FLAG, { isFetching: false });
+      
+      // If specific integration requested, fetch its hooks too
+      if (integrationId) {
+        const integration = response.data.payload.find(i => i.id === integrationId);
+        if (integration && integration.hooks && integration.hooks.length > 0) {
+          // Integration is already properly loaded with hooks
+          return integration;
+        }
+      }
     } catch (error) {
       commit(types.default.SET_INTEGRATIONS_UI_FLAG, { isFetching: false });
     }

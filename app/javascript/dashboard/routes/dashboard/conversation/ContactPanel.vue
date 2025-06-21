@@ -21,6 +21,8 @@ import ShopifyOrdersList from 'dashboard/components/widgets/conversation/Shopify
 import SidebarActionsHeader from 'dashboard/components-next/SidebarActionsHeader.vue';
 import LinearIssuesList from 'dashboard/components/widgets/conversation/linear/IssuesList.vue';
 import LinearSetupCTA from 'dashboard/components/widgets/conversation/linear/LinearSetupCTA.vue';
+import JiraIssuesList from 'dashboard/components/widgets/conversation/jira/IssuesList.vue';
+import JiraSetupCTA from 'dashboard/components/widgets/conversation/jira/JiraSetupCTA.vue';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 
 const props = defineProps({
@@ -71,6 +73,20 @@ const isLinearIntegrationEnabled = computed(
 const isLinearFeatureEnabled = isFeatureEnabledonAccount.value(
   currentAccountId.value,
   FEATURE_FLAGS.LINEAR
+);
+
+const jiraIntegration = useFunctionGetter(
+  'integrations/getIntegration',
+  'jira'
+);
+
+const isJiraIntegrationEnabled = computed(
+  () => jiraIntegration.value?.enabled || false
+);
+
+const isJiraFeatureEnabled = isFeatureEnabledonAccount.value(
+  currentAccountId.value,
+  FEATURE_FLAGS.JIRA
 );
 
 const store = useStore();
@@ -125,8 +141,9 @@ onMounted(() => {
   conversationSidebarItems.value = conversationSidebarItemsOrder.value;
   getContactDetails();
   store.dispatch('attributes/get', 0);
-  // Load integrations to ensure linear integration state is available
+  // Load integrations to ensure integration states are available
   store.dispatch('integrations/get', 'linear');
+  store.dispatch('integrations/get', 'jira');
 });
 </script>
 
@@ -265,6 +282,23 @@ onMounted(() => {
             >
               <LinearSetupCTA v-if="!isLinearIntegrationEnabled" />
               <LinearIssuesList v-else :conversation-id="conversationId" />
+            </AccordionItem>
+          </div>
+          <div
+            v-else-if="
+              element.name === 'jira_issues' && isJiraFeatureEnabled
+            "
+          >
+            <AccordionItem
+              :title="$t('CONVERSATION_SIDEBAR.ACCORDION.JIRA_ISSUES')"
+              :is-open="isContactSidebarItemOpen('is_jira_issues_open')"
+              compact
+              @toggle="
+                value => toggleSidebarUIState('is_jira_issues_open', value)
+              "
+            >
+              <JiraSetupCTA v-if="!isJiraIntegrationEnabled" />
+              <JiraIssuesList v-else :conversation-id="conversationId" />
             </AccordionItem>
           </div>
           <div

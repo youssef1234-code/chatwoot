@@ -32,6 +32,12 @@ FactoryBot.define do
       access_token { SecureRandom.hex }
     end
 
+    trait :jira do
+      app_id { 'jira' }
+      access_token { SecureRandom.hex }
+      reference_id { 'https://test.atlassian.net' }
+    end
+
     trait :shopify do
       app_id { 'shopify' }
       access_token { SecureRandom.hex }

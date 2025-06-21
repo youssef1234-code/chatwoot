@@ -1,4 +1,39 @@
 {
+  "INTEGRATION": {
+    "JIRA": {
+      "ASSIGNEE": "Assignee",
+      "REFRESH": "Refresh",
+      "VIEW_IN_JIRA": "View in JIRA",
+      "UPDATED": "Updated",
+      "ISSUE_REFRESHED": "Issue status refreshed",
+      "REFRESH_ERROR": "Failed to refresh issue status",
+      "LINKED_ISSUES_COUNT": "{count} linked issue(s)",
+      "ISSUE_NOT_FOUND": "Issue not found",
+      "COMMENTS": {
+        "TITLE": "Comments",
+        "ADD_COMMENT": "Add Comment",
+        "VIEW_ALL": "View All Comments",
+        "PLACEHOLDER": "Add a comment...",
+        "SUBMIT": "Add Comment",
+        "CANCEL": "Cancel",
+        "LOADING": "Loading comments...",
+        "LOAD_ERROR": "Failed to load comments",
+        "ADD_SUCCESS": "Comment added successfully",
+        "ADD_ERROR": "Failed to add comment",
+        "NO_COMMENTS": "No comments yet"
+      },
+      "ATTACHMENTS": {
+        "TITLE": "Attachments",
+        "ADD_ATTACHMENT": "Add Attachment",
+        "UPLOAD": "Upload File",
+        "UPLOADING": "Uploading...",
+        "UPLOAD_SUCCESS": "File uploaded successfully",
+        "UPLOAD_ERROR": "Failed to upload file",
+        "MAX_SIZE": "Maximum file size: 10MB",
+        "SUPPORTED_FORMATS": "Supported formats: JPG, PNG, PDF, DOC, DOCX"
+      }
+    }
+  },
   "INTEGRATION_SETTINGS": {
     "SHOPIFY": {
       "DELETE": {
@@ -327,6 +362,158 @@
         "AGENT_DESCRIPTION": "Linear workspace is not connected. Request your administrator to connect a workspace to use this integration.",
         "DESCRIPTION": "Linear workspace is not connected. Click the button below to connect your workspace to use this integration.",
         "BUTTON_TEXT": "Connect Linear workspace"
+      }
+    },
+    "JIRA": {
+      "ADD_OR_LINK_BUTTON": "Create/Link JIRA Issue",
+      "LOADING": "Fetching JIRA issues...",
+      "LOADING_ERROR": "There was an error fetching the JIRA issues, please try again",
+      "CREATE": "Create",
+      "CANCEL": "Cancel",
+      "LINK": {
+        "SEARCH": "Search issues",
+        "SELECT": "Select issue",
+        "TITLE": "Link",
+        "EMPTY_LIST": "No JIRA issues found",
+        "LOADING": "Loading",
+        "ERROR": "There was an error fetching the JIRA issues, please try again",
+        "LINK_SUCCESS": "Issue linked successfully",
+        "LINK_ERROR": "There was an error linking the issue, please try again",
+        "LINK_TITLE": "Conversation (#{conversationId}) with {name}"
+      },
+      "ADD_OR_LINK": {
+        "TITLE": "Create/link JIRA issue",
+        "DESCRIPTION": "Create JIRA issues from conversations, or link existing ones for seamless tracking.",
+        "FORM": {
+          "TITLE": {
+            "LABEL": "Summary",
+            "PLACEHOLDER": "Enter summary",
+            "REQUIRED_ERROR": "Summary is required"
+          },
+          "SUMMARY": {
+            "LABEL": "Summary",
+            "PLACEHOLDER": "Enter issue summary",
+            "REQUIRED_ERROR": "Summary is required"
+          },
+          "DESCRIPTION": {
+            "LABEL": "Description",
+            "PLACEHOLDER": "Enter description"
+          },
+          "PROJECT": {
+            "LABEL": "Project",
+            "PLACEHOLDER": "Select project",
+            "SEARCH": "Search project",
+            "REQUIRED_ERROR": "Project is required"
+          },
+          "ISSUE_TYPE": {
+            "LABEL": "Issue Type",
+            "PLACEHOLDER": "Select issue type",
+            "SEARCH": "Search issue type",
+            "REQUIRED_ERROR": "Issue type is required"
+          },
+          "ASSIGNEE": {
+            "LABEL": "Assignee",
+            "PLACEHOLDER": "Select assignee",
+            "SEARCH": "Search assignee"
+          },
+          "PRIORITY": {
+            "LABEL": "Priority",
+            "PLACEHOLDER": "Select priority",
+            "SEARCH": "Search priority"
+          },
+          "ENVIRONMENT": {
+            "LABEL": "Environment",
+            "PLACEHOLDER": "Select environment",
+            "SEARCH": "Search environment"
+          },
+          "LABELS": {
+            "LABEL": "Labels",
+            "PLACEHOLDER": "Select labels",
+            "SEARCH": "Search labels"
+          },
+          "STATUS": {
+            "LABEL": "Status",
+            "PLACEHOLDER": "Select status",
+            "SEARCH": "Search status"
+          }
+        },
+        "CREATE": "Create",
+        "CANCEL": "Cancel",
+        "CREATE_SUCCESS": "Issue created successfully",
+        "CREATE_ERROR": "There was an error creating the issue, please try again",
+        "LOADING_PROJECTS_ERROR": "There was an error fetching the projects, please try again",
+        "LOADING_PROJECT_ENTITIES_ERROR": "There was an error fetching the project entities, please try again"
+      },
+      "ISSUE": {
+        "STATUS": "Status",
+        "PRIORITY": "Priority",
+        "ASSIGNEE": "Assignee",
+        "LABELS": "Labels",
+        "CREATED_AT": "Created at {createdAt}",
+        "ISSUE_TYPE": "Issue Type",
+        "UPDATED": "Updated",
+        "REFRESH": "Refresh",
+        "VIEW_IN_JIRA": "View in JIRA",
+        "UNLINK_ISSUE": "Unlink issue",
+        "ISSUE_REFRESHED": "Issue status refreshed",
+        "REFRESH_ERROR": "Failed to refresh issue status",
+        "ISSUE_NOT_FOUND": "Issue not found"
+      },
+      "UNLINK": {
+        "TITLE": "Unlink",
+        "SUCCESS": "Issue unlinked successfully",
+        "ERROR": "There was an error unlinking the issue, please try again"
+      },
+      "COMMENTS": {
+        "TITLE": "Comments",
+        "ADD_COMMENT": "Add Comment",
+        "VIEW_ALL": "View All Comments",
+        "PLACEHOLDER": "Add a comment...",
+        "SUBMIT": "Add Comment",
+        "CANCEL": "Cancel",
+        "LOADING": "Loading comments...",
+        "LOAD_ERROR": "Failed to load comments",
+        "ADD_SUCCESS": "Comment added successfully",
+        "ADD_ERROR": "Failed to add comment",
+        "NO_COMMENTS": "No comments yet"
+      },
+      "ATTACHMENTS": {
+        "TITLE": "Attachments",
+        "ADD_ATTACHMENT": "Add Attachment",
+        "UPLOAD": "Upload File",
+        "UPLOADING": "Uploading...",
+        "UPLOAD_SUCCESS": "File uploaded successfully",
+        "UPLOAD_ERROR": "Failed to upload file",
+        "MAX_SIZE": "Maximum file size: 10MB",
+        "SUPPORTED_FORMATS": "Supported formats: JPG, PNG, PDF, DOC, DOCX"
+      },
+      "NO_LINKED_ISSUES": "No linked issues found",
+      "DELETE": {
+        "TITLE": "Are you sure you want to delete the integration?",
+        "MESSAGE": "Are you sure you want to delete the integration?",
+        "CONFIRM": "Yes, delete",
+        "CANCEL": "Cancel"
+      },
+      "CTA": {
+        "TITLE": "Connect to JIRA",
+        "AGENT_DESCRIPTION": "JIRA workspace is not connected. Request your administrator to connect a workspace to use this integration.",
+        "DESCRIPTION": "JIRA workspace is not connected. Click the button below to connect your workspace to use this integration.",
+        "BUTTON_TEXT": "Connect JIRA workspace"
+      },
+      "SETUP": {
+        "TITLE": "Connect to JIRA",
+        "DESCRIPTION": "Enter your JIRA site URL to connect your workspace with Chatwoot.",
+        "SITE_URL_LABEL": "JIRA Site URL",
+        "SITE_URL_PLACEHOLDER": "https://your-company.atlassian.net",
+        "SITE_URL_HELP": "Enter your JIRA Cloud site URL (e.g., company.atlassian.net)",
+        "SITE_URL_REQUIRED": "JIRA site URL is required",
+        "INVALID_URL": "Please enter a valid URL",
+        "INVALID_JIRA_URL": "Please enter a valid JIRA/Atlassian URL",
+        "OAUTH_INFO_TITLE": "OAuth Authentication",
+        "OAUTH_INFO_TEXT": "Click Connect to be redirected to JIRA for secure OAuth authentication. Your JIRA administrator must have configured OAuth for this to work.",
+        "CONNECT": "Connect to JIRA",
+        "CANCEL": "Cancel",
+        "CONNECTION_FAILED": "Failed to connect to JIRA. Please check your URL and try again."
       }
     }
   },

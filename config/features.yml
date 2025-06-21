@@ -136,6 +136,9 @@
 - name: linear_integration
   display_name: Linear Integration
   enabled: false
+- name: jira_integration
+  display_name: JIRA Integration
+  enabled: true
 - name: captain_integration
   display_name: Captain
   enabled: false

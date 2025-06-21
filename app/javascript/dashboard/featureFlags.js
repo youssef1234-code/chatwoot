@@ -30,6 +30,7 @@ export const FEATURE_FLAGS = {
   INBOUND_EMAILS: 'inbound_emails',
   IP_LOOKUP: 'ip_lookup',
   LINEAR: 'linear_integration',
+  JIRA: 'jira_integration',
   CAPTAIN: 'captain_integration',
   CUSTOM_ROLES: 'custom_roles',
   CHATWOOT_V4: 'chatwoot_v4',

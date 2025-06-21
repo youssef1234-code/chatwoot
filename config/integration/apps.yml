@@ -63,6 +63,13 @@ linear:
   action: https://linear.app/oauth/authorize
   hook_type: account
   allow_multiple_hooks: false
+jira:
+  id: jira
+  logo: jira.png
+  i18n_key: jira
+  action: /jira
+  hook_type: account
+  allow_multiple_hooks: false
 slack:
   id: slack
   logo: slack.png

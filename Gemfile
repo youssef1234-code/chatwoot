@@ -105,6 +105,12 @@ gem 'grpc'
 # this dependency breaks the slack-ruby-client gem
 gem 'google-cloud-translate-v3', '>= 0.7.0'
 
+##-- JIRA integration --##
+gem 'jira-ruby', '~> 2.3.0'
+gem 'httparty', '~> 0.21.0'
+gem 'oauth2', '~> 2.0'
+# oauth gem 0.6.x is compatible with jira-ruby requirements
+
 ##-- apm and error monitoring ---#
 # loaded only when environment variables are set.
 # ref application.rb

@@ -271,6 +271,23 @@ Rails.application.routes.draw do
                 get :linked_issues
               end
             end
+            resource :jira, controller: 'jira', only: [] do
+              collection do
+                delete :destroy
+                get :test_connection
+                get :projects
+                get :project_metadata
+                get :get_issue
+                get :get_comments
+                post :add_comment
+                post :add_attachment
+                post :create_issue
+                post :link_issue
+                post :unlink_issue
+                get :search_issue
+                get :linked_issues
+              end
+            end
           end
           resources :working_hours, only: [:update]
 
@@ -485,6 +502,11 @@ Rails.application.routes.draw do
 
   namespace :linear do
     resource :callback, only: [:show]
+  end
+
+  namespace :jira do
+    resource :callback, only: [:show]
+    resource :connect, only: [:create]
   end
 
   namespace :shopify do
