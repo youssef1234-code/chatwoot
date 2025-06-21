@@ -143,7 +143,10 @@ onMounted(() => {
       <div class="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-xl">
         <div class="flex items-center">
           <div class="flex items-center justify-center w-10 h-10 bg-blue-100 rounded-lg mr-3">
-            <i class="ri-chat-3-line text-blue-600 text-lg" />
+            <!-- Fallback: Use emoji or text instead of icon -->
+            <i class="ri-chat-3-line text-blue-600 text-lg"></i>
+            <!-- Fallback option if icon doesn't work -->
+            <span class="text-blue-600 text-lg font-bold" style="display: none;">💬</span>
           </div>
           <div>
             <h3 class="text-lg font-semibold text-gray-900">
@@ -159,7 +162,9 @@ onMounted(() => {
           class="hover:bg-gray-100"
           @click="emit('close')"
         >
-          <i class="ri-close-line text-lg" />
+          <!-- Fallback for close icon -->
+          <i class="ri-close-line text-lg"></i>
+          <span class="text-lg" style="display: none;">✕</span>
         </NextButton>
       </div>
 
@@ -172,7 +177,9 @@ onMounted(() => {
 
         <div v-else-if="!hasComments" class="text-center py-12">
           <div class="flex items-center justify-center w-16 h-16 bg-gray-200 rounded-full mx-auto mb-4">
-            <i class="ri-chat-3-line text-gray-500 text-2xl" />
+            <!-- Fallback for empty state icon -->
+            <i class="ri-chat-3-line text-gray-500 text-2xl"></i>
+            <span class="text-gray-500 text-2xl" style="display: none;">💬</span>
           </div>
           <p class="text-gray-500 text-lg">{{ t('INTEGRATION.JIRA.COMMENTS.NO_COMMENTS') }}</p>
           <p class="text-gray-400 text-sm mt-2">Be the first to add a comment</p>
@@ -190,7 +197,8 @@ onMounted(() => {
           >
             <div class="flex items-start justify-between mb-3">
               <div class="flex items-center">
-                <div class="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full text-white text-sm font-medium mr-3">
+                <!-- User Avatar with proper fallback -->
+                <div class="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full text-white text-sm font-medium mr-3 flex-shrink-0">
                   {{ (comment.author?.displayName || 'U').charAt(0).toUpperCase() }}
                 </div>
                 <div>
@@ -220,7 +228,9 @@ onMounted(() => {
                   :key="attachment.id"
                   class="flex items-center px-3 py-2 bg-gray-100 rounded-lg text-xs"
                 >
-                  <i class="ri-attachment-line mr-2 text-gray-500" />
+                  <!-- Fallback for attachment icon -->
+                  <i class="ri-attachment-line mr-2 text-gray-500"></i>
+                  <span class="mr-2 text-gray-500" style="display: none;">📎</span>
                   <span class="text-gray-700">{{ attachment.filename }}</span>
                 </div>
               </div>
@@ -244,7 +254,9 @@ onMounted(() => {
               class="flex items-center justify-between p-2 bg-white rounded border"
             >
               <div class="flex items-center">
-                <i class="ri-file-line mr-2 text-gray-500" />
+                <!-- Fallback for file icon -->
+                <i class="ri-file-line mr-2 text-gray-500"></i>
+                <span class="mr-2 text-gray-500" style="display: none;">📄</span>
                 <span class="text-sm text-gray-700">{{ attachment.filename }}</span>
                 <span class="text-xs text-gray-500 ml-2">({{ formatFileSize(attachment.size) }})</span>
               </div>
@@ -253,7 +265,9 @@ onMounted(() => {
                 class="text-red-500 hover:text-red-700 p-1"
                 @click="removeAttachment(index)"
               >
-                <i class="ri-close-line text-sm" />
+                <!-- Fallback for close icon -->
+                <i class="ri-close-line text-sm"></i>
+                <span class="text-sm" style="display: none;">✕</span>
               </button>
             </div>
           </div>
@@ -264,7 +278,7 @@ onMounted(() => {
             <textarea
               v-model="newComment"
               :placeholder="t('INTEGRATION.JIRA.COMMENTS.PLACEHOLDER')"
-              class="w-full p-4 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 placeholder-gray-400"
+              class="w-full p-4 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 placeholder-gray-400"
               rows="4"
             />
             <div class="absolute bottom-3 right-3 text-xs text-gray-400">
@@ -289,7 +303,9 @@ onMounted(() => {
               :is-loading="isUploadingAttachment"
               @click="fileInput?.click()"
             >
-              <i class="ri-attachment-line mr-2" />
+              <!-- Fallback for attachment icon -->
+              <i class="ri-attachment-line mr-2"></i>
+              <span class="mr-2" style="display: none;">📎</span>
               {{ t('INTEGRATION.JIRA.ATTACHMENTS.UPLOAD') }}
             </NextButton>
             <span class="text-xs text-gray-500">
@@ -318,7 +334,6 @@ onMounted(() => {
                 :disabled="!newComment.trim() && attachments.length === 0"
                 @click="addComment"
               >
-                <i class="ri-send-plane-line mr-2" />
                 {{ t('INTEGRATION.JIRA.COMMENTS.SUBMIT') }}
               </NextButton>
             </div>
@@ -330,5 +345,37 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* Add any additional custom styles if needed */
+/* Fallback CSS for when icons don't load */
+.ri-chat-3-line:empty::before,
+.ri-close-line:empty::before,
+.ri-attachment-line:empty::before,
+.ri-file-line:empty::before,
+.ri-send-plane-line:empty::before {
+  content: '';
+}
+
+/* Show emoji fallbacks if icons are empty */
+.ri-chat-3-line:empty + span,
+.ri-close-line:empty + span,
+.ri-attachment-line:empty + span,
+.ri-file-line:empty + span,
+.ri-send-plane-line:empty + span {
+  display: inline !important;
+}
+
+/* Ensure proper border for textarea */
+textarea {
+  border: 1px solid #d1d5db;
+}
+
+/* Ensure user avatar circles are properly sized and visible */
+.w-8.h-8 {
+  min-width: 2rem;
+  min-height: 2rem;
+}
+
+.w-10.h-10 {
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+}
 </style>

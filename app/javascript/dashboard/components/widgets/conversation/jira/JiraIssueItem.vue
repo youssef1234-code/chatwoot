@@ -133,7 +133,7 @@ const getStatusColor = (status) => {
             class="inline-flex items-center gap-2 text-blue-700 hover:text-blue-800 font-semibold text-sm bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
             @click="openIssue"
           >
-            <div class="w-4 h-4 bg-blue-600 rounded text-white text-xs flex items-center justify-center font-bold">
+            <div class="w-4 h-4 bg-blue-600 rounded text-black text-xs flex items-center justify-center font-bold">
               J
             </div>
             {{ issueKey }}

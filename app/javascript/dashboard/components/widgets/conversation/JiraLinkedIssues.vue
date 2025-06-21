@@ -62,7 +62,7 @@ onBeforeUnmount(() => {
       class="!h-8 !px-2 !py-1 !text-xs !font-medium hover:bg-blue-50 hover:text-blue-700"
       @click="openIssue(issue)"
     >
-      <div class="w-3 h-3 bg-blue-600 rounded text-white text-[10px] flex items-center justify-center font-bold mr-1">
+      <div class="w-3 h-3 bg-blue-600 rounded text-black text-[10px] flex items-center justify-center font-bold mr-1">
         J
       </div>
       <span class="truncate max-w-[80px]" :title="issue.summary">

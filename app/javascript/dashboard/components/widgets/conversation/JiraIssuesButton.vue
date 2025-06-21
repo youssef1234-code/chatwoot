@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, onMounted } from 'vue';
+import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { useStore } from 'vuex';
 import { useI18n } from 'vue-i18n';
 import ButtonV4 from 'dashboard/components-next/button/Button.vue';
@@ -29,6 +29,7 @@ const menuItems = computed(() => {
   const items = [];
   
   if (hasLinkedIssues.value) {
+    // Show ALL linked issues in the dropdown, not just a subset
     linkedIssues.value.forEach((issue, index) => {
       const summary = issue.summary || issue.title || '';
       const truncatedSummary = summary.length > 40 ? `${summary.substring(0, 40)}...` : summary;
@@ -86,15 +87,16 @@ const handleAction = ({ action, value, url }) => {
   }
 };
 
-const buttonLabel = computed(() => {
-  if (isLoading.value) return 'Loading...';
-  if (!hasLinkedIssues.value) return 'JIRA';
+const displayText = computed(() => {
+  if (isLoading.value) return '';
+  if (!hasLinkedIssues.value) return 'J';
+  
+  // Show "+n" format when there are more than 2 issues to indicate there are more
+  if (issueCount.value > 2) {
+    return `+${issueCount.value}`;
+  }
+  
   return issueCount.value.toString();
-});
-
-const buttonIcon = computed(() => {
-  if (isLoading.value) return 'i-lucide-loader-2';
-  return hasLinkedIssues.value ? 'i-lucide-link' : 'i-lucide-plus';
 });
 
 const buttonClass = computed(() => {
@@ -103,10 +105,32 @@ const buttonClass = computed(() => {
   return baseClass;
 });
 
+const buttonIcon = computed(() => {
+  if (isLoading.value) return 'i-lucide-loader-2';
+  return hasLinkedIssues.value ? 'i-lucide-link' : 'i-lucide-plus';
+});
+
+const handleOpenAllIssues = (event) => {
+  if (event.detail?.conversationId === props.conversationId) {
+    toggleDropdown(true);
+  }
+};
+
 onMounted(() => {
   if (isJiraConnected.value) {
     fetchLinkedIssues();
   }
+  
+  // Listen for updates from other JIRA components
+  window.addEventListener('jira:issues-updated', fetchLinkedIssues);
+  
+  // Listen for "open all issues" event from JIRA tags
+  window.addEventListener('jira:open-all-issues', handleOpenAllIssues);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('jira:issues-updated', fetchLinkedIssues);
+  window.removeEventListener('jira:open-all-issues', handleOpenAllIssues);
 });
 </script>
 
@@ -115,6 +139,7 @@ onMounted(() => {
     v-if="isJiraConnected"
     v-on-clickaway="() => toggleDropdown(false)"
     class="relative flex items-center"
+    :data-conversation-id="conversationId"
   >
     <ButtonV4
       size="sm"
@@ -122,24 +147,31 @@ onMounted(() => {
       :color="hasLinkedIssues ? 'primary' : 'slate'"
       :icon="buttonIcon"
       :class="buttonClass"
-      class="min-w-[60px] justify-center"
+      class="min-w-[60px] justify-center relative jira-issues-button"
+      :title="hasLinkedIssues ? `${issueCount} linked JIRA issue${issueCount > 1 ? 's' : ''} - Click to view all` : 'Connect to JIRA'"
       @click="toggleDropdown()"
     >
+      <!-- Badge for linked issues count -->
       <span 
         v-if="hasLinkedIssues" 
-        class="ml-1.5 text-xs font-semibold bg-white bg-opacity-20 px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
+        class="ml-1.5 text-xs font-semibold text-white bg-white/20 dark:bg-white/30 px-1.5 py-0.5 rounded-full min-w-[18px] text-center transition-all duration-200"
+        :class="{
+          'animate-pulse': issueCount > 2,
+          'hover:bg-white/30 dark:hover:bg-white/40': issueCount > 2
+        }"
       >
-        {{ issueCount }}
+        {{ displayText }}
       </span>
+      <!-- Default text for no issues -->
       <span v-else class="ml-1 text-xs font-medium">
-        JIRA
+        J
       </span>
     </ButtonV4>
     
     <DropdownMenu
       v-if="showDropdown"
       :menu-items="menuItems"
-      class="mt-2 ltr:right-0 rtl:left-0 top-full min-w-80 max-w-96 border border-slate-200 rounded-lg shadow-lg bg-white"
+      class="mt-2 ltr:right-0 rtl:left-0 top-full min-w-80 max-w-96 z-50"
       @action="handleAction"
     />
   </div>

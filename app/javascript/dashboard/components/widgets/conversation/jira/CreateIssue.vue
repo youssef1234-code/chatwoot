@@ -4,12 +4,14 @@ import { useI18n } from 'vue-i18n';
 import { useAlert, useTrack } from 'dashboard/composables';
 import { useVuelidate } from '@vuelidate/core';
 import { required } from '@vuelidate/validators';
+import { useStore } from 'vuex';
 import JiraAPI from 'dashboard/api/integrations/jira';
 import Input from 'dashboard/components-next/input/Input.vue';
 import Textarea from 'dashboard/components-next/textarea/TextArea.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import SearchableDropdown from './SearchableDropdown.vue';
 import { parseJiraAPIErrorResponse } from './helpers/apiErrorHelper';
+import account from '../../../../api/account';
 
 const JIRA_EVENTS = {
   CREATE_ISSUE: 'Created Jira Issue',
@@ -25,6 +27,10 @@ const props = defineProps({
 const emit = defineEmits(['close']);
 
 const { t } = useI18n();
+const store = useStore();
+
+// Get account ID from store
+const accountId = computed(() => store.getters.getCurrentAccountId);
 
 // Form state
 const formState = ref({
@@ -239,7 +245,7 @@ const createIssue = async () => {
 **Conversation Context:**
 - Conversation ID: #${props.conversationId}
 - Created from Chatwoot conversation
-- Link to conversation: ${window.location.origin}/app/accounts/${window.chatwootConfig.accountId}/conversations/${props.conversationId}
+- Link to conversation: ${window.location.origin}/app/accounts/${accountId}/conversations/${props.conversationId}
 `;
 
     const payload = {

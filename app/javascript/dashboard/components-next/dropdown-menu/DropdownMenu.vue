@@ -78,38 +78,46 @@ onMounted(() => {
         class="reset-base w-full h-8 py-2 pl-10 pr-2 text-sm focus:outline-none border-none rounded-lg bg-n-alpha-black2 dark:bg-n-solid-1 text-n-slate-12"
       />
     </div>
-    <button
-      v-for="(item, index) in filteredMenuItems"
-      :key="index"
-      type="button"
-      class="inline-flex items-center justify-start w-full h-8 min-w-0 gap-2 px-2 py-1.5 transition-all duration-200 ease-in-out border-0 rounded-lg z-60 hover:bg-n-alpha-1 dark:hover:bg-n-alpha-2 disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-50"
-      :class="{
-        'bg-n-alpha-1 dark:bg-n-solid-active': item.isSelected,
-        'text-n-ruby-11': item.action === 'delete',
-        'text-n-slate-12': item.action !== 'delete',
-      }"
-      :disabled="item.disabled"
-      @click="handleAction(item)"
-    >
-      <slot name="thumbnail" :item="item">
-        <Avatar
-          v-if="item.thumbnail"
-          :name="item.thumbnail.name"
-          :src="item.thumbnail.src"
-          :size="thumbnailSize"
-          rounded-full
-        />
-      </slot>
-      <Icon v-if="item.icon" :icon="item.icon" class="flex-shrink-0 size-3.5" />
-      <span v-if="item.emoji" class="flex-shrink-0">{{ item.emoji }}</span>
-      <span
-        v-if="item.label"
-        class="min-w-0 text-sm truncate"
-        :class="labelClass"
+    <template v-for="(item, index) in filteredMenuItems" :key="index">
+      <!-- Divider -->
+      <div
+        v-if="item.type === 'divider'"
+        class="h-px bg-n-alpha-5 mx-1 my-1"
+      ></div>
+      
+      <!-- Menu Item Button -->
+      <button
+        v-else
+        type="button"
+        class="inline-flex items-center justify-start w-full h-8 min-w-0 gap-2 px-2 py-1.5 transition-all duration-200 ease-in-out border-0 rounded-lg z-60 hover:bg-n-alpha-1 dark:hover:bg-n-alpha-2 disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-50"
+        :class="{
+          'bg-n-alpha-1 dark:bg-n-solid-active': item.isSelected,
+          'text-n-ruby-11': item.action === 'delete',
+          'text-n-slate-12': item.action !== 'delete',
+        }"
+        :disabled="item.disabled"
+        @click="handleAction(item)"
       >
-        {{ item.label }}
-      </span>
-    </button>
+        <slot name="thumbnail" :item="item">
+          <Avatar
+            v-if="item.thumbnail"
+            :name="item.thumbnail.name"
+            :src="item.thumbnail.src"
+            :size="thumbnailSize"
+            rounded-full
+          />
+        </slot>
+        <Icon v-if="item.icon" :icon="item.icon" class="flex-shrink-0 size-3.5" />
+        <span v-if="item.emoji" class="flex-shrink-0">{{ item.emoji }}</span>
+        <span
+          v-if="item.label"
+          class="min-w-0 text-sm truncate"
+          :class="labelClass"
+        >
+          {{ item.label }}
+        </span>
+      </button>
+    </template>
     <div
       v-if="filteredMenuItems.length === 0"
       class="text-sm text-n-slate-11 px-2 py-1.5"
