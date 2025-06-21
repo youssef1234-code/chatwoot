@@ -400,18 +400,88 @@ export default {
     removeBusListeners() {
       emitter.off(BUS_EVENTS.SCROLL_TO_MESSAGE, this.onScrollToMessage);
     },
-    onScrollToMessage({ messageId = '' } = {}) {
-      this.$nextTick(() => {
+    async onScrollToMessage({ messageId = '' } = {}) {
+      if (!messageId) {
+        this.scrollToBottom();
+        return;
+      }
+
+      // First attempt - check if message is already in DOM
+      let messageElement = document.getElementById('message' + messageId);
+      if (messageElement) {
+        this.scrollToMessageElement(messageElement);
+        this.makeMessagesRead();
+        return;
+      }
+
+      // Message not found - try to load older messages and retry
+      await this.ensureMessageIsLoaded(messageId);
+    },
+
+    scrollToMessageElement(messageElement) {
+      this.isProgrammaticScroll = true;
+      messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      
+      // Highlight the message briefly
+      messageElement.classList.add('message--highlighted');
+      setTimeout(() => {
+        messageElement.classList.remove('message--highlighted');
+      }, 2000);
+    },
+
+    async ensureMessageIsLoaded(messageId, retryCount = 0) {
+      const maxRetries = 5;
+      const retryDelay = 300;
+
+      // Check if we've exhausted retries
+      if (retryCount >= maxRetries) {
+        this.$toast.warning(this.$t('CONVERSATION.SCROLL_TO_MESSAGE_FAILED'));
+        this.scrollToBottom();
+        this.makeMessagesRead();
+        return;
+      }
+
+      // Check if all messages are already loaded
+      if (this.currentChat.allMessagesLoaded) {
+        // All messages loaded but still can't find it - message might not exist
+        if (retryCount === 0) {
+          this.$toast.warning(this.$t('CONVERSATION.MESSAGE_NOT_FOUND'));
+        }
+        this.scrollToBottom();
+        this.makeMessagesRead();
+        return;
+      }
+
+      try {
+        // Load more previous messages
+        this.isLoadingPrevious = true;
+        await this.$store.dispatch('fetchPreviousMessages', {
+          conversationId: this.currentChat.id,
+          before: this.currentChat.messages[0].id,
+        });
+
+        // Wait for DOM to update
+        await this.$nextTick();
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+
+        // Check if message is now available
         const messageElement = document.getElementById('message' + messageId);
         if (messageElement) {
-          this.isProgrammaticScroll = true;
-          messageElement.scrollIntoView({ behavior: 'smooth' });
-          this.fetchPreviousMessages();
-        } else {
-          this.scrollToBottom();
+          this.scrollToMessageElement(messageElement);
+          this.makeMessagesRead();
+          return;
         }
-      });
-      this.makeMessagesRead();
+
+        // Not found yet, retry
+        await this.ensureMessageIsLoaded(messageId, retryCount + 1);
+      } catch (error) {
+        console.error('Error loading previous messages:', error);
+        this.$toast.error(this.$t('CONVERSATION.SCROLL_TO_MESSAGE_ERROR'));
+        this.scrollToBottom();
+        this.makeMessagesRead();
+      } finally {
+        this.isLoadingPrevious = false;
+      }
     },
     addScrollListener() {
       this.conversationPanel = this.$el.querySelector('.conversation-panel');
@@ -736,5 +806,17 @@ export default {
 
 .dark .starred-messages-button:hover {
   background-color: #4b5563;
+}
+
+.message--highlighted {
+  background-color: rgba(59, 130, 246, 0.1);
+  border: 2px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  transition: all 0.3s ease-in-out;
+}
+
+.dark .message--highlighted {
+  background-color: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.4);
 }
 </style>
