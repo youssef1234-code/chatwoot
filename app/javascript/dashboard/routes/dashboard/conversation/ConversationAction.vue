@@ -6,7 +6,6 @@ import { useAgentsList } from 'dashboard/composables/useAgentsList';
 import ContactDetailsItem from './ContactDetailsItem.vue';
 import MultiselectDropdown from 'shared/components/ui/MultiselectDropdown.vue';
 import ConversationLabels from './labels/LabelBox.vue';
-import JiraLinkedIssuesDisplay from 'dashboard/components/widgets/conversation/jira/JiraLinkedIssuesDisplay.vue';
 import { CONVERSATION_PRIORITY } from '../../../../shared/constants/messages';
 import { CONVERSATION_EVENTS } from '../../../helper/AnalyticsHelper/events';
 import { useTrack } from 'dashboard/composables';
@@ -17,7 +16,6 @@ export default {
     ContactDetailsItem,
     MultiselectDropdown,
     ConversationLabels,
-    JiraLinkedIssuesDisplay,
     NextButton,
   },
   props: {
@@ -283,8 +281,5 @@ export default {
       :title="$t('CONVERSATION_SIDEBAR.ACCORDION.CONVERSATION_LABELS')"
     />
     <ConversationLabels :conversation-id="conversationId" />
-    
-    <!-- JIRA Linked Issues as Labels -->
-    <JiraLinkedIssuesDisplay :conversation-id="conversationId" />
   </div>
 </template>

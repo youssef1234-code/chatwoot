@@ -62,7 +62,11 @@
       "CUSTOM_ATTRIBUTE_LINK": "Link",
       "CUSTOM_ATTRIBUTE_CHECKBOX": "Checkbox",
       "CREATED_AT": "Created at",
-      "LAST_ACTIVITY": "Last activity"
+      "LAST_ACTIVITY": "Last activity",
+      "JIRA_LINKED_ISSUES": "Has linked JIRA issues",
+      "JIRA_LINKED_ISSUES_TRUE": "With JIRA issues",
+      "JIRA_LINKED_ISSUES_FALSE": "Without JIRA issues",
+      "JIRA_ISSUE_KEY": "JIRA issue key"
     },
     "ERRORS": {
       "VALUE_REQUIRED": "Value is required",

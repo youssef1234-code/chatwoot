@@ -63,14 +63,21 @@ module Filters::FilterHelper
       tag_filter_query(query_hash, current_index)
     when 'text_case_insensitive'
       text_case_insensitive_filter(query_hash, filter_operator_value)
+    when 'boolean'
+      boolean_filter_query(current_filter, query_hash, current_index)
     else
-      default_filter(query_hash, filter_operator_value)
+      # Handle special JIRA filters
+      if query_hash[:attribute_key] == 'jira_issue_key'
+        jira_issue_key_filter_query(query_hash, current_index)
+      else
+        default_filter(query_hash, filter_operator_value)
+      end
     end
   end
 
   def date_filter(current_filter, query_hash, filter_operator_value)
     "(#{filter_config[:table_name]}.#{query_hash[:attribute_key]})::#{current_filter['data_type']} " \
-      "#{filter_operator_value}#{current_filter['data_type']} #{query_hash[:query_operator]}"
+      "#{filter_operator_value}#{currentFilter['data_type']} #{query_hash[:query_operator]}"
   end
 
   def text_case_insensitive_filter(query_hash, filter_operator_value)
@@ -80,6 +87,52 @@ module Filters::FilterHelper
 
   def default_filter(query_hash, filter_operator_value)
     "#{filter_config[:table_name]}.#{query_hash[:attribute_key]} #{filter_operator_value} #{query_hash[:query_operator]}"
+  end
+
+  def boolean_filter_query(current_filter, query_hash, current_index)
+    attribute_key = query_hash[:attribute_key]
+    
+    case attribute_key
+    when 'jira_linked_issues'
+      jira_filter_query(query_hash, current_index)
+    else
+      # Handle other boolean filters if needed
+      default_filter(query_hash, @filter_values["value_#{current_index}"])
+    end
+  end
+
+  def jira_filter_query(query_hash, current_index)
+    table_name = filter_config[:table_name]
+    query_operator = query_hash[:query_operator]
+    
+    jira_relation_query = "SELECT 1 FROM jira_issue_links WHERE jira_issue_links.conversation_id = #{table_name}.id"
+    
+    case query_hash[:filter_operator]
+    when 'is_present'
+      "EXISTS (#{jira_relation_query}) #{query_operator}"
+    when 'is_not_present'
+      "NOT EXISTS (#{jira_relation_query}) #{query_operator}"
+    end
+  end
+
+  def jira_issue_key_filter_query(query_hash, current_index)
+    table_name = filter_config[:table_name]
+    query_operator = query_hash[:query_operator]
+    
+    @filter_values["value_#{current_index}"] = filter_values(query_hash)
+    
+    case query_hash[:filter_operator]
+    when 'equal_to'
+      "EXISTS (SELECT 1 FROM jira_issue_links WHERE jira_issue_links.conversation_id = #{table_name}.id AND jira_issue_links.issue_key = :value_#{current_index}) #{query_operator}"
+    when 'not_equal_to'
+      "NOT EXISTS (SELECT 1 FROM jira_issue_links WHERE jira_issue_links.conversation_id = #{table_name}.id AND jira_issue_links.issue_key = :value_#{current_index}) #{query_operator}"
+    when 'contains'
+      @filter_values["value_#{current_index}"] = "%#{query_hash['values'][0]}%"
+      "EXISTS (SELECT 1 FROM jira_issue_links WHERE jira_issue_links.conversation_id = #{table_name}.id AND jira_issue_links.issue_key ILIKE :value_#{current_index}) #{query_operator}"
+    when 'does_not_contain'
+      @filter_values["value_#{current_index}"] = "%#{query_hash['values'][0]}%"
+      "NOT EXISTS (SELECT 1 FROM jira_issue_links WHERE jira_issue_links.conversation_id = #{table_name}.id AND jira_issue_links.issue_key ILIKE :value_#{current_index}) #{query_operator}"
+    end
   end
 
   def validate_single_condition(condition)

@@ -75,6 +75,10 @@ const getValueFromConversation = (conversation, attributeKey) => {
       return conversation.inbox_id;
     case 'team_id':
       return conversation.meta?.team?.id;
+    case 'jira_linked_issues':
+      return conversation.jira_issue_links && conversation.jira_issue_links.length > 0;
+    case 'jira_issue_key':
+      return conversation.jira_issue_links?.map(link => link.issue_key) || [];
     case 'browser_language':
     case 'country_code':
     case 'referer':

@@ -74,13 +74,29 @@ function validateAndSubmit() {
     return;
   }
 
+  // Create transformed filters for backend but keep original for frontend
+  const transformedFilters = filters.value.map(filter => {
+    // Transform jira_linked_issues boolean values to presence operators
+    if (filter.attributeKey === 'jira_linked_issues') {
+      return {
+        ...filter,
+        filterOperator: filter.values?.id === true ? 'is_present' : 'is_not_present',
+        values: [] // Clear values since presence operators don't need them
+      };
+    }
+    return filter;
+  });
+
+  // Store original filters (not transformed) in the store for UI consistency
   store.dispatch(
     'setConversationFilters',
     useSnakeCase(JSON.parse(JSON.stringify(filters.value)))
   );
-  emit('applyFilter', filters.value);
+  
+  // But emit the transformed filters to be sent to backend
+  emit('applyFilter', transformedFilters);
   useTrack(CONVERSATION_EVENTS.APPLY_FILTER, {
-    appliedFilters: filters.value.map(filter => ({
+    appliedFilters: transformedFilters.map(filter => ({
       key: filter.attributeKey,
       operator: filter.filterOperator,
       queryOperator: filter.queryOperator,

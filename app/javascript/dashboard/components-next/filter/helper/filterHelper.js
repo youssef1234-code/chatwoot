@@ -15,6 +15,8 @@ export const CONVERSATION_ATTRIBUTES = {
   REFERER: 'referer',
   CREATED_AT: 'created_at',
   LAST_ACTIVITY_AT: 'last_activity_at',
+  JIRA_LINKED_ISSUES: 'jira_linked_issues',
+  JIRA_ISSUE_KEY: 'jira_issue_key',
 };
 
 export const CONTACT_ATTRIBUTES = {
