@@ -99,7 +99,7 @@ export default {
     >
       <div
         v-dompurify-html="formatMessage(message, false)"
-        class="message-content text-n-slate-12"
+        class="message-content text-n-slate-12 message-text-content"
       />
       <EmailInput
         v-if="isTemplateEmail"
@@ -150,3 +150,28 @@ export default {
     />
   </div>
 </template>
+
+<style scoped>
+.message-text-content {
+  unicode-bidi: plaintext;
+  direction: auto;
+}
+
+.message-content {
+  unicode-bidi: plaintext;
+  direction: auto;
+}
+
+.chat-bubble-wrap {
+  unicode-bidi: plaintext;
+}
+</style>
+
+<style>
+.chat-bubble.agent p,
+.chat-bubble.agent div,
+.chat-bubble.agent span {
+  unicode-bidi: plaintext;
+  direction: auto;
+}
+</style>

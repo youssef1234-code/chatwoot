@@ -1,0 +1,102 @@
+/* Text direction enhancement for mixed Arabic/English content */
+
+/* Apply to all message content areas */
+.message-content,
+.prose-bubble,
+.chat-bubble,
+.user-message-input,
+.ProseMirror {
+  unicode-bidi: plaintext !important;
+}
+
+/* Force proper text direction for mixed content in all HTML elements */
+.message-text-content,
+.message-content,
+.prose-bubble,
+.chat-bubble {
+  unicode-bidi: plaintext !important;
+  direction: auto !important;
+}
+
+.message-text-content *,
+.message-content *,
+.prose-bubble *,
+.chat-bubble * {
+  unicode-bidi: plaintext !important;
+  direction: auto !important;
+}
+
+/* Specifically target formatted content */
+.prose-bubble p,
+.prose-bubble div,
+.prose-bubble span,
+.chat-bubble p,
+.chat-bubble div,
+.chat-bubble span,
+.message-content p,
+.message-content div,
+.message-content span {
+  unicode-bidi: plaintext !important;
+  direction: auto !important;
+}
+
+/* For input areas - ensure proper cursor and text alignment */
+.chat-input-enhanced {
+  unicode-bidi: plaintext !important;
+  direction: auto !important;
+}
+
+/* RTL content specific enhancements */
+.rtl-content {
+  direction: rtl !important;
+  text-align: right !important;
+  unicode-bidi: plaintext !important;
+}
+
+/* LTR content specific enhancements */
+.ltr-content {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: plaintext !important;
+}
+
+/* Auto direction - let browser determine based on content */
+.auto-direction {
+  direction: auto !important;
+  unicode-bidi: plaintext !important;
+}
+
+/* Widget specific styles */
+.widget .chat-bubble,
+.widget .chat-bubble * {
+  unicode-bidi: plaintext !important;
+  direction: auto !important;
+}
+
+.widget .user-message-input {
+  unicode-bidi: plaintext !important;
+  direction: auto !important;
+}
+
+/* Dashboard editor enhancements */
+.ProseMirror p,
+.ProseMirror div,
+.ProseMirror span {
+  unicode-bidi: plaintext !important;
+  direction: auto !important;
+}
+
+/* Conversation message text */
+.conversation-panel .text-content p,
+.conversation-panel .text-content div,
+.conversation-panel .text-content span {
+  unicode-bidi: plaintext !important;
+  direction: auto !important;
+}
+
+/* General message bubbles */
+[data-bubble-name] *,
+[data-bubble-name="text"] * {
+  unicode-bidi: plaintext !important;
+  direction: auto !important;
+}

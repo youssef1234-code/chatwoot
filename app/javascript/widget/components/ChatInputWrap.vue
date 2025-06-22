@@ -130,7 +130,7 @@ export default {
       :rows="1"
       :aria-label="$t('CHAT_PLACEHOLDER')"
       :placeholder="$t('CHAT_PLACEHOLDER')"
-      class="user-message-input reset-base"
+      class="user-message-input reset-base chat-input-enhanced"
       @typing-off="onTypingOff"
       @typing-on="onTypingOn"
       @focus="onFocus"
@@ -179,5 +179,10 @@ export default {
 
 .user-message-input {
   @apply border-none outline-none w-full placeholder:text-n-slate-10 resize-none h-8 min-h-8 max-h-60 py-1 px-0 my-2 bg-n-background text-n-slate-12 transition-all duration-200;
+}
+
+.chat-input-enhanced {
+  unicode-bidi: plaintext;
+  direction: auto;
 }
 </style>

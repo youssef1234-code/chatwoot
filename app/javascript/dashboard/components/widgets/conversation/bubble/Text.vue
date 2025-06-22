@@ -83,10 +83,10 @@ export default {
       'hide--quoted': !isQuotedContentPresent,
     }"
   >
-    <div v-if="!isEmail" v-dompurify-html="message" class="text-content" />
+    <div v-if="!isEmail" v-dompurify-html="message" class="text-content message-text-content" />
     <div v-else @click="handleClickOnContent">
       <Letter
-        class="text-content bg-white dark:bg-white text-slate-900 dark:text-slate-900 p-2 rounded-[4px]"
+        class="text-content message-text-content bg-white dark:bg-white text-slate-900 dark:text-slate-900 p-2 rounded-[4px]"
         :html="message"
       />
     </div>
@@ -146,6 +146,17 @@ export default {
   h6 {
     font-size: var(--font-size-normal);
   }
+}
+
+.message-text-content {
+  unicode-bidi: plaintext;
+  direction: auto;
+}
+
+.message-text-content *,
+.text-content * {
+  unicode-bidi: plaintext;
+  direction: auto;
 }
 
 .show--quoted {

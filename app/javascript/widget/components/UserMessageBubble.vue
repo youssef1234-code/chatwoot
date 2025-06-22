@@ -31,13 +31,28 @@ export default {
 <template>
   <div
     v-dompurify-html="formatMessage(message, false)"
-    class="chat-bubble user"
+    class="chat-bubble user message-text-content"
     :style="{ background: widgetColor, color: textColor }"
   />
 </template>
 
 <style lang="scss" scoped>
+.message-text-content {
+  unicode-bidi: plaintext;
+  direction: auto;
+}
+
+.chat-bubble.user {
+  unicode-bidi: plaintext;
+  direction: auto;
+}
+
 .chat-bubble.user::v-deep {
+  p, div, span {
+    unicode-bidi: plaintext;
+    direction: auto;
+  }
+
   p code {
     @apply bg-n-alpha-2 dark:bg-n-alpha-1 text-white;
   }

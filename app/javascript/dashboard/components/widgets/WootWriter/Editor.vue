@@ -728,6 +728,17 @@ useEmitter(BUS_EVENTS.INSERT_INTO_RICH_EDITOR, insertContentIntoEditor);
   </div>
 </template>
 
+<style>
+.ProseMirror {
+  unicode-bidi: plaintext;
+}
+
+.ProseMirror p {
+  unicode-bidi: plaintext;
+  direction: auto;
+}
+</style>
+
 <style lang="scss">
 @import '@chatwoot/prosemirror-schema/src/styles/base.scss';
 
