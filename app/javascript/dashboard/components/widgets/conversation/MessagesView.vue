@@ -318,6 +318,8 @@ export default {
     // until the chat is changed and the flag is reset in the watch for currentChat
     emitter.on(BUS_EVENTS.MESSAGE_SENT, () => {
       this.messageSentSinceOpened = true;
+      // Mark messages as read when user sends a message (indicates active engagement)
+      this.makeMessagesRead();
     });
   },
 
@@ -330,6 +332,11 @@ export default {
     if (this.currentChat?.id) {
       this.fetchStarredAndPinnedMessages(this.currentChat.id);
     }
+    
+    // Mark messages as read when conversation is opened/mounted
+    this.$nextTick(() => {
+      this.makeMessagesRead();
+    });
   },
 
   unmounted() {
@@ -525,6 +532,9 @@ export default {
         this.$el.scrollHeight,
         relevantMessages
       );
+      
+      // Mark messages as read when scrolling to bottom
+      this.makeMessagesRead();
     },
     setScrollParams() {
       this.heightBeforeLoad = this.conversationPanel.scrollHeight;
