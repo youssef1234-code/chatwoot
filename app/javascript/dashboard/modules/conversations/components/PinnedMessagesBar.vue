@@ -11,11 +11,6 @@ export default {
     MessagePreview,
   },
   emits: ['scrollToMessage'],
-  data() {
-    return {
-      showAllPinned: false,
-    };
-  },
   computed: {
     ...mapGetters({
       currentChat: 'getSelectedChat',
@@ -27,11 +22,8 @@ export default {
       if (this.pinnedMessages.length === 0) return null;
       return this.pinnedMessages[0]; // Show the most recent pinned message
     },
-    totalPinnedCount() {
-      return this.pinnedMessages.length;
-    },
     showPinnedBar() {
-      return this.totalPinnedCount > 0;
+      return this.pinnedMessages.length > 0;
     },
   },
   methods: {
@@ -39,11 +31,18 @@ export default {
     scrollToMessage(messageId) {
       this.$emit('scrollToMessage', messageId);
     },
-    toggleAllPinned() {
-      this.showAllPinned = !this.showAllPinned;
-    },
-    closePinnedBar() {
-      this.showAllPinned = false;
+    async unpinMessage(messageId) {
+      try {
+        console.log('Unpinning message:', messageId, 'from conversation:', this.currentChat.id);
+        await this.$store.dispatch('unpinMessage', {
+          conversationId: this.currentChat.id,
+          messageId: messageId,
+        });
+        this.$toast.success(this.$t('CONVERSATION.SUCCESS_UNPIN_MESSAGE'));
+      } catch (error) {
+        console.error('Failed to unpin message:', error);
+        this.$toast.error(this.$t('CONVERSATION.FAIL_UNPIN_MESSAGE'));
+      }
     },
   },
 };
@@ -65,9 +64,6 @@ export default {
             <span class="pinned-text">{{
               $t('CONVERSATION.PINNED_MESSAGE')
             }}</span>
-            <span v-if="totalPinnedCount > 1" class="pinned-count">
-              {{ `+${totalPinnedCount - 1} ${$t('CONVERSATION.MORE')}` }}
-            </span>
           </div>
           <MessagePreview
             :message="displayedMessage"
@@ -76,41 +72,14 @@ export default {
           />
         </div>
         <div class="pinned-actions">
-          <button
-            v-if="totalPinnedCount > 1"
-            class="action-button"
-            @click="toggleAllPinned"
+          <button 
+            v-if="displayedMessage && displayedMessage.id"
+            class="action-button close-button" 
+            @click.stop="unpinMessage(displayedMessage.id)"
+            :title="$t('CONVERSATION.CONTEXT_MENU.UNPIN')"
           >
-            <FluentIcon icon="chevron-down" size="16" />
-          </button>
-          <button class="action-button close-button" @click="closePinnedBar">
             <FluentIcon icon="dismiss" size="16" />
           </button>
-        </div>
-      </div>
-
-      <!-- Expanded view showing all pinned messages -->
-      <div
-        v-if="showAllPinned && totalPinnedCount > 1"
-        class="all-pinned-messages"
-      >
-        <div
-          v-for="message in pinnedMessages"
-          :key="message.id"
-          class="pinned-message-item"
-          @click="scrollToMessage(message.id)"
-        >
-          <div class="message-sender">
-            {{ message.sender?.name || $t('CONVERSATION.BOT') }}
-          </div>
-          <MessagePreview
-            :message="message"
-            :show-message-type="false"
-            class="message-preview"
-          />
-          <div class="message-time">
-            {{ dynamicTime(message.pinned_at || message.created_at) }}
-          </div>
         </div>
       </div>
     </div>
