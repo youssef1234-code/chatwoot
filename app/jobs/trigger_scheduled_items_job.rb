@@ -22,6 +22,9 @@ class TriggerScheduledItemsJob < ApplicationJob
 
     # Job to clear notifications which are older than 1 month
     Notification::RemoveOldNotificationJob.perform_later
+
+    # Job to monitor JIRA issue status updates
+    Jira::IssueMonitoringSchedulerJob.perform_later
   end
 end
 

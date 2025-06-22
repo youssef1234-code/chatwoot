@@ -59,6 +59,15 @@ class Integrations::Jira::ProcessorService
       comment_response = jira_client.link_issue(issue_key, conversation_data[:url], title)
       comment_id = comment_response.is_a?(Hash) && !comment_response[:error] ? comment_response['id'] : nil
       
+      # Fetch current issue status for initial tracking
+      current_status = nil
+      begin
+        issue_response = jira_client.get_issue(issue_key)
+        current_status = issue_response['fields']['status']['name'] if issue_response && !issue_response[:error]
+      rescue StandardError => e
+        Rails.logger.warn("JIRA: Could not fetch initial status for issue #{issue_key}: #{e.message}")
+      end
+      
       # Store the link in our database
       link = JiraIssueLink.link_issue(
         conversation_data[:conversation], 
@@ -66,13 +75,20 @@ class Integrations::Jira::ProcessorService
         comment_id: comment_id,
         user: user
       )
+      
+      # Update the initial status if we got it
+      if current_status
+        link.update_status!(current_status)
+        Rails.logger.info("JIRA: Set initial status for issue #{issue_key}: #{current_status}")
+      end
 
       {
         data: {
           issue_key: issue_key,
           url: conversation_data[:url],
           comment_id: comment_id,
-          linked_at: link.linked_at
+          linked_at: link.linked_at,
+          initial_status: current_status
         }
       }
     rescue StandardError => e

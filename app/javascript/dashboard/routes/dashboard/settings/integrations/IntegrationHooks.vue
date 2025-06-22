@@ -6,12 +6,14 @@ import { useIntegrationHook } from 'dashboard/composables/useIntegrationHook';
 import NewHook from './NewHook.vue';
 import SingleIntegrationHooks from './SingleIntegrationHooks.vue';
 import MultipleIntegrationHooks from './MultipleIntegrationHooks.vue';
+import JiraWebhookSetup from 'dashboard/components/widgets/jira/JiraWebhookSetup.vue';
 
 export default {
   components: {
     NewHook,
     SingleIntegrationHooks,
     MultipleIntegrationHooks,
+    JiraWebhookSetup,
   },
   props: {
     integrationId: {
@@ -70,6 +72,9 @@ export default {
     cancelText() {
       return this.$t('INTEGRATION_APPS.DELETE.CANCEL_BUTTON_TEXT');
     },
+    isJiraIntegration() {
+      return this.integrationId === 'jira';
+    },
   },
   methods: {
     openAddHookModal() {
@@ -110,6 +115,9 @@ export default {
 <template>
   <div class="overflow-auto p-4 w-full my-auto flex flex-wrap h-full">
     <div v-if="showIntegrationHooks" class="w-full">
+      <!-- JIRA-specific webhook setup -->
+      <JiraWebhookSetup v-if="isJiraIntegration" />
+      
       <div v-if="isIntegrationMultiple">
         <MultipleIntegrationHooks
           :integration-id="integrationId"

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_06_21_153048) do
+ActiveRecord::Schema[7.1].define(version: 2025_06_22_120000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -765,11 +765,16 @@ ActiveRecord::Schema[7.1].define(version: 2025_06_21_153048) do
     t.bigint "user_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "last_known_status"
+    t.datetime "last_status_check_at"
+    t.boolean "webhook_notifications_enabled", default: true
     t.index ["account_id"], name: "index_jira_issue_links_on_account_id"
     t.index ["conversation_id", "issue_key"], name: "index_jira_issue_links_on_conversation_id_and_issue_key", unique: true
     t.index ["conversation_id"], name: "index_jira_issue_links_on_conversation_id"
     t.index ["issue_key"], name: "index_jira_issue_links_on_issue_key"
+    t.index ["last_status_check_at"], name: "index_jira_issue_links_on_last_status_check_at"
     t.index ["user_id"], name: "index_jira_issue_links_on_user_id"
+    t.index ["webhook_notifications_enabled"], name: "index_jira_issue_links_on_webhook_notifications_enabled"
   end
 
   create_table "labels", force: :cascade do |t|

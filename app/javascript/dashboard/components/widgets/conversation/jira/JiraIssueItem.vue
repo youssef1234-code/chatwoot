@@ -1,11 +1,12 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import JiraAPI from 'dashboard/api/integrations/jira';
 import JiraComments from './JiraComments.vue';
 import { parseJiraAPIErrorResponse } from './helpers/apiErrorHelper';
+import { emitter } from 'shared/helpers/mitt';
 
 const props = defineProps({
   issue: {
@@ -24,6 +25,83 @@ const { t } = useI18n();
 const isRefreshing = ref(false);
 const showComments = ref(false);
 const issueDetails = ref(props.issue);
+
+// Listen for real-time JIRA updates
+const handleJiraStatusUpdate = (data) => {
+  console.log('JIRA JiraIssueItem: Received status update', data);
+  console.log('JIRA JiraIssueItem: Current issue key:', issueKey.value);
+  console.log('JIRA JiraIssueItem: Event issue key:', data.issue_key);
+  console.log('JIRA JiraIssueItem: Current conversation ID:', props.conversationId);
+  console.log('JIRA JiraIssueItem: Event conversation ID:', data.conversation_id);
+  
+  // Only update if this event is for this specific issue AND conversation
+  if (data.issue_key === issueKey.value && data.conversation_id.toString() === props.conversationId.toString()) {
+    console.log('JIRA JiraIssueItem: Updating issue status from', issueDetails.value.status, 'to', data.issue_status || data.new_status);
+    
+    // Update the issue status in real-time
+    const newStatus = data.issue_status || data.new_status;
+    issueDetails.value = {
+      ...issueDetails.value,
+      status: newStatus,
+      summary: data.issue_summary || issueDetails.value.summary
+    };
+    console.log('JIRA JiraIssueItem: Updated issue details:', issueDetails.value);
+    
+    // Force reactivity update
+    nextTick(() => {
+      emit('refresh');
+    });
+  } else {
+    console.log('JIRA JiraIssueItem: Ignoring status update for different issue/conversation');
+  }
+};
+
+const handleJiraCompletion = (data) => {
+  console.log('JIRA JiraIssueItem: Received completion event', data);
+  // Only update if this event is for this specific issue AND conversation
+  if (data.issue_key === issueKey.value && data.conversation_id.toString() === props.conversationId.toString()) {
+    console.log('JIRA JiraIssueItem: Updating issue to completed status');
+    
+    // Update the issue to show it's completed
+    const newStatus = data.issue_status || data.new_status;
+    issueDetails.value = {
+      ...issueDetails.value,
+      status: newStatus,
+      summary: data.issue_summary || issueDetails.value.summary
+    };
+    
+    // Force reactivity update
+    nextTick(() => {
+      emit('refresh');
+    });
+    
+    // Show completion notification
+    useAlert(`🎉 JIRA Issue ${data.issue_key} has been completed!`);
+  } else {
+    console.log('JIRA JiraIssueItem: Ignoring completion event for different issue/conversation');
+  }
+};
+
+onMounted(() => {
+  emitter.on('jira:issue-status-updated', handleJiraStatusUpdate);
+  emitter.on('jira:issue-completed', handleJiraCompletion);
+});
+
+onUnmounted(() => {
+  emitter.off('jira:issue-status-updated', handleJiraStatusUpdate);
+  emitter.off('jira:issue-completed', handleJiraCompletion);
+});
+
+// Watch for props changes and update local state
+watch(
+  () => props.issue,
+  (newIssue) => {
+    if (newIssue) {
+      issueDetails.value = { ...newIssue };
+    }
+  },
+  { deep: true, immediate: true }
+);
 
 const issueUrl = computed(() => issueDetails.value.url);
 const issueKey = computed(() => issueDetails.value.key);
@@ -82,31 +160,32 @@ const getPriorityColor = (priority) => {
 };
 
 const getStatusColor = (status) => {
-  if (!status) return 'bg-gray-600 text-white border-gray-200';
+  if (!status) return 'bg-gray-500 text-white border-gray-300';
   
   const statusLower = status.toLowerCase();
+  console.log('JIRA JiraIssueItem: getStatusColor called with status:', statusLower);
   const statusColors = {
-    'to do': 'bg-slate-600 text-white border-slate-200 shadow-slate-100',
-    'todo': 'bg-slate-600 text-white border-slate-200 shadow-slate-100',
-    'open': 'bg-slate-600 text-white border-slate-200 shadow-slate-100',
-    'backlog': 'bg-slate-600 text-white border-slate-200 shadow-slate-100',
-    'in progress': 'bg-blue-600 text-white border-blue-200 shadow-blue-100',
-    'in development': 'bg-blue-600 text-white border-blue-200 shadow-blue-100',
-    'development': 'bg-blue-600 text-white border-blue-200 shadow-blue-100',
-    'active': 'bg-blue-600 text-white border-blue-200 shadow-blue-100',
-    'in review': 'bg-amber-600 text-white border-amber-200 shadow-amber-100',
-    'under review': 'bg-amber-600 text-white border-amber-200 shadow-amber-100',
-    'review': 'bg-amber-600 text-white border-amber-200 shadow-amber-100',
-    'testing': 'bg-amber-600 text-white border-amber-200 shadow-amber-100',
-    'qa': 'bg-amber-600 text-white border-amber-200 shadow-amber-100',
-    'done': 'bg-green-600 text-white border-green-200 shadow-green-100',
-    'closed': 'bg-green-600 text-white border-green-200 shadow-green-100',
-    'resolved': 'bg-green-600 text-white border-green-200 shadow-green-100',
-    'completed': 'bg-green-600 text-white border-green-200 shadow-green-100',
-    'waiting for support': 'bg-red-600 text-white border-red-200 shadow-red-100',
-    'waiting': 'bg-red-600 text-white border-red-200 shadow-red-100',
-    'blocked': 'bg-red-600 text-white border-red-200 shadow-red-100',
-    'on hold': 'bg-red-600 text-white border-red-200 shadow-red-100'
+    'to do': 'bg-slate-500 text-black border-slate-300',
+    'todo': 'bg-slate-500 text-black border-slate-300',
+    'open': 'bg-slate-500 text-white border-slate-300',
+    'backlog': 'bg-slate-500 text-white border-slate-300',
+    'in progress': 'bg-blue-500 text-white border-blue-300',
+    'in development': 'bg-blue-500 text-white border-blue-300',
+    'development': 'bg-blue-500 text-white border-blue-300',
+    'active': 'bg-blue-500 text-white border-blue-300',
+    'in review': 'bg-yellow-500 text-white border-yellow-300',
+    'under review': 'bg-yellow-500 text-white border-yellow-300',
+    'review': 'bg-yellow-500 text-white border-yellow-300',
+    'testing': 'bg-yellow-500 text-white border-yellow-300',
+    'qa': 'bg-yellow-500 text-white border-yellow-300',
+    'done': 'bg-green-500 text-white border-green-300',
+    'closed': 'bg-green-500 text-white border-green-300',
+    'resolved': 'bg-green-500 text-white border-green-300',
+    'completed': 'bg-green-500 text-white border-green-300',
+    'waiting for support': 'bg-red-500 text-white border-red-300',
+    'waiting': 'bg-red-500 text-white border-red-300',
+    'blocked': 'bg-red-500 text-white border-red-300',
+    'on hold': 'bg-red-500 text-white border-red-300'
   };
   
   // Try to find exact match first
@@ -121,7 +200,7 @@ const getStatusColor = (status) => {
     }
   }
   
-  return 'bg-gray-600 text-white border-gray-200 shadow-gray-100';
+  return 'bg-gray-500 text-white border-gray-300';
 };
 </script>
 

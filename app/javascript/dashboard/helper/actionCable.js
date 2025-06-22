@@ -34,6 +34,8 @@ class ActionCableConnector extends BaseActionCableConnector {
       'conversation.updated': this.onConversationUpdated,
       'account.cache_invalidated': this.onCacheInvalidate,
       'copilot.message.created': this.onCopilotMessageCreated,
+      'jira_issue_completed': this.onJiraIssueCompleted,
+      'jira_issue_status_updated': this.onJiraIssueStatusUpdated,
     };
   }
 
@@ -199,6 +201,37 @@ class ActionCableConnector extends BaseActionCableConnector {
     this.app.$store.dispatch('labels/revalidate', { newKey: keys.label });
     this.app.$store.dispatch('inboxes/revalidate', { newKey: keys.inbox });
     this.app.$store.dispatch('teams/revalidate', { newKey: keys.team });
+  };
+
+  onJiraIssueCompleted = data => {
+    // Show notification to user about JIRA issue completion
+    this.app.$store.dispatch('notifications/show', {
+      message: `JIRA Issue ${data.issue_key} has been completed!`,
+      type: 'success',
+    });
+
+    // Dispatch event for components to react to
+    emitter.emit('jira:issue-completed', data);
+
+    // Force refresh of JIRA issues in conversation view if it's the current conversation
+    if (this.app.$store.getters.getSelectedChat?.id === data.conversation_id) {
+      window.dispatchEvent(new CustomEvent('jira:issues-updated'));
+    }
+  };
+
+  onJiraIssueStatusUpdated = data => {
+    console.log('JIRA ActionCable: Received status update event', data);
+    
+    // Dispatch event for real-time status updates
+    emitter.emit('jira:issue-status-updated', data);
+    
+    console.log('JIRA ActionCable: Emitted jira:issue-status-updated event');
+
+    // Force refresh of JIRA issues in conversation view if it's the current conversation
+    if (this.app.$store.getters.getSelectedChat?.id === data.conversation_id) {
+      console.log('JIRA ActionCable: Triggering issues refresh for current conversation');
+      window.dispatchEvent(new CustomEvent('jira:issues-updated'));
+    }
   };
 }
 

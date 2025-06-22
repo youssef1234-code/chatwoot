@@ -528,6 +528,21 @@
         "CONNECT": "Connect to JIRA",
         "CANCEL": "Cancel",
         "CONNECTION_FAILED": "Failed to connect to JIRA. Please check your URL and try again."
+      },
+      "WEBHOOK_SETUP": {
+        "TITLE": "Real-time Issue Updates",
+        "DESCRIPTION": "Configure webhooks to receive real-time notifications when JIRA issues are updated or completed.",
+        "WEBHOOK_URL": "Webhook URL",
+        "COPY": "Copy",
+        "COPIED_SUCCESS": "Webhook URL copied to clipboard!",
+        "INSTRUCTIONS_TITLE": "Setup Instructions:",
+        "STEP_1": "Go to your JIRA project settings → Webhooks",
+        "STEP_2": "Click 'Create Webhook'",
+        "STEP_3": "Paste the webhook URL above",
+        "STEP_4": "Select 'Issue Updated' and 'Issue Transitioned' events",
+        "STEP_5": "Save the webhook configuration",
+        "NOTE_TITLE": "Important:",
+        "NOTE_DESCRIPTION": "Webhooks provide real-time updates. Without webhooks, status changes will be checked periodically."
       }
     }
   },

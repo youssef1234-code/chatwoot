@@ -287,6 +287,7 @@ Rails.application.routes.draw do
                 get :search_issue
                 get :linked_issues
               end
+              resources :webhooks, only: [:index, :create], controller: 'jira/webhooks'
             end
           end
           resources :working_hours, only: [:update]

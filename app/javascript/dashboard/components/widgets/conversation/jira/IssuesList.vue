@@ -8,6 +8,7 @@ import NextButton from 'dashboard/components-next/button/Button.vue';
 import JiraIssueItem from './JiraIssueItem.vue';
 import CreateOrLinkIssue from './CreateOrLinkIssue.vue';
 import { parseJiraAPIErrorResponse } from './helpers/apiErrorHelper';
+import { emitter } from 'shared/helpers/mitt';
 
 // Define JIRA tracking events (similar to Linear)
 const JIRA_EVENTS = {
@@ -84,6 +85,39 @@ const handleJiraCreateLink = (event) => {
   }
 };
 
+// Listen for real-time JIRA updates
+const handleJiraStatusUpdate = (data) => {
+  console.log('JIRA IssuesList: Received status update', data);
+  console.log('JIRA IssuesList: Current conversation ID:', props.conversationId);
+  console.log('JIRA IssuesList: Event conversation ID:', data.conversation_id);
+  console.log('JIRA IssuesList: IDs match?', data.conversation_id.toString() === props.conversationId.toString());
+  
+  // Only update if this event is specifically for the current conversation
+  if (data.conversation_id.toString() === props.conversationId.toString()) {
+    console.log('JIRA IssuesList: Refreshing issues for conversation', props.conversationId);
+    // Small delay to ensure backend updates are complete before fetching
+    setTimeout(() => {
+      loadLinkedIssues();
+    }, 100);
+  } else {
+    console.log('JIRA IssuesList: Ignoring event for different conversation');
+  }
+};
+
+const handleJiraCompletion = (data) => {
+  console.log('JIRA IssuesList: Received completion event', data);
+  // Only update if this event is specifically for the current conversation
+  if (data.conversation_id.toString() === props.conversationId.toString()) {
+    console.log('JIRA IssuesList: Refreshing issues for completed issue');
+    // Small delay to ensure backend updates are complete before fetching
+    setTimeout(() => {
+      loadLinkedIssues();
+    }, 100);
+  } else {
+    console.log('JIRA IssuesList: Ignoring completion event for different conversation');
+  }
+};
+
 watch(
   () => props.conversationId,
   () => {
@@ -92,12 +126,18 @@ watch(
 );
 
 onMounted(() => {
+  console.log('JIRA IssuesList: Component mounted for conversation', props.conversationId);
   loadLinkedIssues();
   window.addEventListener('jira:open-create-link', handleJiraCreateLink);
+  emitter.on('jira:issue-status-updated', handleJiraStatusUpdate);
+  emitter.on('jira:issue-completed', handleJiraCompletion);
+  console.log('JIRA IssuesList: Event listeners registered');
 });
 
 onUnmounted(() => {
   window.removeEventListener('jira:open-create-link', handleJiraCreateLink);
+  emitter.off('jira:issue-status-updated', handleJiraStatusUpdate);
+  emitter.off('jira:issue-completed', handleJiraCompletion);
 });
 </script>
 
