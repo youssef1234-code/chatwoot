@@ -288,20 +288,27 @@ const handleJiraStatusUpdate = (data) => {
 const handleJiraCompletion = (data) => {
   console.log('JIRA ConversationLabels: Received completion event', data);
   
-  // Check if this completion is for our conversation
-  if (data.conversation_id.toString() === props.conversation.id.toString()) {
-    // Find and update the completed issue
-    const issueIndex = jiraIssues.value.findIndex(issue => issue.key === data.issue_key);
+  // Find and update the completed issue (regardless of conversation ID since JIRA status is global)
+  const issueIndex = jiraIssues.value.findIndex(issue => issue.key === data.issue_key);
+  
+  if (issueIndex !== -1) {
+    console.log('JIRA ConversationLabels: Updating completed issue in conversation labels', {
+      issueKey: data.issue_key,
+      oldStatus: jiraIssues.value[issueIndex].status,
+      newStatus: data.issue_status || data.new_status,
+      conversationId: props.conversation.id,
+      eventConversationId: data.conversation_id
+    });
     
-    if (issueIndex !== -1) {
-      console.log('JIRA ConversationLabels: Updating completed issue in conversation labels');
-      
-      jiraIssues.value[issueIndex] = {
-        ...jiraIssues.value[issueIndex],
-        status: data.issue_status || data.new_status,
-        summary: data.issue_summary || jiraIssues.value[issueIndex].summary
-      };
-    }
+    jiraIssues.value[issueIndex] = {
+      ...jiraIssues.value[issueIndex],
+      status: data.issue_status || data.new_status,
+      summary: data.issue_summary || jiraIssues.value[issueIndex].summary
+    };
+    
+    console.log('JIRA ConversationLabels: Updated completed issue:', jiraIssues.value[issueIndex]);
+  } else {
+    console.log('JIRA ConversationLabels: Completed issue not found in current conversation labels', data.issue_key);
   }
 };
 
