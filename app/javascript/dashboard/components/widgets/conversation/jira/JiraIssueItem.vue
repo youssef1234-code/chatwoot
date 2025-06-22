@@ -34,8 +34,9 @@ const handleJiraStatusUpdate = (data) => {
   console.log('JIRA JiraIssueItem: Current conversation ID:', props.conversationId);
   console.log('JIRA JiraIssueItem: Event conversation ID:', data.conversation_id);
   
-  // Only update if this event is for this specific issue AND conversation
-  if (data.issue_key === issueKey.value && data.conversation_id.toString() === props.conversationId.toString()) {
+  // Update if this event is for this specific issue (JIRA status is global)
+  // Remove conversation ID check since the same issue can be linked to multiple conversations
+  if (data.issue_key === issueKey.value) {
     console.log('JIRA JiraIssueItem: Updating issue status from', issueDetails.value.status, 'to', data.issue_status || data.new_status);
     
     // Update the issue status in real-time
@@ -52,7 +53,7 @@ const handleJiraStatusUpdate = (data) => {
       emit('refresh');
     });
   } else {
-    console.log('JIRA JiraIssueItem: Ignoring status update for different issue/conversation');
+    console.log('JIRA JiraIssueItem: Ignoring status update for different issue key');
   }
 };
 

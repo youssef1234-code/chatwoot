@@ -72,6 +72,7 @@ import { useAlert } from 'dashboard/composables';
 import { useMapGetter } from 'dashboard/composables/store';
 import JiraAPI from 'dashboard/api/integrations/jira';
 import { parseJiraAPIErrorResponse } from './jira/helpers/apiErrorHelper';
+import { emitter } from 'shared/helpers/mitt';
 
 const { t } = useI18n();
 
@@ -111,9 +112,14 @@ const conversationLabels = computed(() => {
 
 // Function to get status-based color for JIRA issues
 const getJiraStatusColor = (status) => {
-  if (!status) return '#0052CC'; // Default JIRA blue
+  if (!status) {
+    console.log('JIRA ConversationLabels: getJiraStatusColor - no status, returning default blue');
+    return '#0052CC'; // Default JIRA blue
+  }
   
   const statusLower = status.toLowerCase();
+  console.log('JIRA ConversationLabels: getJiraStatusColor called with status:', statusLower);
+  
   const statusColors = {
     'to do': '#64748b',
     'todo': '#64748b',
@@ -140,16 +146,19 @@ const getJiraStatusColor = (status) => {
   
   // Try to find exact match first
   if (statusColors[statusLower]) {
+    console.log(`JIRA ConversationLabels: Found exact match for '${statusLower}' -> ${statusColors[statusLower]}`);
     return statusColors[statusLower];
   }
   
   // Try partial matches
   for (const [key, color] of Object.entries(statusColors)) {
     if (statusLower.includes(key) || key.includes(statusLower)) {
+      console.log(`JIRA ConversationLabels: Found partial match for '${statusLower}' with '${key}' -> ${color}`);
       return color;
     }
   }
   
+  console.log(`JIRA ConversationLabels: No match found for '${statusLower}', returning default blue`);
   return '#0052CC'; // Default JIRA blue
 };
 
@@ -248,12 +257,66 @@ const handleJiraIssuesUpdated = () => {
   loadJiraIssues();
 };
 
+// Handle real-time JIRA status updates
+const handleJiraStatusUpdate = (data) => {
+  console.log('JIRA ConversationLabels: Received status update', data);
+  
+  // Check if any of our JIRA issues match the updated issue
+  const issueIndex = jiraIssues.value.findIndex(issue => issue.key === data.issue_key);
+  
+  if (issueIndex !== -1) {
+    console.log('JIRA ConversationLabels: Updating issue status in conversation labels', {
+      issueKey: data.issue_key,
+      oldStatus: jiraIssues.value[issueIndex].status,
+      newStatus: data.issue_status || data.new_status,
+      conversationId: props.conversation.id
+    });
+    
+    // Update the status of the specific issue
+    jiraIssues.value[issueIndex] = {
+      ...jiraIssues.value[issueIndex],
+      status: data.issue_status || data.new_status,
+      summary: data.issue_summary || jiraIssues.value[issueIndex].summary
+    };
+    
+    console.log('JIRA ConversationLabels: Updated issue:', jiraIssues.value[issueIndex]);
+  } else {
+    console.log('JIRA ConversationLabels: Issue not found in current conversation labels', data.issue_key);
+  }
+};
+
+const handleJiraCompletion = (data) => {
+  console.log('JIRA ConversationLabels: Received completion event', data);
+  
+  // Check if this completion is for our conversation
+  if (data.conversation_id.toString() === props.conversation.id.toString()) {
+    // Find and update the completed issue
+    const issueIndex = jiraIssues.value.findIndex(issue => issue.key === data.issue_key);
+    
+    if (issueIndex !== -1) {
+      console.log('JIRA ConversationLabels: Updating completed issue in conversation labels');
+      
+      jiraIssues.value[issueIndex] = {
+        ...jiraIssues.value[issueIndex],
+        status: data.issue_status || data.new_status,
+        summary: data.issue_summary || jiraIssues.value[issueIndex].summary
+      };
+    }
+  }
+};
+
 onMounted(() => {
   loadJiraIssues();
   window.addEventListener('jira:issues-updated', handleJiraIssuesUpdated);
+  // Listen for real-time JIRA status updates
+  emitter.on('jira:issue-status-updated', handleJiraStatusUpdate);
+  emitter.on('jira:issue-completed', handleJiraCompletion);
 });
 
 onUnmounted(() => {
   window.removeEventListener('jira:issues-updated', handleJiraIssuesUpdated);
+  // Clean up real-time event listeners
+  emitter.off('jira:issue-status-updated', handleJiraStatusUpdate);
+  emitter.off('jira:issue-completed', handleJiraCompletion);
 });
 </script>

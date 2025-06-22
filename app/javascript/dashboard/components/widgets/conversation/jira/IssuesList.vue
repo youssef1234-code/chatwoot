@@ -99,17 +99,23 @@ const handleJiraStatusUpdate = (data) => {
   console.log('JIRA IssuesList: Received status update', data);
   console.log('JIRA IssuesList: Current conversation ID:', props.conversationId);
   console.log('JIRA IssuesList: Event conversation ID:', data.conversation_id);
-  console.log('JIRA IssuesList: IDs match?', data.conversation_id.toString() === props.conversationId.toString());
+  console.log('JIRA IssuesList: Event issue key:', data.issue_key);
   
-  // Only update if this event is specifically for the current conversation
-  if (data.conversation_id.toString() === props.conversationId.toString()) {
+  // Check if the updated issue is in our current conversation's issue list
+  const hasIssueInCurrentConversation = linkedIssues.value.some(issue => issue.key === data.issue_key);
+  
+  console.log('JIRA IssuesList: Issue in current conversation?', hasIssueInCurrentConversation);
+  console.log('JIRA IssuesList: Conversation ID match?', data.conversation_id.toString() === props.conversationId.toString());
+  
+  // Refresh if this conversation is involved OR if the issue is in our current list
+  if (data.conversation_id.toString() === props.conversationId.toString() || hasIssueInCurrentConversation) {
     console.log('JIRA IssuesList: Refreshing issues for conversation', props.conversationId);
     // Small delay to ensure backend updates are complete before fetching
     setTimeout(() => {
       loadLinkedIssues();
     }, 100);
   } else {
-    console.log('JIRA IssuesList: Ignoring event for different conversation');
+    console.log('JIRA IssuesList: Ignoring event - not for current conversation and issue not in list');
   }
 };
 
