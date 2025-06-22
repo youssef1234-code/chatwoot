@@ -80,8 +80,17 @@ const closeCreateModal = () => {
 
 // Event listener for opening create modal from header button
 const handleJiraCreateLink = (event) => {
+  console.log('JIRA IssuesList: Received jira:open-create-link event', {
+    eventDetail: event.detail,
+    currentConversationId: props.conversationId,
+    matches: event.detail && event.detail.conversationId.toString() === props.conversationId.toString()
+  });
+  
   if (event.detail && event.detail.conversationId.toString() === props.conversationId.toString()) {
+    console.log('JIRA IssuesList: Opening create modal for conversation', props.conversationId);
     openCreateModal();
+  } else {
+    console.log('JIRA IssuesList: Ignoring event for different conversation');
   }
 };
 

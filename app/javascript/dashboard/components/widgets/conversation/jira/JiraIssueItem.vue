@@ -160,32 +160,32 @@ const getPriorityColor = (priority) => {
 };
 
 const getStatusColor = (status) => {
-  if (!status) return 'bg-gray-500 text-white border-gray-300';
+  if (!status) return 'bg-gray-600 text-white border-gray-300';
   
   const statusLower = status.toLowerCase();
   console.log('JIRA JiraIssueItem: getStatusColor called with status:', statusLower);
   const statusColors = {
-    'to do': 'bg-slate-500 text-black border-slate-300',
-    'todo': 'bg-slate-500 text-black border-slate-300',
-    'open': 'bg-slate-500 text-white border-slate-300',
-    'backlog': 'bg-slate-500 text-white border-slate-300',
-    'in progress': 'bg-blue-500 text-white border-blue-300',
-    'in development': 'bg-blue-500 text-white border-blue-300',
-    'development': 'bg-blue-500 text-white border-blue-300',
-    'active': 'bg-blue-500 text-white border-blue-300',
-    'in review': 'bg-yellow-500 text-white border-yellow-300',
-    'under review': 'bg-yellow-500 text-white border-yellow-300',
-    'review': 'bg-yellow-500 text-white border-yellow-300',
-    'testing': 'bg-yellow-500 text-white border-yellow-300',
-    'qa': 'bg-yellow-500 text-white border-yellow-300',
-    'done': 'bg-green-500 text-white border-green-300',
-    'closed': 'bg-green-500 text-white border-green-300',
-    'resolved': 'bg-green-500 text-white border-green-300',
-    'completed': 'bg-green-500 text-white border-green-300',
-    'waiting for support': 'bg-red-500 text-white border-red-300',
-    'waiting': 'bg-red-500 text-white border-red-300',
-    'blocked': 'bg-red-500 text-white border-red-300',
-    'on hold': 'bg-red-500 text-white border-red-300'
+    'to do': 'bg-slate-600 text-white border-slate-300',
+    'todo': 'bg-slate-600 text-white border-slate-300',
+    'open': 'bg-slate-600 text-white border-slate-300',
+    'backlog': 'bg-slate-600 text-white border-slate-300',
+    'in progress': 'bg-blue-600 text-white border-blue-300',
+    'in development': 'bg-blue-600 text-white border-blue-300',
+    'development': 'bg-blue-600 text-white border-blue-300',
+    'active': 'bg-blue-600 text-white border-blue-300',
+    'in review': 'bg-amber-600 text-white border-amber-300',
+    'under review': 'bg-amber-600 text-white border-amber-300',
+    'review': 'bg-amber-600 text-white border-amber-300',
+    'testing': 'bg-amber-600 text-white border-amber-300',
+    'qa': 'bg-amber-600 text-white border-amber-300',
+    'done': 'bg-green-600 text-white border-green-300',
+    'closed': 'bg-green-600 text-white border-green-300',
+    'resolved': 'bg-green-600 text-white border-green-300',
+    'completed': 'bg-green-600 text-white border-green-300',
+    'waiting for support': 'bg-red-600 text-white border-red-300',
+    'waiting': 'bg-red-600 text-white border-red-300',
+    'blocked': 'bg-red-600 text-white border-red-300',
+    'on hold': 'bg-red-600 text-white border-red-300'
   };
   
   // Try to find exact match first
