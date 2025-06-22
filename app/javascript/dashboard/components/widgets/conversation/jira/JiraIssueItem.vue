@@ -169,7 +169,7 @@ const getStatusColor = (status) => {
     'todo': 'bg-slate-600 text-white border-slate-300',
     'open': 'bg-slate-600 text-white border-slate-300',
     'backlog': 'bg-slate-600 text-white border-slate-300',
-    'in progress': 'bg-blue-600 text-white border-blue-300',
+    'in progress': 'bg-blue-600 text-black border-blue-300',
     'in development': 'bg-blue-600 text-white border-blue-300',
     'development': 'bg-blue-600 text-white border-blue-300',
     'active': 'bg-blue-600 text-white border-blue-300',
