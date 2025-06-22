@@ -121,15 +121,12 @@ const confirmDeletion = () => {
         </div>
       </router-link>
       <div v-if="!integrationEnabled">
-        <slot name="action">
-          <a :href="integrationAction">
-            <Button
-              faded
-              blue
-              :label="t('INTEGRATION_SETTINGS.CONNECT.BUTTON_TEXT')"
-            />
-          </a>
-        </slot>
+        <Button
+          faded
+          blue
+          :label="t('INTEGRATION_SETTINGS.CONNECT.BUTTON_TEXT')"
+          @click="$emit('connect')"
+        />
       </div>
     </div>
     <Dialog

@@ -70,6 +70,41 @@ jira:
   action: /jira
   hook_type: account
   allow_multiple_hooks: false
+  settings_json_schema:
+    {
+      'type': 'object',
+      'properties': {
+        'site_url': { 'type': 'string' },
+        'email': { 'type': 'string' },
+        'api_token': { 'type': 'string' }
+      },
+      'required': ['site_url', 'email', 'api_token'],
+      'additionalProperties': false
+    }
+  settings_form_schema:
+    [
+      {
+        'label': 'Jira Site URL',
+        'type': 'text',
+        'name': 'site_url',
+        'validation': 'required|url',
+        'validationName': 'Site URL'
+      },
+      {
+        'label': 'Jira Email',
+        'type': 'text',
+        'name': 'email',
+        'validation': 'required|email',
+        'validationName': 'Email'
+      },
+      {
+        'label': 'Jira API Token',
+        'type': 'password',
+        'name': 'api_token',
+        'validation': 'required',
+        'validationName': 'API Token'
+      }
+    ]
 slack:
   id: slack
   logo: slack.png
