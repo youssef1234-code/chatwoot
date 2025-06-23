@@ -84,6 +84,13 @@
 
                 <!-- Message Type Badge -->
                 <div class="flex items-center gap-2">
+                  <button
+                    class="action-btn scroll-btn"
+                    :title="$t('CONVERSATION.SCROLL_TO_MESSAGE')"
+                    @click="scrollToMessage(message.id)"
+                  >
+                    <FluentIcon icon="chevron-up" size="16" />
+                  </button>
                   <span
                     v-if="message.private"
                     class="px-2 py-1 text-xs font-medium bg-orange-100 text-orange-800 rounded-full"
@@ -155,6 +162,10 @@ import { useAlert } from 'dashboard/composables';
 import Modal from 'dashboard/components/Modal.vue';
 import TicketsAPI from 'dashboard/api/tickets';
 import { formatDate as formatDateHelper } from 'shared/helpers/DateHelper';
+import { emitter } from 'shared/helpers/mitt';
+import { BUS_EVENTS } from 'shared/constants/busEvents';
+import FluentIcon from 'shared/components/FluentIcon/Index.vue';
+
 
 const props = defineProps({
   ticket: {
@@ -188,6 +199,11 @@ const loadMessages = async () => {
 
 const onClose = () => {
   emit('close');
+};
+
+const scrollToMessage = (messageId) => {
+  emitter.emit(BUS_EVENTS.SCROLL_TO_MESSAGE, { messageId });
+  onClose();
 };
 
 const formatDate = (dateString) => {
@@ -250,8 +266,46 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
-.prose {
-  max-width: none;
+<style scoped lang="scss">
+.action-btn {
+  padding: 8px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  color: rgb(var(--color-ash-600));
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: rgb(var(--color-ash-100));
+    color: rgb(var(--color-ash-800));
+    
+    :global(.dark) & {
+      background-color: rgb(var(--color-ash-100));
+      color: rgb(var(--color-ash-800));
+    }
+  }
+
+  &.scroll-btn {
+    color: rgb(var(--color-primary-600));
+
+    &:hover {
+      background-color: rgb(var(--color-primary-100));
+      color: rgb(var(--color-primary-700));
+      
+      :global(.dark) & {
+        background-color: rgb(var(--color-primary-100));
+        color: rgb(var(--color-primary-700));
+      }
+    }
+    
+    :global(.dark) & {
+      color: rgb(var(--color-primary-600));
+    }
+  }
+  
+  :global(.dark) & {
+    color: rgb(var(--color-ash-600));
+  }
 }
 </style>
