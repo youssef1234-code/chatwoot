@@ -134,7 +134,7 @@ const conversationTitle = computed(() => {
         </div>
 
         <!-- Tab Content -->
-        <div class="flex-1 overflow-hidden">
+        <div class="flex-1 overflow-y-auto">
           <CreateIssue
             v-if="isCreateTabActive"
             :conversation-id="conversationId"

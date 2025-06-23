@@ -93,7 +93,6 @@ class Api::V1::Accounts::Integrations::Jira::WebhooksController < Api::V1::Accou
     # Extract issue details for the notification
     issue_summary = issue_data.dig('fields', 'summary') || 'Unknown'
     issue_assignee = issue_data.dig('fields', 'assignee', 'displayName') || issue_data.dig('fields', 'assignee', 'name')
-    issue_reporter = issue_data.dig('fields', 'reporter', 'displayName') || issue_data.dig('fields', 'reporter', 'name')
     issue_url = build_jira_issue_url(issue_key, conversations.first.account)
 
     conversations.each do |conversation|
@@ -102,7 +101,6 @@ class Api::V1::Accounts::Integrations::Jira::WebhooksController < Api::V1::Accou
         issue_key: issue_key,
         issue_summary: issue_summary,
         issue_assignee: issue_assignee,
-        issue_reporter: issue_reporter,
         issue_url: issue_url
       )
     end
@@ -126,12 +124,16 @@ class Api::V1::Accounts::Integrations::Jira::WebhooksController < Api::V1::Accou
   end
 
   def send_completion_notification_to_conversation(conversation:, issue_key:, issue_summary:, issue_assignee:,
-                                                   issue_reporter:, issue_url:)
-    # Create a private message mentioning the issue creator/reporter
-    mention_text = issue_reporter ? "@#{issue_reporter}" : 'Issue creator'
+                                                   issue_url:)
+    # Create a private message mentioning the assigned agent
+    agent_mention_text = if conversation.assignee.present?
+                           "@#{conversation.assignee.name}"
+                         else
+                           'Team'
+                         end
 
     message_content = "🎉 **JIRA Issue Completed**\n\n"
-    message_content += "#{mention_text}, the JIRA issue [**#{issue_key}**](#{issue_url}) \"#{issue_summary}\" has been marked as completed.\n\n"
+    message_content += "#{agent_mention_text}, the JIRA issue [**#{issue_key}**](#{issue_url}) \"#{issue_summary}\" has been marked as completed.\n\n"
 
     message_content += "**Completed by:** #{issue_assignee}\n" if issue_assignee
 
@@ -150,7 +152,7 @@ class Api::V1::Accounts::Integrations::Jira::WebhooksController < Api::V1::Accou
           content_attributes: {
             jira_issue_key: issue_key,
             action_type: 'jira_issue_completed',
-            mentioned_user: issue_reporter
+            mentioned_user: conversation.assignee&.name
           }
         }
       ).perform
