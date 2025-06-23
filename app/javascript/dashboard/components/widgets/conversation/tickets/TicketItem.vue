@@ -159,12 +159,23 @@ const viewJiraIssue = () => {
           >
             {{ $t(`TICKETS.PRIORITY.${ticketPriority.toUpperCase()}`) }}
           </span>
+          
+          <!-- JIRA Issue Badge -->
+          <button
+            v-if="ticket.jira_issue_key"
+            class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 rounded-full hover:bg-blue-100 transition-colors"
+            @click="viewJiraIssue"
+            :title="$t('TICKETS.VIEW_IN_JIRA')"
+          >
+            <i class="ri-external-link-line text-xs"></i>
+            {{ ticket.jira_issue_key }}
+          </button>
         </div>
 
         <!-- Action buttons -->
         <div class="flex items-center gap-2 flex-wrap">
           <NextButton
-            v-if="ticketStatus !== 'resolved'"
+            v-if="!isResolved"
             size="tiny"
             variant="ghost"
             color-scheme="secondary"
@@ -177,11 +188,12 @@ const viewJiraIssue = () => {
           </NextButton>
           
           <NextButton
+            v-if="!isEscalated"
             size="tiny"
             variant="ghost"
             color-scheme="secondary"
-            class="hover:bg-blue-50 hover:text-blue-700"
-            @click="escalateToJira"
+            class="hover:bg-orange-50 hover:text-orange-700"
+            @click="openEscalateModal"
           >
             <i class="ri-external-link-line" />
             {{ $t('TICKETS.ESCALATE_TO_JIRA') }}
@@ -191,15 +203,30 @@ const viewJiraIssue = () => {
             size="tiny"
             variant="ghost"
             color-scheme="secondary"
-            class="hover:bg-purple-50 hover:text-purple-700"
-            @click="viewTicketDetails"
+            class="hover:bg-blue-50 hover:text-blue-700"
+            @click="openEditModal"
           >
-            <i class="ri-eye-line" />
-            {{ $t('TICKETS.VIEW_DETAILS') }}
+            <i class="ri-edit-line" />
+            {{ $t('TICKETS.EDIT_TICKET') }}
           </NextButton>
         </div>
       </div>
     </div>
+    
+    <!-- Modals -->
+    <EditTicketModal
+      v-if="showEditModal"
+      :ticket="ticket"
+      @close="closeEditModal"
+      @updated="onTicketUpdated"
+    />
+    
+    <EscalateToJiraModal
+      v-if="showEscalateModal"
+      :ticket="ticket"
+      @close="closeEscalateModal"
+      @escalated="onTicketEscalated"
+    />
   </div>
 </template>
 

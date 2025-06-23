@@ -107,6 +107,21 @@ export const actions = {
     }
   },
 
+  // Convenience method for updating tickets with id in the data
+  async updateTicket({ commit }, { id, ...ticketData }) {
+    commit(types.SET_TICKETS_UI_FLAG, { isUpdating: true });
+    try {
+      const response = await TicketsAPI.update(id, ticketData);
+      commit(types.UPDATE_TICKET, response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating ticket:', error);
+      throw error;
+    } finally {
+      commit(types.SET_TICKETS_UI_FLAG, { isUpdating: false });
+    }
+  },
+
   async delete({ commit }, ticketId) {
     commit(types.SET_TICKETS_UI_FLAG, { isDeleting: true });
     try {

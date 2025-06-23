@@ -102,6 +102,59 @@ class Api::V1::Accounts::Integrations::Jira::WebhooksController < Api::V1::Accou
         Rails.logger.info("JIRA Webhook: No status change for link #{link.id} (already #{new_status})")
       end
     end
+
+    # Update tickets linked to this JIRA issue when it's completed
+    if completed_status?(new_status)
+      update_linked_tickets_on_jira_completion(issue_key, account_id)
+    end
+  end
+
+  def update_linked_tickets_on_jira_completion(issue_key, account_id)
+    Rails.logger.info("JIRA Webhook: Updating tickets linked to completed JIRA issue #{issue_key}")
+    
+    # Find all tickets linked to this JIRA issue
+    tickets = Ticket.where(account_id: account_id, jira_issue_key: issue_key)
+                   .where.not(status: ['resolved', 'closed'])
+    
+    tickets.each do |ticket|
+      Rails.logger.info("JIRA Webhook: Resolving ticket ##{ticket.id} due to JIRA issue completion")
+      
+      begin
+        ticket.update!(
+          status: 'resolved',
+          resolved_at: Time.current
+        )
+        
+        # Create activity message in the conversation
+        create_jira_completion_activity_message(ticket, issue_key)
+        
+        Rails.logger.info("JIRA Webhook: Successfully resolved ticket ##{ticket.id}")
+      rescue StandardError => e
+        Rails.logger.error("JIRA Webhook: Failed to resolve ticket ##{ticket.id}: #{e.message}")
+      end
+    end
+  end
+
+  def create_jira_completion_activity_message(ticket, issue_key)
+    return unless ticket.conversation
+
+    message_content = "🎉 **Ticket Resolved**\n\nTicket ##{ticket.id} has been automatically resolved because the linked JIRA issue **#{issue_key}** was marked as completed."
+    
+    Messages::MessageBuilder.new(
+      user: nil, # System message
+      conversation: ticket.conversation,
+      params: {
+        content: message_content,
+        message_type: :activity,
+        content_type: 'text',
+        content_attributes: {
+          automation_rule_id: nil,
+          automation_rule_name: 'JIRA Integration'
+        }
+      }
+    ).perform
+  rescue StandardError => e
+    Rails.logger.error("JIRA Webhook: Failed to create activity message for ticket ##{ticket.id}: #{e.message}")
   end
 
   def broadcast_status_update(conversation, issue_key, new_status)
