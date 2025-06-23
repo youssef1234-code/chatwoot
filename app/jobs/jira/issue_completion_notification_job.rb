@@ -27,7 +27,7 @@ class Jira::IssueCompletionNotificationJob < ApplicationJob
       conversation = link.conversation
       linking_agent = link.user
       
-      next unless conversation && linking_agent
+      next unless conversation
       next unless link.webhook_notifications_enabled?
       
       # Create a private automated message in the conversation
@@ -78,8 +78,12 @@ class Jira::IssueCompletionNotificationJob < ApplicationJob
   end
 
   def build_completion_message_content(issue_key, issue_summary, issue_status, linking_agent)
-    # Create proper Chatwoot mention format
-    agent_mention = "[#{linking_agent.name}](mention://user/#{linking_agent.id}/#{linking_agent.name.gsub(' ', '%20')})"
+    # Create proper Chatwoot mention format if linking agent exists
+    agent_mention = if linking_agent
+                      "[#{linking_agent.name}](mention://user/#{linking_agent.id}/#{linking_agent.name.gsub(' ', '%20')})"
+                    else
+                      "a team member"
+                    end
     
     <<~MESSAGE
       🎉 **JIRA Issue Completed**

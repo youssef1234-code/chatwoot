@@ -78,101 +78,45 @@ class Api::V1::Accounts::Integrations::Jira::WebhooksController < Api::V1::Accou
     ticket_link || jira_link
   end
 
+  def find_accounts_for_issue(issue_key)
+    # Find ALL accounts that have this issue linked (either via tickets or direct JIRA links)
+    accounts = []
+    
+    # From tickets
+    ticket_accounts = Account.joins(:tickets).where(tickets: { jira_issue_key: issue_key })
+    accounts += ticket_accounts.to_a
+    
+    # From JIRA issue links
+    jira_accounts = Account.joins(:jira_issue_links).where(jira_issue_links: { issue_key: issue_key })
+    accounts += jira_accounts.to_a
+    
+    accounts.uniq
+  end
+
   def send_jira_completion_notifications(issue_key, issue_data)
     Rails.logger.info("JIRA Webhook: Sending completion notifications for issue #{issue_key}")
 
-    # Find ALL conversations linked to this JIRA issue
-    # This includes both direct JIRA links and ticket-based links
-    conversations = find_all_conversations_for_issue(issue_key)
+    # Find all accounts that have this issue linked
+    accounts = find_accounts_for_issue(issue_key)
 
-    if conversations.empty?
-      Rails.logger.info("JIRA Webhook: No conversations found linked to issue #{issue_key}")
+    if accounts.empty?
+      Rails.logger.info("JIRA Webhook: No accounts found with linked issue #{issue_key}")
       return
     end
 
-    # Extract issue details for the notification
-    issue_summary = issue_data.dig('fields', 'summary') || 'Unknown'
-    issue_assignee = issue_data.dig('fields', 'assignee', 'displayName') || issue_data.dig('fields', 'assignee', 'name')
-    issue_url = build_jira_issue_url(issue_key, conversations.first.account)
-
-    conversations.each do |conversation|
-      send_completion_notification_to_conversation(
-        conversation: conversation,
+    # Use the job to handle completion notifications for each account
+    accounts.each do |account|
+      Jira::IssueCompletionNotificationJob.perform_later(
         issue_key: issue_key,
-        issue_summary: issue_summary,
-        issue_assignee: issue_assignee,
-        issue_url: issue_url
+        issue_data: issue_data,
+        account_id: account.id
       )
     end
 
-    Rails.logger.info("JIRA Webhook: Sent completion notifications to #{conversations.count} conversations")
+    Rails.logger.info("JIRA Webhook: Queued completion notification jobs for #{accounts.count} accounts")
   end
 
-  def find_all_conversations_for_issue(issue_key)
-    conversations = []
 
-    # Find conversations through direct JIRA issue links
-    jira_links = JiraIssueLink.where(issue_key: issue_key).includes(:conversation)
-    conversations += jira_links.map(&:conversation).compact
-
-    # Find conversations through ticket links
-    tickets = Ticket.where(jira_issue_key: issue_key).includes(:conversation)
-    conversations += tickets.map(&:conversation).compact
-
-    # Remove duplicates and return
-    conversations.uniq
-  end
-
-  def send_completion_notification_to_conversation(conversation:, issue_key:, issue_summary:, issue_assignee:,
-                                                   issue_url:)
-    # Create a private message mentioning the assigned agent
-    agent_mention_text = if conversation.assignee.present?
-                           "@#{conversation.assignee.name}"
-                         else
-                           'Team'
-                         end
-
-    message_content = "🎉 **JIRA Issue Completed**\n\n"
-    message_content += "#{agent_mention_text}, the JIRA issue [**#{issue_key}**](#{issue_url}) \"#{issue_summary}\" has been marked as completed.\n\n"
-
-    message_content += "**Completed by:** #{issue_assignee}\n" if issue_assignee
-
-    message_content += "**Issue:** #{issue_key}\n"
-    message_content += '**Status:** Completed ✅'
-
-    begin
-      Messages::MessageBuilder.new(
-        user: nil, # System message
-        conversation: conversation,
-        params: {
-          content: message_content,
-          message_type: :incoming,
-          content_type: 'text',
-          private: true, # This makes it a private message
-          content_attributes: {
-            jira_issue_key: issue_key,
-            action_type: 'jira_issue_completed',
-            mentioned_user: conversation.assignee&.name
-          }
-        }
-      ).perform
-
-      Rails.logger.info("JIRA Webhook: Sent completion notification to conversation #{conversation.id}")
-    rescue StandardError => e
-      Rails.logger.error("JIRA Webhook: Failed to send completion notification to conversation #{conversation.id}: #{e.message}")
-    end
-  end
-
-  def build_jira_issue_url(issue_key, account)
-    jira_hook = account.hooks.find_by(app_id: 'jira')
-    base_url = jira_hook&.settings&.dig('site_url')
-
-    if base_url
-      "#{base_url}/browse/#{issue_key}"
-    else
-      '#' # Fallback if no JIRA URL configured
-    end
-  end
 
   def completed_status?(status)
     # Define which statuses indicate completion

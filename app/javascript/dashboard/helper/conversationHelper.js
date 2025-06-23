@@ -90,5 +90,6 @@ export const getReadMessages = (messages, agentLastSeenAt) => {
 export const getUnreadMessages = (messages, agentLastSeenAt) => {
   return messages.filter(
     message => message.created_at * 1000 > agentLastSeenAt * 1000
+      && message.private !== true
   );
 };
