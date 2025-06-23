@@ -8,4 +8,5 @@ export const OPEN_AI_OPTIONS = {
   SIMPLIFY: 'simplify',
   REPLY_SUGGESTION: 'reply_suggestion',
   SUMMARIZE: 'summarize',
+  ENHANCE_TICKET: 'enhance_ticket',
 };

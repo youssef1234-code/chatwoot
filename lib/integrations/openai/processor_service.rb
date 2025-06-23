@@ -44,6 +44,19 @@ class Integrations::Openai::ProcessorService < Integrations::OpenaiBaseService
                                       "#{LANGUAGE_INSTRUCTION}"))
   end
 
+  def enhance_ticket_message
+    ticket_data = event['data']
+    
+    system_content = "#{AGENT_INSTRUCTION} You are helping to improve ticket titles and descriptions. " \
+                     "Please enhance the provided ticket information to make it clearer, more descriptive, and professional. " \
+                     "Return ONLY a valid JSON response with 'title' and 'description' fields. " \
+                     "Do not include any markdown formatting or additional text."
+    
+    user_content = "Current Title: #{ticket_data['title']}\nCurrent Description: #{ticket_data['description']}"
+    
+    make_api_call(build_api_call_body(system_content, user_content))
+  end
+
   private
 
   def prompt_from_file(file_name, enterprise: false)

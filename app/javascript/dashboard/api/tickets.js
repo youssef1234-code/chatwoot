@@ -57,6 +57,46 @@ class TicketsAPI extends ApiClient {
       params: { conversation_id: conversationId },
     });
   }
+
+  // Additional methods for comprehensive ticket management
+  async getByStatus(status) {
+    return axios.get(this.url, {
+      params: { status },
+    });
+  }
+
+  async getByPriority(priority) {
+    return axios.get(this.url, {
+      params: { priority },
+    });
+  }
+
+  async getByAgent(agentId) {
+    return axios.get(this.url, {
+      params: { assigned_agent_id: agentId },
+    });
+  }
+
+  async getCreatedBy(userId) {
+    return axios.get(this.url, {
+      params: { created_by_id: userId },
+    });
+  }
+
+  async search(query) {
+    return axios.get(this.url, {
+      params: { search: query },
+    });
+  }
+
+  // Analytics and reporting
+  async getAnalytics(params = {}) {
+    return axios.get(`${this.url}/analytics`, { params });
+  }
+
+  async getStats() {
+    return axios.get(`${this.url}/stats`);
+  }
 }
 
 export default new TicketsAPI();

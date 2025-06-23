@@ -1,5 +1,92 @@
 {
   "TICKETS": {
+    "TRACKING": {
+      "TITLE": "Tickets Tracking",
+      "DESCRIPTION": "Track and manage all your tickets in one place",
+      "AI_ENHANCEMENT": "AI Enhancement",
+      "REFRESH": "Refresh",
+      "SEARCH_PLACEHOLDER": "Search tickets by title, description, or ID...",
+      "STATUS_FILTER": "Filter by Status",
+      "PRIORITY_FILTER": "Filter by Priority", 
+      "AGENT_FILTER": "Filter by Agent",
+      "DATE_RANGE": "Date Range",
+      "CLEAR_FILTERS": "Clear Filters",
+      "LOAD_ERROR": "Failed to load tickets",
+      "REFRESHED": "Tickets refreshed",
+      "AI_ENABLED": "AI enhancement enabled",
+      "AI_DISABLED": "AI enhancement disabled",
+      "AI_ERROR": "Failed to enable AI enhancement",
+      "AI_ENHANCED": "Ticket enhanced with AI",
+      "AI_ENHANCEMENT_ERROR": "Failed to apply AI enhancement"
+    },
+    "AI_ENHANCEMENT": {
+      "TITLE": "AI Ticket Enhancement",
+      "SUBTITLE": "Improve your ticket with AI assistance",
+      "CURRENT_TICKET": "Current Ticket Information",
+      "CURRENT_TITLE": "Current Title",
+      "CURRENT_DESCRIPTION": "Current Description",
+      "NO_DESCRIPTION": "No description provided",
+      "ENHANCEMENT_OPTIONS": "Enhancement Options",
+      "OPTIONS": {
+        "IMPROVE_TITLE": "Improve Title",
+        "IMPROVE_TITLE_DESC": "Make the title more clear and descriptive",
+        "IMPROVE_DESCRIPTION": "Improve Description", 
+        "IMPROVE_DESCRIPTION_DESC": "Enhance description clarity and detail",
+        "SUGGEST_PRIORITY": "Suggest Priority",
+        "SUGGEST_PRIORITY_DESC": "Recommend appropriate priority level",
+        "SUGGEST_LABELS": "Suggest Labels",
+        "SUGGEST_LABELS_DESC": "Recommend relevant labels",
+        "ACTION_RECOMMENDATIONS": "Action Recommendations",
+        "ACTION_RECOMMENDATIONS_DESC": "Suggest next steps to resolve"
+      },
+      "RESULTS": "AI Enhancement Results",
+      "ENHANCED_TITLE": "Enhanced Title",
+      "ENHANCED_DESCRIPTION": "Enhanced Description",
+      "SUGGESTED_PRIORITY": "Suggested Priority",
+      "SUGGESTED_LABELS": "Suggested Labels",
+      "RECOMMENDATIONS": "Recommendations",
+      "TITLE_PLACEHOLDER": "Enter ticket title...",
+      "DESCRIPTION_PLACEHOLDER": "Enter ticket description...",
+      "SELECT_PRIORITY": "Select priority level",
+      "PROCESSING": "AI is analyzing your ticket...",
+      "CANCEL": "Cancel",
+      "ENHANCE": "Enhance with AI",
+      "APPLY": "Apply Changes",
+      "SUCCESS": "Ticket enhanced successfully",
+      "ERROR": "Failed to enhance ticket with AI"
+    },
+    "DETAIL": {
+      "TITLE": "Ticket Details",
+      "SUBTITLE": "Ticket #{id}",
+      "REFRESH": "Refresh",
+      "STATUS": "Status",
+      "PRIORITY": "Priority", 
+      "ASSIGNED_AGENT": "Assigned Agent",
+      "SELECT_AGENT": "Select an agent",
+      "TITLE_PLACEHOLDER": "Enter ticket title",
+      "DESCRIPTION": "Description",
+      "DESCRIPTION_PLACEHOLDER": "Enter ticket description",
+      "JIRA_INTEGRATION": "JIRA Integration",
+      "ESCALATE_TO_JIRA": "Escalate to JIRA",
+      "ESCALATE_DESCRIPTION": "Create a JIRA issue and link it to this ticket",
+      "ESCALATE": "Escalate",
+      "ENTER_JIRA_KEY": "Enter JIRA issue key:",
+      "JIRA_STATUS": "JIRA Status",
+      "JIRA_SUMMARY": "JIRA Summary",
+      "LINKED_CONVERSATION": "Linked Conversation",
+      "CONVERSATION_ID": "Conversation #{id}",
+      "OPEN_CONVERSATION": "Open Conversation",
+      "LINKED_MESSAGES": "Linked Messages",
+      "MESSAGES": "messages",
+      "CLOSE": "Close",
+      "RESOLVE": "Resolve",
+      "CREATED_AT": "Created at",
+      "RESOLVED_AT": "Resolved at",
+      "REFRESHED": "Ticket refreshed",
+      "REFRESH_ERROR": "Failed to refresh ticket",
+      "MESSAGES_LOAD_ERROR": "Failed to load messages"
+    },
+    "UNTITLED": "Untitled Ticket",
     "SELECTED_MESSAGES": "Selected {count} messages",
     "CREATE_TICKET": "Create Ticket",
     "LINK_TO_EXISTING": "Link to Existing Ticket",
@@ -107,6 +194,17 @@
     "RESOLVED_AT": "Resolved at",
     "TIME_TO_RESOLVE": "Time to resolve",
     
+    "KANBAN": {
+      "NOT_DONE": "Not Done",
+      "IN_PROGRESS": "In Progress",
+      "ESCALATED": "Escalated", 
+      "DONE": "Done",
+      "NO_TICKETS": "No tickets in this column",
+      "STATUS_UPDATED": "Ticket status updated successfully",
+      "STATUS_UPDATE_ERROR": "Failed to update ticket status",
+      "ENTER_JIRA_KEY": "Enter JIRA issue key for escalation:"
+    },
+    
     "FILTERS": {
       "ALL": "All Tickets",
       "OPEN": "Open",
@@ -115,7 +213,9 @@
       "RESOLVED": "Resolved",
       "CLOSED": "Closed",
       "ASSIGNED_TO_ME": "Assigned to me",
-      "CREATED_BY_ME": "Created by me"
+      "CREATED_BY_ME": "Created by me",
+      "MY_TICKETS": "My Tickets",
+      "URGENT": "Urgent"
     },
     
     "EMPTY_STATE": {
@@ -153,6 +253,13 @@
       "BY_PRIORITY": "Tickets by Priority",
       "BY_STATUS": "Tickets by Status",
       "BY_AGENT": "Tickets by Agent"
-    }
+    },
+    
+    "VIEW": {
+      "KANBAN": "Kanban Board",
+      "LIST": "List View"
+    },
+    
+    "TICKETS_FOUND": "tickets found"
   }
 }

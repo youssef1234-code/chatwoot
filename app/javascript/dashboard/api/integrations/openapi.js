@@ -36,6 +36,12 @@ class OpenAIAPI extends ApiClient {
      * @type {string[]}
      */
     this.message_events = ['rephrase'];
+
+    /**
+     * The ticket events supported by the API.
+     * @type {string[]}
+     */
+    this.ticket_events = ['enhance_ticket'];
   }
 
   /**
@@ -67,6 +73,26 @@ class OpenAIAPI extends ApiClient {
       event: {
         name: type,
         data,
+      },
+    });
+  }
+
+  /**
+   * Enhances a ticket's title and description using AI.
+   * @param {Object} options - The options for ticket enhancement.
+   * @param {string} options.title - The current title of the ticket.
+   * @param {string} options.description - The current description of the ticket.
+   * @param {string} options.hookId - The ID of the hook to use for processing the enhancement.
+   * @returns {Promise} A promise that resolves with the enhanced ticket data.
+   */
+  enhanceTicket({ title, description, hookId }) {
+    return axios.post(`${this.url}/hooks/${hookId}/process_event`, {
+      event: {
+        name: 'enhance_ticket',
+        data: {
+          title,
+          description,
+        },
       },
     });
   }

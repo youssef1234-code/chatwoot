@@ -38,8 +38,29 @@ export const actions = {
         currentPage: params.page || 1,
         perPage: params.per_page || 25,
       });
+      return response.data;
     } catch (error) {
       console.error('Error fetching tickets:', error);
+      throw error;
+    } finally {
+      commit(types.SET_TICKETS_UI_FLAG, { isFetching: false });
+    }
+  },
+
+  async fetchTickets({ commit }, params = {}) {
+    commit(types.SET_TICKETS_UI_FLAG, { isFetching: true });
+    try {
+      const response = await TicketsAPI.getAll(params);
+      commit(types.SET_TICKETS, response.data);
+      commit(types.SET_TICKETS_META, {
+        total: response.headers['x-total-count'] || response.data.length,
+        currentPage: params.page || 1,
+        perPage: params.per_page || 25,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching tickets:', error);
+      throw error;
     } finally {
       commit(types.SET_TICKETS_UI_FLAG, { isFetching: false });
     }

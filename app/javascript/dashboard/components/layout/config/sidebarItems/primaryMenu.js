@@ -18,6 +18,13 @@ const primaryMenuItems = accountId => [
     toStateName: 'home',
   },
   {
+    icon: 'clipboard-list',
+    key: 'tickets',
+    label: 'TICKETS.TITLE',
+    toState: frontendURL(`accounts/${accountId}/tickets`),
+    toStateName: 'tickets_index',
+  },
+  {
     icon: 'captain',
     key: 'captain',
     label: 'CAPTAIN',
