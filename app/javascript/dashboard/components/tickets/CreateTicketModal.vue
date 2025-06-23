@@ -48,16 +48,16 @@
             <!-- Priority -->
             <div>
               <label class="block text-sm font-medium text-n-slate-12 mb-2">
-                {{ $t('TICKETS.PRIORITY') }}
+                {{ $t('TICKETS.PRIORITY.LABEL') }}
               </label>
               <select
                 v-model="ticketForm.priority"
                 class="w-full px-3 py-2 border border-n-slate-6 rounded-md focus:outline-none focus:ring-2 focus:ring-n-blue-6 bg-n-slate-1 text-n-slate-12"
               >
-                <option value="low">{{ $t('TICKETS.PRIORITY_LOW') }}</option>
-                <option value="medium">{{ $t('TICKETS.PRIORITY_MEDIUM') }}</option>
-                <option value="high">{{ $t('TICKETS.PRIORITY_HIGH') }}</option>
-                <option value="urgent">{{ $t('TICKETS.PRIORITY_URGENT') }}</option>
+                <option value="low">{{ $t('TICKETS.PRIORITY.LOW') }}</option>
+                <option value="medium">{{ $t('TICKETS.PRIORITY.MEDIUM') }}</option>
+                <option value="high">{{ $t('TICKETS.PRIORITY.HIGH') }}</option>
+                <option value="urgent">{{ $t('TICKETS.PRIORITY.URGENT') }}</option>
               </select>
             </div>
 

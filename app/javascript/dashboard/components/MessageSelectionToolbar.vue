@@ -31,7 +31,7 @@
           {{ $t('TICKETS.CREATE_TICKET') }}
         </ButtonV4>
         
-        <ButtonV4
+        <!-- <ButtonV4
           v-if="existingTickets.length > 0"
           size="sm"
           variant="secondary" 
@@ -40,7 +40,7 @@
         >
           {{ $t('TICKETS.LINK_TO_EXISTING') }}
         </ButtonV4>
-        
+         -->
         <ButtonV4
           size="sm"
           variant="ghost"

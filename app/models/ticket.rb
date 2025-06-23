@@ -106,10 +106,10 @@ class Ticket < ApplicationRecord
   def jira_url
     return nil unless jira_issue_key.present?
     
-    jira_integration = account.integrations.find_by(name: 'jira')
-    return nil unless jira_integration&.settings&.dig('jira_site_url')
+    jira_hook = account.hooks.find_by(app_id: 'jira')
+    return nil unless jira_hook&.settings&.dig('site_url')
     
-    "#{jira_integration.settings['jira_site_url']}/browse/#{jira_issue_key}"
+    "#{jira_hook.settings['site_url']}/browse/#{jira_issue_key}"
   end
 
   def can_be_escalated?
