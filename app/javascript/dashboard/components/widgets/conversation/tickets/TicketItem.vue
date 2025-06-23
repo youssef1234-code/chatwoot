@@ -4,6 +4,8 @@ import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import { useAlert } from 'dashboard/composables';
 import NextButton from 'dashboard/components-next/button/Button.vue';
+import EditTicketModal from 'dashboard/components/tickets/EditTicketModal.vue';
+import EscalateToJiraModal from 'dashboard/components/tickets/EscalateToJiraModal.vue';
 import { formatDate } from 'shared/helpers/DateHelper';
 
 const props = defineProps({
@@ -22,11 +24,16 @@ const emit = defineEmits(['refresh']);
 const { t } = useI18n();
 const store = useStore();
 const isUpdating = ref(false);
+const showEditModal = ref(false);
+const showEscalateModal = ref(false);
 
 const ticketTitle = computed(() => props.ticket.title || 'Untitled Ticket');
 const ticketDescription = computed(() => props.ticket.description || '');
 const ticketStatus = computed(() => props.ticket.status || 'open');
 const ticketPriority = computed(() => props.ticket.priority || 'medium');
+const isResolved = computed(() => ticketStatus.value === 'resolved' || ticketStatus.value === 'closed');
+const isEscalated = computed(() => ticketStatus.value === 'escalated' || props.ticket.jira_issue_key);
+
 const createdAt = computed(() => {
   if (props.ticket.created_at) {
     return formatDate(new Date(props.ticket.created_at), 'MMM dd, yyyy');
@@ -38,6 +45,7 @@ const getStatusColor = (status) => {
   const colors = {
     open: 'bg-blue-50 text-blue-700 border-blue-200',
     in_progress: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+    escalated: 'bg-orange-50 text-orange-700 border-orange-200',
     resolved: 'bg-green-50 text-green-700 border-green-200',
     closed: 'bg-gray-50 text-gray-700 border-gray-200',
   };
@@ -55,7 +63,7 @@ const getPriorityColor = (priority) => {
 };
 
 const markAsDone = async () => {
-  if (ticketStatus.value === 'resolved') return;
+  if (isResolved.value) return;
   
   isUpdating.value = true;
   try {
@@ -63,23 +71,46 @@ const markAsDone = async () => {
       id: props.ticket.id,
       status: 'resolved'
     });
+    useAlert(t('TICKETS.MARK_AS_DONE_SUCCESS'));
     emit('refresh');
   } catch (error) {
     console.error('Failed to mark ticket as done:', error);
+    useAlert(t('TICKETS.MARK_AS_DONE_ERROR'));
   } finally {
     isUpdating.value = false;
   }
 };
 
-const escalateToJira = async () => {
-  // This would integrate with JIRA API to create an issue
-  console.log('Escalating ticket to JIRA:', props.ticket);
-  // Implementation would depend on JIRA integration setup
+const openEditModal = () => {
+  showEditModal.value = true;
 };
 
-const viewTicketDetails = () => {
-  // Open ticket details modal or navigate to ticket view
-  console.log('Opening ticket details for:', props.ticket);
+const closeEditModal = () => {
+  showEditModal.value = false;
+};
+
+const onTicketUpdated = () => {
+  emit('refresh');
+  closeEditModal();
+};
+
+const openEscalateModal = () => {
+  showEscalateModal.value = true;
+};
+
+const closeEscalateModal = () => {
+  showEscalateModal.value = false;
+};
+
+const onTicketEscalated = () => {
+  emit('refresh');
+  closeEscalateModal();
+};
+
+const viewJiraIssue = () => {
+  if (props.ticket.jira_url) {
+    window.open(props.ticket.jira_url, '_blank');
+  }
 };
 </script>
 
@@ -91,7 +122,7 @@ const viewTicketDetails = () => {
         <div class="flex items-center gap-3 mb-3">
           <button
             class="inline-flex items-center gap-2 text-purple-700 hover:text-purple-800 font-semibold text-sm bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-lg transition-colors"
-            @click="viewTicketDetails"
+            @click="openEditModal"
           >
             <div class="w-4 h-4 bg-purple-600 rounded text-white text-xs flex items-center justify-center font-bold">
               T
