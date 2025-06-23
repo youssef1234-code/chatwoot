@@ -48,8 +48,9 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
                     {
                       id: message.sender.id,
                       name: message.sender.name,
-                      email: message.sender.email,
-                      avatar_url: message.sender.avatar_url
+                      email: message.sender.respond_to?(:email) ? message.sender.email : nil,
+                      avatar_url: message.sender.respond_to?(:avatar_url) ? message.sender.avatar_url : nil,
+                      type: message.sender.class.name
                     }
                   else
                     nil
