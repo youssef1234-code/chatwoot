@@ -16,7 +16,6 @@ import PinnedMessagesBar from 'dashboard/modules/conversations/components/Pinned
 import StarredMessagesModal from 'dashboard/modules/conversations/components/StarredMessagesModal.vue';
 import MessageSelectionToolbar from 'dashboard/components/MessageSelectionToolbar.vue';
 import CreateTicketModal from 'dashboard/components/tickets/CreateTicketModal.vue';
-import Modal from 'dashboard/components/Modal.vue';
 
 
 // stores and apis
