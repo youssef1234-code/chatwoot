@@ -29,7 +29,11 @@
     "STATUS_ESCALATED": "Escalated to JIRA",
     "STATUS_RESOLVED": "Resolved",
     "STATUS_CLOSED": "Closed",
-    
+
+    "LINK_JIRA_ISSUE": "Link a JIRA issue",
+    "SELECT_JIRA_ISSUE": "Select a JIRA issue",
+    "JIRA_LINK_HELP": "Enter the issue key from your JIRA project, e.g., PROJECT-123",
+
     "CREATE_TICKET_DESCRIPTION": "Create a new ticket from the selected messages to track and manage this issue.",
     "LINK_TO_EXISTING_DESCRIPTION": "Link the selected messages to an existing ticket.",
     
@@ -45,11 +49,14 @@
     "LINK_SUCCESS": "Messages linked to ticket '{title}' successfully",
     "LINK_ERROR": "Failed to link messages to ticket. Please try again.",
     
+    "OR_ENTER_JIRA_ISSUE_KEY": "Or enter JIRA issue key manually",
+    "JIRA_ISSUE_KEY_HELP": "Enter a JIRA issue key to link this ticket (e.g., PROJECT-123)",
+    "LOADING_JIRA_ISSUES": "Loading linked JIRA issues...",
+    
     "ESCALATE_TO_JIRA": "Escalate to JIRA",
     "ESCALATE_DESCRIPTION": "Create a JIRA issue and link it to this ticket.",
     "JIRA_ISSUE_KEY": "JIRA Issue Key",
-    "JIRA_ISSUE_KEY_PLACEHOLDER": "e.g., PROJ-123",
-    "JIRA_ISSUE_KEY_HELP": "Enter the JIRA issue key to link this ticket (optional)",
+    "JIRA_ISSUE_KEY_PLACEHOLDER": "e.g., PROJECT-123",
     "ESCALATE_SUCCESS": "Ticket escalated to JIRA successfully",
     "ESCALATE_ERROR": "Failed to escalate ticket to JIRA. Please try again.",
     

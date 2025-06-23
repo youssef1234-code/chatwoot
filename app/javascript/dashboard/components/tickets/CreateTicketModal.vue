@@ -75,7 +75,15 @@
             </div>
 
             <!-- Link to JIRA Issue -->
-            <div v-if="availableJiraIssues.length > 0">
+            <div v-if="isLoadingJiraIssues">
+              <label class="block text-sm font-medium text-n-slate-12 mb-2">
+                {{ $t('TICKETS.LINK_JIRA_ISSUE') }}
+              </label>
+              <div class="w-full px-3 py-2 border border-n-slate-6 rounded-md bg-n-slate-1 text-n-slate-10 text-sm">
+                {{ $t('TICKETS.LOADING_JIRA_ISSUES') }}
+              </div>
+            </div>
+            <div v-else-if="availableJiraIssues.length > 0">
               <label class="block text-sm font-medium text-n-slate-12 mb-2">
                 {{ $t('TICKETS.LINK_JIRA_ISSUE') }}
               </label>
@@ -89,7 +97,7 @@
                   :key="issue.key"
                   :value="issue.key"
                 >
-                  {{ `${issue.key} - ${issue.summary}` }}
+                  {{ `${issue.key} - ${issue.summary}` }} ({{ issue.status }})
                 </option>
               </select>
               <p class="mt-1 text-xs text-n-slate-10">
@@ -97,21 +105,6 @@
               </p>
             </div>
 
-            <!-- Manual JIRA Issue Key -->
-            <div v-else>
-              <label class="block text-sm font-medium text-n-slate-12 mb-2">
-                {{ $t('TICKETS.JIRA_ISSUE_KEY') }}
-              </label>
-              <input
-                v-model="ticketForm.jira_issue_key"
-                type="text"
-                class="w-full px-3 py-2 border border-n-slate-6 rounded-md focus:outline-none focus:ring-2 focus:ring-n-blue-6 bg-n-slate-1 text-n-slate-12"
-                :placeholder="$t('TICKETS.JIRA_ISSUE_KEY_PLACEHOLDER')"
-              />
-              <p class="mt-1 text-xs text-n-slate-10">
-                {{ $t('TICKETS.JIRA_ISSUE_KEY_HELP') }}
-              </p>
-            </div>
 
             <!-- Selected Messages Preview -->
             <div v-if="selectedMessageIds.length > 0">
@@ -160,12 +153,13 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 import Modal from 'dashboard/components/Modal.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
+import JiraAPI from 'dashboard/api/integrations/jira';
 
 const props = defineProps({
   conversationId: {
@@ -200,20 +194,30 @@ const ticketForm = ref({
 const isLoading = ref(false);
 const errors = ref({});
 
-// Get JIRA issues from conversation data (not API call)
-const availableJiraIssues = computed(() => {
-  const conversation = currentChat.value;
-  if (!conversation || !conversation.jira_issues) {
-    return [];
-  }
+// JIRA issues loaded from API
+const availableJiraIssues = ref([]);
+const isLoadingJiraIssues = ref(false);
+
+// Load JIRA issues for the conversation
+const loadJiraIssues = async () => {
+  if (!props.conversationId) return;
   
-  // Extract JIRA issues from conversation data
-  return conversation.jira_issues.map(issue => ({
-    key: issue.key,
-    summary: issue.summary || issue.title,
-    status: issue.status
-  }));
-});
+  isLoadingJiraIssues.value = true;
+  try {
+    const response = await JiraAPI.getLinkedIssues(props.conversationId);
+    availableJiraIssues.value = (response.data || []).map(issue => ({
+      key: issue.key,
+      summary: issue.summary || issue.title,
+      status: issue.status,
+      url: issue.url
+    }));
+  } catch (error) {
+    console.error('Failed to load JIRA issues:', error);
+    availableJiraIssues.value = [];
+  } finally {
+    isLoadingJiraIssues.value = false;
+  }
+};
 
 const selectedMessagesPreview = computed(() => {
   const conversation = currentChat.value;
@@ -265,6 +269,11 @@ const createTicket = async () => {
     isLoading.value = false;
   }
 };
+
+// Load JIRA issues when component mounts
+onMounted(() => {
+  loadJiraIssues();
+});
 
 const onClose = () => {
   emit('close');
