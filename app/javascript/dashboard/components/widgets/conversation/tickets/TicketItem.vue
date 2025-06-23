@@ -7,7 +7,7 @@ import NextButton from 'dashboard/components-next/button/Button.vue';
 import EditTicketModal from 'dashboard/components/tickets/EditTicketModal.vue';
 import EscalateToJiraModal from 'dashboard/components/tickets/EscalateToJiraModal.vue';
 import { formatDate } from 'shared/helpers/DateHelper';
-import emitter from 'shared/helpers/mitt';
+import { emitter } from 'shared/helpers/mitt';
 
 const props = defineProps({
   ticket: {
