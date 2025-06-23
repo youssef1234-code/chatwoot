@@ -76,6 +76,7 @@
     "NO_DESCRIPTION": "No description available",
     "JIRA_ISSUE_CREATED_AND_LINKED": "JIRA issue created and linked to ticket successfully",
     "JIRA_ISSUE_LINKED_TO_TICKET": "JIRA issue linked to ticket successfully",
+    "JIRA_AUTO_RESOLVED_NOTIFICATION": "🎉 This ticket was automatically resolved because the linked JIRA issue was completed",
     "CREATED": "Created",
     "SEARCH_TICKETS": "Search existing tickets...",
     "LOADING_TICKETS": "Loading tickets...",

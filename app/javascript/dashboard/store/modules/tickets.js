@@ -199,6 +199,29 @@ export const actions = {
       throw error;
     }
   },
+
+  // WebSocket action for real-time ticket updates
+  updateTicketFromWebSocket({ commit, state }, ticketData) {
+    console.log('Tickets Store: Updating ticket from WebSocket', ticketData);
+    
+    // Check if this ticket exists in our store
+    const existingTicket = state.records[ticketData.ticket_id];
+    
+    if (existingTicket) {
+      // Create updated ticket object
+      const updatedTicket = {
+        ...existingTicket,
+        status: ticketData.status,
+        resolved_at: ticketData.resolved_at,
+        // Preserve other fields that might not be in the WebSocket data
+      };
+      
+      commit(types.UPDATE_TICKET, updatedTicket);
+      console.log('Tickets Store: Ticket updated via WebSocket');
+    } else {
+      console.log('Tickets Store: Ticket not found in store, ignoring WebSocket update');
+    }
+  },
 };
 
 export const mutations = {

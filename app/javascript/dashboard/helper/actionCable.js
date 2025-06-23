@@ -36,6 +36,7 @@ class ActionCableConnector extends BaseActionCableConnector {
       'copilot.message.created': this.onCopilotMessageCreated,
       'jira_issue_completed': this.onJiraIssueCompleted,
       'jira_issue_status_updated': this.onJiraIssueStatusUpdated,
+      'ticket_updated': this.onTicketUpdated,
     };
   }
 
@@ -232,6 +233,28 @@ class ActionCableConnector extends BaseActionCableConnector {
       console.log('JIRA ActionCable: Triggering issues refresh for current conversation');
       window.dispatchEvent(new CustomEvent('jira:issues-updated'));
     }
+  };
+
+  onTicketUpdated = data => {
+    console.log('Ticket ActionCable: Received ticket update event', data);
+    
+    // Update ticket in the store if tickets module exists
+    if (this.app.$store.hasModule('tickets')) {
+      this.app.$store.dispatch('tickets/updateTicketFromWebSocket', data);
+    }
+    
+    // Emit event for ticket components to listen to
+    emitter.emit('tickets:ticket-updated', data);
+    
+    // If it's a JIRA-related completion, also emit JIRA events
+    if (data.jira_issue_key && data.status === 'resolved') {
+      emitter.emit('jira:ticket-auto-resolved', {
+        ...data,
+        issue_key: data.jira_issue_key
+      });
+    }
+    
+    console.log('Ticket ActionCable: Emitted ticket update events');
   };
 }
 

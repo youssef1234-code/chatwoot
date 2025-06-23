@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import { useAlert } from 'dashboard/composables';
@@ -7,6 +7,7 @@ import NextButton from 'dashboard/components-next/button/Button.vue';
 import EditTicketModal from 'dashboard/components/tickets/EditTicketModal.vue';
 import EscalateToJiraModal from 'dashboard/components/tickets/EscalateToJiraModal.vue';
 import { formatDate } from 'shared/helpers/DateHelper';
+import emitter from 'shared/helpers/mitt';
 
 const props = defineProps({
   ticket: {
@@ -112,6 +113,44 @@ const viewJiraIssue = () => {
     window.open(props.ticket.jira_url, '_blank');
   }
 };
+
+// WebSocket event listeners for real-time updates
+const handleTicketUpdate = (data) => {
+  if (data.ticket_id === props.ticket.id) {
+    console.log('TicketItem: Received real-time update for this ticket', data);
+    // Emit refresh to parent to reload ticket data
+    emit('refresh');
+    
+    // Show notification if ticket was auto-resolved by JIRA
+    if (data.status === 'resolved' && data.jira_issue_key) {
+      useAlert(t('TICKETS.JIRA_AUTO_RESOLVED_NOTIFICATION'));
+    }
+  }
+};
+
+const handleJiraIssueUpdate = (data) => {
+  if (data.conversation_id === props.conversationId && props.ticket.jira_issue_key) {
+    console.log('TicketItem: Received JIRA status update for conversation', data);
+    // If this ticket is linked to the updated JIRA issue, refresh
+    if (data.issue_key === props.ticket.jira_issue_key && data.completed) {
+      emit('refresh');
+    }
+  }
+};
+
+onMounted(() => {
+  // Listen for ticket updates
+  emitter.on('tickets:ticket-updated', handleTicketUpdate);
+  emitter.on('jira:ticket-auto-resolved', handleTicketUpdate);
+  emitter.on('jira:issue-status-updated', handleJiraIssueUpdate);
+});
+
+onUnmounted(() => {
+  // Clean up event listeners
+  emitter.off('tickets:ticket-updated', handleTicketUpdate);
+  emitter.off('jira:ticket-auto-resolved', handleTicketUpdate);
+  emitter.off('jira:issue-status-updated', handleJiraIssueUpdate);
+});
 </script>
 
 <template>
