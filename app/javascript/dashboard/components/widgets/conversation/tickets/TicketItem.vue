@@ -6,6 +6,7 @@ import { useAlert } from 'dashboard/composables';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import EditTicketModal from 'dashboard/components/tickets/EditTicketModal.vue';
 import EscalateToJiraModal from 'dashboard/components/tickets/EscalateToJiraModal.vue';
+import ViewTicketMessagesModal from 'dashboard/components/tickets/ViewTicketMessagesModal.vue';
 import { formatDate } from 'shared/helpers/DateHelper';
 import { emitter } from 'shared/helpers/mitt';
 
@@ -27,6 +28,7 @@ const store = useStore();
 const isUpdating = ref(false);
 const showEditModal = ref(false);
 const showEscalateModal = ref(false);
+const showViewMessagesModal = ref(false);
 
 const ticketTitle = computed(() => props.ticket.title || 'Untitled Ticket');
 const ticketDescription = computed(() => props.ticket.description || '');
@@ -106,6 +108,14 @@ const closeEscalateModal = () => {
 const onTicketEscalated = () => {
   emit('refresh');
   closeEscalateModal();
+};
+
+const openViewMessagesModal = () => {
+  showViewMessagesModal.value = true;
+};
+
+const closeViewMessagesModal = () => {
+  showViewMessagesModal.value = false;
 };
 
 const viewJiraIssue = () => {
@@ -249,6 +259,17 @@ onUnmounted(() => {
             <i class="ri-edit-line" />
             {{ $t('TICKETS.EDIT_TICKET') }}
           </NextButton>
+          
+          <NextButton
+            size="tiny"
+            variant="ghost"
+            color-scheme="secondary"
+            class="hover:bg-slate-50 hover:text-slate-700"
+            @click="openViewMessagesModal"
+          >
+            <i class="ri-message-3-line" />
+            {{ $t('TICKETS.VIEW_MESSAGES') }}
+          </NextButton>
         </div>
       </div>
     </div>
@@ -266,6 +287,12 @@ onUnmounted(() => {
       :ticket="ticket"
       @close="closeEscalateModal"
       @escalated="onTicketEscalated"
+    />
+    
+    <ViewTicketMessagesModal
+      v-if="showViewMessagesModal"
+      :ticket="ticket"
+      @close="closeViewMessagesModal"
     />
   </div>
 </template>

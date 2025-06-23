@@ -48,6 +48,10 @@ class TicketsAPI extends ApiClient {
     return axios.post(`${this.url}/${ticketId}/remove_messages`, messageData);
   }
 
+  async getMessages(ticketId) {
+    return axios.get(`${this.url}/${ticketId}/messages`);
+  }
+
   async getForConversation(conversationId) {
     return axios.get(this.url, {
       params: { conversation_id: conversationId },

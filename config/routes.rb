@@ -140,6 +140,7 @@ Rails.application.routes.draw do
 
           resources :tickets do
             member do
+              get :messages
               post :escalate_to_jira
               post :resolve
               post :close

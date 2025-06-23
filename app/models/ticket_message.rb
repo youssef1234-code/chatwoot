@@ -24,12 +24,13 @@ class TicketMessage < ApplicationRecord
   belongs_to :ticket
   belongs_to :message
 
-  validates :ticket_id, uniqueness: { scope: :message_id, message: "Message is already linked to this ticket" }
+  validates :ticket_id, uniqueness: { scope: :message_id, message: 'Message is already linked to this ticket' }
 
   scope :for_ticket, ->(ticket_id) { where(ticket_id: ticket_id) }
   scope :for_message, ->(message_id) { where(message_id: message_id) }
 
   def self.link_message_to_ticket(ticket, message)
+    Rails.logger.info "Linking message #{message.id} to ticket #{ticket.id}"
     create!(ticket: ticket, message: message)
   end
 

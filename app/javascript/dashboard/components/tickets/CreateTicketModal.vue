@@ -249,6 +249,9 @@ const createTicket = async () => {
   errors.value = {};
   
   try {
+    console.log('Hi !');
+    console.log('Creating ticket with data:', ticketForm.value);
+    console.log('Selected message IDs:', props.selectedMessageIds);
     const ticketData = {
       ...ticketForm.value,
       message_ids: props.selectedMessageIds,
