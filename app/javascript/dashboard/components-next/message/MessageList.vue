@@ -35,7 +35,18 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  // Selection mode props
+  isSelectionMode: {
+    type: Boolean,
+    default: false,
+  },
+  selectedMessages: {
+    type: Array,
+    default: () => [],
+  },
 });
+
+const emit = defineEmits(['toggle-selection']);
 
 const allMessages = computed(() => {
   return useCamelCase(props.messages, { deep: true });
@@ -112,7 +123,10 @@ const getInReplyToMessage = parentMessage => {
         :group-with-next="shouldGroupWithNext(index, allMessages)"
         :inbox-supports-reply-to="inboxSupportsReplyTo"
         :current-user-id="currentUserId"
+        :is-selection-mode="isSelectionMode"
+        :is-selected="selectedMessages.includes(message.id)"
         data-clarity-mask="True"
+        @toggle-selection="emit('toggle-selection', $event)"
       />
     </template>
     <slot name="after" />

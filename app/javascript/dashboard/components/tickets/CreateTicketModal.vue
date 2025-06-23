@@ -70,26 +70,6 @@
           />
         </div>
 
-        <!-- Assigned Agent -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            {{ $t('TICKETS.ASSIGNED_AGENT') }}
-          </label>
-          <select
-            v-model="ticketForm.assigned_agent_id"
-            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-          >
-            <option value="">{{ $t('TICKETS.UNASSIGNED') }}</option>
-            <option
-              v-for="agent in availableAgents"
-              :key="agent.id"
-              :value="agent.id"
-            >
-              {{ agent.name }}
-            </option>
-          </select>
-        </div>
-
         <!-- Selected Messages Preview -->
         <div v-if="selectedMessageIds.length > 0">
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -166,16 +146,17 @@ const store = useStore();
 const isLoading = ref(false);
 const errors = ref({});
 
+const currentUser = useMapGetter('getCurrentUser');
+
 const ticketForm = ref({
   title: '',
   description: '',
   priority: 'medium',
   issue_type: '',
-  assigned_agent_id: '',
+  assigned_agent_id: currentUser.value?.id || '',
   conversation_id: props.conversationId,
 });
 
-const currentUser = useMapGetter('getCurrentUser');
 const availableAgents = computed(() => {
   return store.getters['inboxAssignableAgents/getAgents'] || [];
 });

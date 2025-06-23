@@ -130,14 +130,19 @@ const props = defineProps({
   sourceId: { type: String, default: '' }, // eslint-disable-line vue/no-unused-properties
   isStarred: { type: Boolean, default: false },
   isPinned: { type: Boolean, default: false },
+  // Selection mode props
+  isSelectionMode: { type: Boolean, default: false },
+  isSelected: { type: Boolean, default: false },
 });
+
+const emit = defineEmits(['toggle-selection']);
 
 const contextMenuPosition = ref({});
 const showBackgroundHighlight = ref(false);
 const showContextMenu = ref(false);
 const { t } = useI18n();
 const route = useRoute();
-
+console.log('Message component initialized with props:', props);
 /**
  * Computes the message variant based on props
  * @type {import('vue').ComputedRef<'user'|'agent'|'activity'|'private'|'bot'|'template'>}
@@ -422,6 +427,35 @@ function handleQuickReply() {
   }
 }
 
+// Selection mode functions
+function toggleSelection() {
+  emit('toggle-selection', props.id);
+}
+
+function handleMessageClick(event) {
+  // In selection mode, allow clicking anywhere on the message to select it
+  if (props.isSelectionMode) {
+    // Only prevent selection if clicking on specific interactive elements
+    const excludedElements = [
+      'button',
+      'a',
+      'input',
+      'textarea',
+      'select',
+      '.quick-reply-button',
+      '.context-menu-wrap',
+      '.message-failed--alert'
+    ];
+    
+    const clickedElement = event.target.closest(excludedElements.join(', '));
+    if (!clickedElement) {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleSelection();
+    }
+  }
+}
+
 const avatarInfo = computed(() => {
   // If no sender, return bot info
   if (!props.sender) {
@@ -490,9 +524,13 @@ provideMessageContext({
       {
         'group-with-next': shouldGroupWithNext,
         'bg-n-alpha-1': showBackgroundHighlight,
+        'selection-mode-active': props.isSelectionMode,
+        'selected-message': props.isSelectionMode && props.isSelected,
       },
     ]"
+    @click="handleMessageClick"
   >
+    
     <div v-if="variant === MESSAGE_VARIANTS.ACTIVITY">
       <ActivityBubble :content="content" />
     </div>
@@ -571,5 +609,68 @@ provideMessageContext({
   .right-bubble {
     @apply ltr:rounded-tr-sm rtl:rounded-tl-sm;
   }
+}
+
+/* Message Selection Styles - Modern and Subtle */
+.message-selection-checkbox {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 10;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 6px;
+  padding: 4px;
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  transition: all 0.2s ease;
+}
+
+.message-selection-checkbox:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+}
+
+.message-selection-checkbox.is-outgoing {
+  left: auto;
+  right: 8px;
+}
+
+.selected-message {
+  border: 2px solid #3b82f6 !important;
+  border-radius: 8px;
+}
+
+.selection-mode-active {
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px dashed rgba(156, 163, 175, 0.5);
+  border-radius: 8px;
+  padding: 8px;
+  margin: 4px 0;
+}
+
+.selection-mode-active:hover {
+  background-color: rgba(59, 130, 246, 0.05);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.selection-mode-active.selected-message {
+  border: 2px solid #3b82f6;
+  background-color: rgba(59, 130, 246, 0.05);
+}
+
+.message-selection-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: #3b82f6;
+  border-radius: 3px;
 }
 </style>

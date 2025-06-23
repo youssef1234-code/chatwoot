@@ -14,6 +14,9 @@ import ConversationLabelSuggestion from './conversation/LabelSuggestion.vue';
 import Banner from 'dashboard/components/ui/Banner.vue';
 import PinnedMessagesBar from 'dashboard/modules/conversations/components/PinnedMessagesBar.vue';
 import StarredMessagesModal from 'dashboard/modules/conversations/components/StarredMessagesModal.vue';
+import MessageSelectionToolbar from 'dashboard/components/MessageSelectionToolbar.vue';
+import CreateTicketModal from 'dashboard/components/tickets/CreateTicketModal.vue';
+import LinkToExistingTicketModal from 'dashboard/components/tickets/LinkToExistingTicketModal.vue';
 
 
 // stores and apis
@@ -50,8 +53,25 @@ export default {
     ConversationLabelSuggestion,
     PinnedMessagesBar,
     StarredMessagesModal,
+    MessageSelectionToolbar,
+    CreateTicketModal,
+    LinkToExistingTicketModal,
   },
   mixins: [inboxMixin],
+  props: {
+    inboxId: {
+      type: Number,
+      default: null,
+    },
+    isInboxView: {
+      type: Boolean,
+      default: false,
+    },
+    isSelectionMode: {
+      type: Boolean,
+      default: false,
+    },
+  },
   setup() {
     const isPopOutReplyBox = ref(false);
     const conversationPanelRef = ref(null);
@@ -115,6 +135,9 @@ export default {
       messageSentSinceOpened: false,
       labelSuggestions: [],
       showStarredMessagesModal: false,
+      selectedMessages: [],
+      showCreateTicketModal: false,
+      showLinkToExistingModal: false,
     };
   },
 
@@ -306,6 +329,12 @@ export default {
       // Fetch starred and pinned messages for the new conversation
       if (newChat.id) {
         this.fetchStarredAndPinnedMessages(newChat.id);
+      }
+    },
+    // Clear selected messages when selection mode is turned off
+    isSelectionMode(newValue) {
+      if (!newValue) {
+        this.selectedMessages = [];
       }
     },
   },
@@ -608,6 +637,52 @@ export default {
     onScrollToPinnedMessage(messageId) {
       this.onScrollToMessage({ messageId });
     },
+    // Message selection methods
+    toggleMessageSelection(messageId) {
+      const index = this.selectedMessages.indexOf(messageId);
+      if (index > -1) {
+        this.selectedMessages.splice(index, 1);
+      } else {
+        this.selectedMessages.push(messageId);
+      }
+    },
+    clearMessageSelection() {
+      this.selectedMessages = [];
+      this.$emit('toggle-selection-mode'); // This will turn off selection mode
+    },
+    onTicketCreated(ticket) {
+      // Refresh conversation tickets
+      this.$store.dispatch('tickets/fetchTicketsForConversation', this.currentChat.id);
+      // Clear selection and exit selection mode
+      this.clearMessageSelection();
+    },
+    onMessagesLinked(ticket) {
+      // Refresh conversation tickets  
+      this.$store.dispatch('tickets/fetchTicketsForConversation', this.currentChat.id);
+      // Clear selection and exit selection mode
+      this.clearMessageSelection();
+    },
+    // Modal handlers
+    openCreateTicketModal() {
+      this.showCreateTicketModal = true;
+    },
+    openLinkToExistingModal() {
+      this.showLinkToExistingModal = true;
+    },
+    closeCreateTicketModal() {
+      this.showCreateTicketModal = false;
+    },
+    closeLinkToExistingModal() {
+      this.showLinkToExistingModal = false;
+    },
+    onTicketCreatedFromModal(ticket) {
+      this.closeCreateTicketModal();
+      this.onTicketCreated(ticket);
+    },
+    onMessagesLinkedFromModal(ticket) {
+      this.closeLinkToExistingModal();
+      this.onMessagesLinked(ticket);
+    },
   },
 };
 </script>
@@ -639,6 +714,9 @@ export default {
       :is-an-email-channel="isAnEmailChannel"
       :inbox-supports-reply-to="inboxSupportsReplyTo"
       :messages="getMessages"
+      :is-selection-mode="isSelectionMode"
+      :selected-messages="selectedMessages"
+      @toggle-selection="toggleMessageSelection"
     >
       <template #beforeAll>
         <transition name="slide-up">
@@ -754,6 +832,34 @@ export default {
       :conversation-id="currentChat.id"
       @close="closeStarredMessages"
       @scroll-to-message="onScrollToPinnedMessage"
+    />
+    
+    <!-- Message Selection Toolbar -->
+    <MessageSelectionToolbar
+      v-if="selectedMessages.length > 0"
+      :conversation-id="currentChat.id"
+      :selected-messages="selectedMessages"
+      @clear-selection="clearMessageSelection"
+      @create-ticket="openCreateTicketModal"
+      @link-to-existing="openLinkToExistingModal"
+    />
+    
+    <!-- Create Ticket Modal -->
+    <CreateTicketModal
+      v-if="showCreateTicketModal"
+      :conversation-id="currentChat.id"
+      :selected-message-ids="selectedMessages"
+      @close="closeCreateTicketModal"
+      @created="onTicketCreatedFromModal"
+    />
+    
+    <!-- Link To Existing Ticket Modal -->
+    <LinkToExistingTicketModal
+      v-if="showLinkToExistingModal"
+      :conversation-id="currentChat.id"
+      :selected-message-ids="selectedMessages"
+      @close="closeLinkToExistingModal"
+      @linked="onMessagesLinkedFromModal"
     />
   </div>
 </template>

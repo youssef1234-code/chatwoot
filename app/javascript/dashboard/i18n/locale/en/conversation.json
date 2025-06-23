@@ -346,6 +346,7 @@
       "CONTACT_ATTRIBUTES": "Contact Attributes",
       "PREVIOUS_CONVERSATION": "Previous Conversations",
       "MACROS": "Macros",
+      "TICKETS": "Linked Tickets",
       "LINEAR_ISSUES": "Linked Linear Issues",
       "JIRA_ISSUES": "Linked JIRA Issues",
       "SHOPIFY_ORDERS": "Shopify Orders"

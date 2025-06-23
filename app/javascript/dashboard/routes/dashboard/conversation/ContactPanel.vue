@@ -23,6 +23,7 @@ import LinearIssuesList from 'dashboard/components/widgets/conversation/linear/I
 import LinearSetupCTA from 'dashboard/components/widgets/conversation/linear/LinearSetupCTA.vue';
 import JiraIssuesList from 'dashboard/components/widgets/conversation/jira/IssuesList.vue';
 import JiraSetupCTA from 'dashboard/components/widgets/conversation/jira/JiraSetupCTA.vue';
+import TicketsList from 'dashboard/components/widgets/conversation/tickets/TicketsList.vue';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 
 const props = defineProps({
@@ -282,6 +283,18 @@ onMounted(() => {
             >
               <LinearSetupCTA v-if="!isLinearIntegrationEnabled" />
               <LinearIssuesList v-else :conversation-id="conversationId" />
+            </AccordionItem>
+          </div>
+          <div v-else-if="element.name === 'tickets'">
+            <AccordionItem
+              :title="$t('CONVERSATION_SIDEBAR.ACCORDION.TICKETS')"
+              :is-open="isContactSidebarItemOpen('is_tickets_open')"
+              compact
+              @toggle="
+                value => toggleSidebarUIState('is_tickets_open', value)
+              "
+            >
+              <TicketsList :conversation-id="conversationId" />
             </AccordionItem>
           </div>
           <div

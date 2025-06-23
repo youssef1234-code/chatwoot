@@ -1,25 +1,27 @@
 <template>
   <div 
     v-if="isVisible" 
-    class="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50"
+    class="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50"
   >
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 p-4 min-w-96">
+    <div class="bg-white dark:bg-slate-900 rounded-xl shadow-xl backdrop-blur-sm p-4 min-w-96 border-0">
       <div class="flex items-center justify-between mb-3">
         <div class="flex items-center gap-2">
-          <i class="i-lucide-check-square text-blue-600" />
-          <span class="font-semibold text-gray-900 dark:text-white">
+          <div class="w-5 h-5 rounded bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+            <i class="i-lucide-check text-blue-600 dark:text-blue-400 w-3 h-3" />
+          </div>
+          <span class="font-medium text-slate-900 dark:text-slate-100">
             {{ $t('TICKETS.SELECTED_MESSAGES', { count: selectedMessages.length }) }}
           </span>
         </div>
         <button
           @click="clearSelection"
-          class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+          class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
         >
           <i class="i-lucide-x w-4 h-4" />
         </button>
       </div>
       
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-3">
         <ButtonV4
           size="sm"
           variant="primary"
@@ -34,7 +36,7 @@
           size="sm"
           variant="secondary" 
           icon="i-lucide-link"
-          @click="showLinkToExistingModal = true"
+          @click="openLinkToExistingModal"
         >
           {{ $t('TICKETS.LINK_TO_EXISTING') }}
         </ButtonV4>
@@ -48,35 +50,14 @@
         </ButtonV4>
       </div>
     </div>
-    
-    <!-- Create Ticket Modal -->
-    <CreateTicketModal
-      v-if="showCreateTicketModal"
-      :conversation-id="conversationId"
-      :selected-message-ids="selectedMessages"
-      @close="showCreateTicketModal = false"
-      @created="handleTicketCreated"
-    />
-    
-    <!-- Link to Existing Ticket Modal -->
-    <LinkToExistingTicketModal
-      v-if="showLinkToExistingModal"
-      :conversation-id="conversationId"
-      :selected-message-ids="selectedMessages"
-      :existing-tickets="existingTickets"
-      @close="showLinkToExistingModal = false"
-      @linked="handleMessagesLinked"
-    />
   </div>
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import ButtonV4 from 'dashboard/components-next/button/Button.vue';
-import CreateTicketModal from './tickets/CreateTicketModal.vue';
-import LinkToExistingTicketModal from './tickets/LinkToExistingTicketModal.vue';
 
 const props = defineProps({
   conversationId: {
@@ -89,13 +70,10 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['clear-selection', 'ticket-created', 'messages-linked']);
+const emit = defineEmits(['clear-selection', 'create-ticket', 'link-to-existing']);
 
 const { t } = useI18n();
 const store = useStore();
-
-const showCreateTicketModal = ref(false);
-const showLinkToExistingModal = ref(false);
 
 const isVisible = computed(() => props.selectedMessages.length > 0);
 
@@ -108,19 +86,11 @@ const clearSelection = () => {
 };
 
 const openCreateTicketModal = () => {
-  showCreateTicketModal.value = true;
+  emit('create-ticket');
 };
 
-const handleTicketCreated = (ticket) => {
-  showCreateTicketModal.value = false;
-  clearSelection();
-  emit('ticket-created', ticket);
-};
-
-const handleMessagesLinked = (ticket) => {
-  showLinkToExistingModal.value = false;
-  clearSelection();
-  emit('messages-linked', ticket);
+const openLinkToExistingModal = () => {
+  emit('link-to-existing');
 };
 
 // Load existing tickets when conversation changes
