@@ -22,9 +22,17 @@ const props = defineProps({
     type: [Number, String],
     required: true,
   },
+  title: {
+    type: String,
+    default: '',
+  },
+  description: {
+    type: String,
+    default: '',
+  },
 });
 
-const emit = defineEmits(['close']);
+const emit = defineEmits(['close', 'issue-created']);
 
 const { t } = useI18n();
 const store = useStore();
@@ -35,8 +43,8 @@ const accountId = computed(() => store.getters.getCurrentAccountId);
 // Form state
 const formState = ref({
   project_key: '',
-  summary: '',
-  description: '',
+  summary: props.title || '',
+  description: props.description || '',
   issue_type_id: '',
   assignee_id: '',
   priority_id: '',
@@ -260,6 +268,13 @@ const createIssue = async () => {
 
     useTrack(JIRA_EVENTS.CREATE_ISSUE);
     useAlert(t('INTEGRATION_SETTINGS.JIRA.ADD_OR_LINK.CREATE_SUCCESS'));
+    
+    // Emit event for escalation workflow
+    emit('issue-created', {
+      key: issueKey,
+      summary: formState.value.summary,
+      ...response.data
+    });
     
     // Emit event for other components to update
     window.dispatchEvent(new CustomEvent('jira:issues-updated'));

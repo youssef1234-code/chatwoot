@@ -114,21 +114,6 @@
               <p v-if="errors.assigned_agent_id" class="mt-1 text-sm text-red-600">{{ errors.assigned_agent_id[0] }}</p>
             </div>
 
-            <!-- JIRA Issue Key -->
-            <div v-if="!isLoadingJiraIssues">
-              <label class="block text-sm font-medium text-n-slate-12 mb-2">
-                {{ availableJiraIssues.length > 0 ? $t('TICKETS.OR_ENTER_JIRA_ISSUE_KEY') : $t('TICKETS.JIRA_ISSUE_KEY') }}
-              </label>
-              <input
-                v-model="ticketForm.jira_issue_key"
-                type="text"
-                class="w-full px-3 py-2 border border-n-slate-6 rounded-md focus:outline-none focus:ring-2 focus:ring-n-blue-6 bg-n-slate-1 text-n-slate-12"
-                :placeholder="$t('TICKETS.JIRA_ISSUE_KEY_PLACEHOLDER')"
-              />
-              <p class="mt-1 text-xs text-n-slate-10">
-                {{ $t('TICKETS.JIRA_ISSUE_KEY_HELP') }}
-              </p>
-            </div>
           </form>
         </div>
         
@@ -187,7 +172,7 @@ const ticketForm = reactive({
   priority: props.ticket.priority || 'medium',
   status: props.ticket.status || 'open',
   issue_type: props.ticket.issue_type || '',
-  assigned_agent_id: props.ticket.assigned_agent_id || '',
+  assigned_agent_id: props.ticket.assigned_agent?.id || '',
   jira_issue_key: props.ticket.jira_issue_key || '',
 });
 
@@ -225,6 +210,11 @@ const updateTicket = async () => {
   errors.value = {};
   
   try {
+    console.log('=== TICKET UPDATE DEBUG (Frontend) ===');
+    console.log('Ticket form data:', ticketForm);
+    console.log('Original ticket data:', props.ticket);
+    console.log('Assigned agent ID being sent:', ticketForm.assigned_agent_id);
+    
     await store.dispatch('tickets/updateTicket', {
       id: props.ticket.id,
       ...ticketForm,
@@ -250,7 +240,12 @@ const onClose = () => {
 
 onMounted(() => {
   // Load agents for assignment dropdown
-  store.dispatch('agents/get');
+  store.dispatch('agents/get').then(() => {
+    console.log('=== AGENTS DEBUG ===');
+    console.log('Available agents:', agents.value);
+    console.log('Ticket assigned agent:', props.ticket.assigned_agent);
+    console.log('Form assigned_agent_id:', ticketForm.assigned_agent_id);
+  });
   loadJiraIssues();
 });
 </script>

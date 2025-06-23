@@ -22,7 +22,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['close']);
+const emit = defineEmits(['close', 'issue-linked']);
 
 const { t } = useI18n();
 
@@ -91,6 +91,13 @@ const linkIssue = async () => {
     isLinking.value = true;
     await JiraAPI.linkIssue(props.conversationId, issueKey, props.title);
     useAlert(t('INTEGRATION_SETTINGS.JIRA.LINK.LINK_SUCCESS'));
+    
+    // Emit event for escalation workflow
+    emit('issue-linked', {
+      key: issueKey,
+      summary: selectedOption.value.name,
+      ...selectedOption.value
+    });
     
     // Emit event for other components to update
     window.dispatchEvent(new CustomEvent('jira:issues-updated'));
