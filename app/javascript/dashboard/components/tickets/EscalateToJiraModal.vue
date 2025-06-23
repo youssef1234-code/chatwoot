@@ -1,65 +1,3 @@
-<template>
-  <Modal
-    :show="true"
-    :on-close="onClose"
-    :close-on-backdrop-click="false"
-  >
-    <div class="w-full max-w-4xl mx-auto">
-      <div class="flex flex-col h-[700px]">
-        <!-- Header -->
-        <div class="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-600">
-          <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
-            {{ $t('TICKETS.ESCALATE_TO_JIRA') }}
-          </h2>
-        </div>
-        
-        <!-- Content -->
-        <div class="flex-1 overflow-y-auto p-6">
-          <div class="mb-6">
-            <h3 class="text-sm font-medium text-n-slate-12 mb-2">
-              {{ $t('TICKETS.ESCALATING_TICKET') }}
-            </h3>
-            <div class="bg-n-slate-2 rounded-lg p-4">
-              <div class="flex items-center gap-3 mb-2">
-                <div class="w-6 h-6 bg-purple-600 rounded text-white text-xs flex items-center justify-center font-bold">
-                  T
-                </div>
-                <span class="font-medium">#{{ ticket.id }} - {{ ticket.title }}</span>
-              </div>
-              <p class="text-sm text-n-slate-11">{{ ticket.description || $t('TICKETS.NO_DESCRIPTION') }}</p>
-            </div>
-          </div>
-
-          <!-- JIRA Integration Component -->
-          <div class="border border-n-weak rounded-lg">
-            <CreateOrLinkIssue
-              v-if="ticket.conversation_id"
-              :conversation-id="ticket.conversation_id"
-              :title="generateJiraTitle()"
-              :description="generateJiraDescription()"
-              :show-header="false"
-              @close="onJiraModalClose"
-              @issue-created="onJiraIssueCreated"
-              @issue-linked="onJiraIssueLinked"
-            />
-          </div>
-        </div>
-        
-        <!-- Footer -->
-        <div class="flex items-center justify-end gap-3 p-6 border-t border-slate-200 dark:border-slate-600">
-          <Button
-            variant="ghost"
-            @click="onClose"
-            :disabled="isEscalating"
-          >
-            {{ $t('TICKETS.CANCEL') }}
-          </Button>
-        </div>
-      </div>
-    </div>
-  </Modal>
-</template>
-
 <script setup>
 import { ref, computed } from 'vue';
 import { useStore } from 'vuex';
@@ -109,9 +47,9 @@ const generateJiraDescription = () => {
   description += `- Created at: ${new Date(props.ticket.created_at).toLocaleString()}\n`;
   
   // Add conversation link if available
-  if (props.ticket.conversation_id) {
+  if (props.ticket.conversation?.id) {
     const baseUrl = window.location.origin;
-    const conversationUrl = `${baseUrl}/app/accounts/${store.getters.getCurrentAccountId}/conversations/${props.ticket.conversation_id}`;
+    const conversationUrl = `${baseUrl}/app/accounts/${store.getters.getCurrentAccountId}/conversations/${props.ticket.conversation.id}`;
     description += `\n**Related Conversation:** ${conversationUrl}`;
   }
   
@@ -157,3 +95,68 @@ const onClose = () => {
   emit('close');
 };
 </script>
+
+<template>
+  <Modal
+    :show="true"
+    :on-close="onClose"
+    :close-on-backdrop-click="false"
+  >
+    <div class="w-full max-w-4xl mx-auto">
+      <div class="flex flex-col h-[700px]">
+        <!-- Header -->
+        <div class="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-600">
+          <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
+            {{ $t('TICKETS.ESCALATE_TO_JIRA') }}
+          </h2>
+        </div>
+        
+        <!-- Content -->
+        <div class="flex-1 overflow-y-auto p-6">
+          <div class="mb-6">
+            <h3 class="text-sm font-medium text-n-slate-12 mb-2">
+              {{ $t('TICKETS.ESCALATING_TICKET') }}
+            </h3>
+            <div class="bg-n-slate-2 rounded-lg p-4">
+              <div class="flex items-center gap-3 mb-2">
+                <div class="w-6 h-6 bg-purple-600 rounded text-white text-xs flex items-center justify-center font-bold">
+                  T
+                </div>
+                <span class="font-medium">#{{ ticket.id }} - {{ ticket.title }}</span>
+              </div>
+              <p class="text-sm text-n-slate-11">{{ ticket.description || $t('TICKETS.NO_DESCRIPTION') }}</p>
+            </div>
+          </div>
+
+          <!-- JIRA Integration Component -->
+          <div class="border border-n-weak rounded-lg">
+            <CreateOrLinkIssue
+              v-if="ticket.conversation?.id"
+              :conversation-id="ticket.conversation.id"
+              :title="generateJiraTitle()"
+              :description="generateJiraDescription()"
+              :show-header="false"
+              @close="onJiraModalClose"
+              @issue-created="onJiraIssueCreated"
+              @issue-linked="onJiraIssueLinked"
+            />
+            <div v-else class="p-4 text-center text-red-600">
+              Error: No conversation found for this ticket
+            </div>
+          </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="flex items-center justify-end gap-3 p-6 border-t border-slate-200 dark:border-slate-600">
+          <Button
+            variant="ghost"
+            @click="onClose"
+            :disabled="isEscalating"
+          >
+            {{ $t('TICKETS.CANCEL') }}
+          </Button>
+        </div>
+      </div>
+    </div>
+  </Modal>
+</template>
