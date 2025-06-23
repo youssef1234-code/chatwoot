@@ -16,7 +16,7 @@ import PinnedMessagesBar from 'dashboard/modules/conversations/components/Pinned
 import StarredMessagesModal from 'dashboard/modules/conversations/components/StarredMessagesModal.vue';
 import MessageSelectionToolbar from 'dashboard/components/MessageSelectionToolbar.vue';
 import CreateTicketModal from 'dashboard/components/tickets/CreateTicketModal.vue';
-import LinkToExistingTicketModal from 'dashboard/components/tickets/LinkToExistingTicketModal.vue';
+import Modal from 'dashboard/components/Modal.vue';
 
 
 // stores and apis
@@ -55,7 +55,6 @@ export default {
     StarredMessagesModal,
     MessageSelectionToolbar,
     CreateTicketModal,
-    LinkToExistingTicketModal,
   },
   mixins: [inboxMixin],
   props: {
@@ -845,22 +844,20 @@ export default {
     />
     
     <!-- Create Ticket Modal -->
-    <CreateTicketModal
+    <Modal
       v-if="showCreateTicketModal"
-      :conversation-id="currentChat.id"
-      :selected-message-ids="selectedMessages"
-      @close="closeCreateTicketModal"
-      @created="onTicketCreatedFromModal"
-    />
-    
-    <!-- Link To Existing Ticket Modal -->
-    <LinkToExistingTicketModal
-      v-if="showLinkToExistingModal"
-      :conversation-id="currentChat.id"
-      :selected-message-ids="selectedMessages"
-      @close="closeLinkToExistingModal"
-      @linked="onMessagesLinkedFromModal"
-    />
+      :show="showCreateTicketModal"
+      :on-close="closeCreateTicketModal"
+      :close-on-backdrop-click="false"
+    >
+      <CreateTicketModal
+        :conversation-id="currentChat.id"
+        :selected-message-ids="selectedMessages"
+        @close="closeCreateTicketModal"
+        @created="onTicketCreatedFromModal"
+      />
+    </Modal>
+  
   </div>
 </template>
 

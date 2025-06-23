@@ -14,7 +14,7 @@
     "CUSTOMER": "Customer",
     "AGENT": "Agent",
     "NO_CONTENT": "No content",
-    
+    "NO_LINKED_TICKETS" : "No Linked Tickets",
     "TITLE_PLACEHOLDER": "Enter a descriptive title for this ticket",
     "DESCRIPTION_PLACEHOLDER": "Describe the issue in detail",
     "ISSUE_TYPE_PLACEHOLDER": "e.g., Bug, Feature Request, Support",
@@ -48,7 +48,8 @@
     "ESCALATE_TO_JIRA": "Escalate to JIRA",
     "ESCALATE_DESCRIPTION": "Create a JIRA issue and link it to this ticket.",
     "JIRA_ISSUE_KEY": "JIRA Issue Key",
-    "JIRA_ISSUE_KEY_PLACEHOLDER": "e.g., PROJECT-123",
+    "JIRA_ISSUE_KEY_PLACEHOLDER": "e.g., PROJ-123",
+    "JIRA_ISSUE_KEY_HELP": "Enter the JIRA issue key to link this ticket (optional)",
     "ESCALATE_SUCCESS": "Ticket escalated to JIRA successfully",
     "ESCALATE_ERROR": "Failed to escalate ticket to JIRA. Please try again.",
     
