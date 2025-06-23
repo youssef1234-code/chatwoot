@@ -148,6 +148,16 @@
                     </p>
                   </div>
                   <NextButton
+                    variant="solid"
+                    color="yellow"
+                    size="sm"
+                    :is-loading="isEscalating"
+                    @click="escalateToJira"
+                  >
+                    {{ $t('TICKETS.DETAIL.ESCALATE') }}
+                  </NextButton>
+                </div>
+              </div>
                     color="yellow"
                     size="sm"
                     @click="escalateToJira"

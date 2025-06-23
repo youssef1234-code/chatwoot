@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col w-80 bg-white dark:bg-n-slate-1 rounded-xl border border-n-weak shadow-sm">
+  <div class="flex flex-col flex-1 bg-white dark:bg-n-slate-1 rounded-xl border border-n-weak shadow-sm min-w-80">
     <!-- Column Header -->
     <div class="p-4 border-b border-n-weak">
       <div class="flex items-center justify-between">

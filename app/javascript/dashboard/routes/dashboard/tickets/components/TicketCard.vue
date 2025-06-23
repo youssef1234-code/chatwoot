@@ -19,7 +19,7 @@
       </div>
       
       <!-- Actions Menu -->
-      <div class="opacity-0 group-hover:opacity-100 transition-opacity">
+      <div class="relative opacity-0 group-hover:opacity-100 transition-opacity">
         <NextButton
           variant="ghost"
           size="xs"
@@ -32,7 +32,7 @@
         <div
           v-if="showActionsMenu"
           v-on-clickaway="() => showActionsMenu = false"
-          class="absolute right-0 mt-1 bg-white dark:bg-n-slate-1 border border-n-weak rounded-lg shadow-lg z-10 py-1 min-w-40"
+          class="absolute right-0 top-full mt-1 bg-white dark:bg-n-slate-1 border border-n-weak rounded-lg shadow-lg z-10 py-1 min-w-40"
         >
           <button
             class="w-full px-3 py-2 text-sm text-left hover:bg-n-alpha-1 flex items-center gap-2"
@@ -259,7 +259,8 @@ export default {
     const openInConversation = () => {
       if (props.ticket.conversation?.id) {
         const accountId = router.currentRoute.value.params.accountId;
-        router.push(`/app/accounts/${accountId}/conversations/${props.ticket.conversation.id}`);
+        const conversationUrl = `/app/accounts/${accountId}/conversations/${props.ticket.conversation.id}`;
+        window.open(conversationUrl, '_blank');
       }
     };
 

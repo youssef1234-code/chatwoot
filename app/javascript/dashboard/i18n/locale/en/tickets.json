@@ -260,6 +260,19 @@
       "LIST": "List View"
     },
     
+    "ACTIONS": {
+      "ENHANCE_WITH_AI": "Enhance with AI",
+      "OPEN_CONVERSATION": "Open in Chat",
+      "VIEW_DETAILS": "View Details",
+      "EDIT": "Edit",
+      "DELETE": "Delete",
+      "MARK_AS_DONE": "Mark as Done",
+      "RESOLVE": "Resolve",
+      "ESCALATE": "Escalate to JIRA"
+    },
+    
+    "CONVERSATION": "Conversation",
+    "MESSAGES": "Messages",
     "TICKETS_FOUND": "tickets found"
   }
 }

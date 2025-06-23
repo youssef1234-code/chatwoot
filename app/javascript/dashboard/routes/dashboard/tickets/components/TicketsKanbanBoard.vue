@@ -7,6 +7,7 @@
       :is-loading="isLoading"
       status="not_done"
       color="blue"
+      class="flex-1 min-w-80"
       @ticket-move="handleTicketMove"
       @ticket-click="handleTicketClick"
       @enhance-with-ai="$emit('enhance-with-ai', $event)"
@@ -19,6 +20,7 @@
       :is-loading="isLoading"
       status="in_progress"
       color="yellow"
+      class="flex-1 min-w-80"
       @ticket-move="handleTicketMove"
       @ticket-click="handleTicketClick"
       @enhance-with-ai="$emit('enhance-with-ai', $event)"
@@ -31,6 +33,7 @@
       :is-loading="isLoading"
       status="escalated"
       color="orange"
+      class="flex-1 min-w-80"
       @ticket-move="handleTicketMove"
       @ticket-click="handleTicketClick"
       @enhance-with-ai="$emit('enhance-with-ai', $event)"
@@ -43,6 +46,7 @@
       :is-loading="isLoading"
       status="done"
       color="green"
+      class="flex-1 min-w-80"
       @ticket-move="handleTicketMove"
       @ticket-click="handleTicketClick"
       @enhance-with-ai="$emit('enhance-with-ai', $event)"
@@ -94,7 +98,22 @@ export default {
     });
 
     const inProgressTickets = computed(() => {
-      return props.tickets.filter(ticket => ticket.status === 'in_progress');
+      return props.tickets.filter(ticket => {
+        // Explicitly in progress status
+        if (ticket.status === 'in_progress') {
+          return true;
+        }
+        
+        // JIRA linked tickets that are actively being worked on
+        if (ticket.jira_issue_key && ticket.jira_status) {
+          const inProgressStatuses = ['In Progress', 'In Development', 'In Review', 'Testing'];
+          return inProgressStatuses.includes(ticket.jira_status) && 
+                 ticket.status !== 'resolved' && 
+                 ticket.status !== 'closed';
+        }
+        
+        return false;
+      });
     });
 
     const escalatedTickets = computed(() => {
