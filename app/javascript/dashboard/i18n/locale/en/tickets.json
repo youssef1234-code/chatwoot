@@ -6,10 +6,15 @@
     "CANCEL": "Cancel",
     "TITLE": "Title",
     "DESCRIPTION": "Description",
-    "PRIORITY": "Priority",
     "ISSUE_TYPE": "Issue Type",
     "ASSIGNED_AGENT": "Assigned Agent",
-    "STATUS": "Status",
+    "STATUS": {
+        "OPEN": "Open",
+        "IN_PROGRESS": "In Progress",
+        "ESCALATED": "Escalated",
+        "RESOLVED": "Resolved",
+        "CLOSED": "Closed"
+    },
     "UNASSIGNED": "Unassigned",
     "CUSTOMER": "Customer",
     "AGENT": "Agent",
@@ -18,18 +23,12 @@
     "TITLE_PLACEHOLDER": "Enter a descriptive title for this ticket",
     "DESCRIPTION_PLACEHOLDER": "Describe the issue in detail",
     "ISSUE_TYPE_PLACEHOLDER": "e.g., Bug, Feature Request, Support",
-    
-    "PRIORITY_LOW": "Low",
-    "PRIORITY_MEDIUM": "Medium", 
-    "PRIORITY_HIGH": "High",
-    "PRIORITY_URGENT": "Urgent",
-    
-    "STATUS_OPEN": "Open",
-    "STATUS_IN_PROGRESS": "In Progress",
-    "STATUS_ESCALATED": "Escalated to JIRA",
-    "STATUS_RESOLVED": "Resolved",
-    "STATUS_CLOSED": "Closed",
-
+    "PRIORITY":{
+        "LOW": "Low",
+        "MEDIUM": "Medium", 
+        "HIGH": "High",
+        "URGENT": "Urgent"
+    },
     "LINK_JIRA_ISSUE": "Link a JIRA issue",
     "SELECT_JIRA_ISSUE": "Select a JIRA issue",
     "JIRA_LINK_HELP": "Enter the issue key from your JIRA project, e.g., PROJECT-123",
@@ -52,7 +51,7 @@
     "OR_ENTER_JIRA_ISSUE_KEY": "Or enter JIRA issue key manually",
     "JIRA_ISSUE_KEY_HELP": "Enter a JIRA issue key to link this ticket (e.g., PROJECT-123)",
     "LOADING_JIRA_ISSUES": "Loading linked JIRA issues...",
-    
+    "VIEW_DETAILS": "View Details",
     "ESCALATE_TO_JIRA": "Escalate to JIRA",
     "ESCALATE_DESCRIPTION": "Create a JIRA issue and link it to this ticket.",
     "JIRA_ISSUE_KEY": "JIRA Issue Key",
@@ -66,7 +65,7 @@
     "RESOLVE_SUCCESS": "Ticket resolved successfully",
     "CLOSE_SUCCESS": "Ticket closed successfully",
     "REOPEN_SUCCESS": "Ticket reopened successfully",
-    
+    "MARK_AS_DONE":" Mark as Done",
     "VIEW_TICKET": "View Ticket",
     "EDIT_TICKET": "Edit Ticket",
     "DELETE_TICKET": "Delete Ticket",

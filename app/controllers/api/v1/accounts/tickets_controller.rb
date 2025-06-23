@@ -1,11 +1,11 @@
 class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
-  before_action :fetch_ticket, except: [:index, :create]
+  before_action :fetch_ticket, except: %i[index create]
   before_action :fetch_conversation, only: [:create]
 
   def index
     @tickets = current_account.tickets
                               .includes(:conversation, :contact, :created_by, :assigned_agent, :ticket_messages)
-    
+
     @tickets = @tickets.for_conversation(params[:conversation_id]) if params[:conversation_id].present?
     @tickets = @tickets.by_status(params[:status]) if params[:status].present?
     @tickets = @tickets.by_priority(params[:priority]) if params[:priority].present?
@@ -27,10 +27,10 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
     if @ticket.save
       # Link selected messages to the ticket
       link_messages_to_ticket if params[:message_ids].present?
-      
+
       # Create activity message in conversation
       create_ticket_activity_message(:created)
-      
+
       render :show, status: :created
     else
       render json: { errors: @ticket.errors }, status: :unprocessable_entity
@@ -41,7 +41,7 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
     if @ticket.update(ticket_params)
       # Create activity message for status/priority changes
       create_ticket_activity_message(:updated) if ticket_status_or_priority_changed?
-      
+
       render :show
     else
       render json: { errors: @ticket.errors }, status: :unprocessable_entity
@@ -50,16 +50,16 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
 
   def destroy
     @ticket.destroy!
-    
+
     # Create activity message in conversation
     create_ticket_activity_message(:deleted)
-    
+
     head :no_content
   end
 
   def escalate_to_jira
     jira_issue_key = params[:jira_issue_key]
-    
+
     if jira_issue_key.blank?
       render json: { error: 'JIRA issue key is required' }, status: :unprocessable_entity
       return
@@ -67,10 +67,10 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
 
     begin
       @ticket.escalate_to_jira!(jira_issue_key)
-      
+
       # Create activity message
       create_ticket_activity_message(:escalated_to_jira)
-      
+
       render :show
     rescue StandardError => e
       render json: { error: e.message }, status: :unprocessable_entity
@@ -78,46 +78,39 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
   end
 
   def resolve
-    begin
-      @ticket.resolve!
-      
-      # Create activity message
-      create_ticket_activity_message(:resolved)
-      
-      render :show
-    rescue StandardError => e
-      render json: { error: e.message }, status: :unprocessable_entity
-    end
+    @ticket.resolve!
+
+    # Create activity message
+    create_ticket_activity_message(:resolved)
+
+    render :show
+  rescue StandardError => e
+    render json: { error: e.message }, status: :unprocessable_entity
   end
 
   def close
-    begin
-      @ticket.close!
-      
-      # Create activity message
-      create_ticket_activity_message(:closed)
-      
-      render :show
-    rescue StandardError => e
-      render json: { error: e.message }, status: :unprocessable_entity
-    end
+    @ticket.close!
+
+    # Create activity message
+    create_ticket_activity_message(:closed)
+
+    render :show
+  rescue StandardError => e
+    render json: { error: e.message }, status: :unprocessable_entity
   end
 
   def add_messages
     message_ids = params[:message_ids] || []
-    
+
     if message_ids.any?
       message_ids.each do |message_id|
         message = @ticket.conversation.messages.find(message_id)
         TicketMessage.link_message_to_ticket(@ticket, message)
-      rescue ActiveRecord::RecordNotFound
-        # Skip invalid message IDs
-        next
       rescue ActiveRecord::RecordInvalid
         # Skip already linked messages
         next
       end
-      
+
       render :show
     else
       render json: { error: 'No message IDs provided' }, status: :unprocessable_entity
@@ -126,7 +119,7 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
 
   def remove_messages
     message_ids = params[:message_ids] || []
-    
+
     if message_ids.any?
       @ticket.ticket_messages.where(message_id: message_ids).destroy_all
       render :show
@@ -142,7 +135,23 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
   end
 
   def fetch_conversation
-    @conversation = current_account.conversations.find(ticket_params[:conversation_id])
+    conversation_id = params.dig(:ticket, :conversation_id)
+
+    return render json: { error: 'Conversation ID is required' }, status: :bad_request if conversation_id.blank?
+
+    # Fetch all conversations for the current account
+    conversations = current_account.conversations
+
+    # Apply permission filtering
+    filtered_conversations = Conversations::PermissionFilterService.new(
+      conversations,
+      Current.user,
+      current_account
+    ).perform
+
+    @conversation = filtered_conversations.find(conversation_id)
+  rescue ActiveRecord::RecordNotFound
+    render json: { error: "Conversation not found or you don't have access to it" }, status: :not_found
   end
 
   def ticket_params
@@ -154,7 +163,7 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
 
   def link_messages_to_ticket
     message_ids = params[:message_ids] || []
-    
+
     message_ids.each do |message_id|
       message = @ticket.conversation.messages.find(message_id)
       TicketMessage.link_message_to_ticket(@ticket, message)
