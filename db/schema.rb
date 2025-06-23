@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_06_22_120000) do
+ActiveRecord::Schema[7.1].define(version: 2025_06_23_115147) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -557,9 +557,18 @@ ActiveRecord::Schema[7.1].define(version: 2025_06_22_120000) do
     t.bigint "sla_policy_id"
     t.datetime "waiting_since"
     t.text "cached_label_list"
+    t.boolean "is_ticket", default: false, null: false
+    t.string "ticket_number"
+    t.integer "ticket_priority", default: 0
+    t.string "ticket_category"
+    t.datetime "ticket_assigned_at"
+    t.datetime "ticket_resolved_at"
+    t.bigint "ticket_created_by"
+    t.bigint "ticket_updated_by"
     t.index ["account_id", "display_id"], name: "index_conversations_on_account_id_and_display_id", unique: true
     t.index ["account_id", "id"], name: "index_conversations_on_id_and_account_id"
     t.index ["account_id", "inbox_id", "status", "assignee_id"], name: "conv_acid_inbid_stat_asgnid_idx"
+    t.index ["account_id", "is_ticket"], name: "index_conversations_on_account_ticket"
     t.index ["account_id"], name: "index_conversations_on_account_id"
     t.index ["assignee_id", "account_id"], name: "index_conversations_on_assignee_id_and_account_id"
     t.index ["campaign_id"], name: "index_conversations_on_campaign_id"
@@ -571,6 +580,11 @@ ActiveRecord::Schema[7.1].define(version: 2025_06_22_120000) do
     t.index ["status", "account_id"], name: "index_conversations_on_status_and_account_id"
     t.index ["status", "priority"], name: "index_conversations_on_status_and_priority"
     t.index ["team_id"], name: "index_conversations_on_team_id"
+    t.index ["ticket_category"], name: "index_conversations_on_ticket_category"
+    t.index ["ticket_created_by"], name: "index_conversations_on_ticket_created_by"
+    t.index ["ticket_number"], name: "index_conversations_on_ticket_number", unique: true
+    t.index ["ticket_priority"], name: "index_conversations_on_ticket_priority"
+    t.index ["ticket_updated_by"], name: "index_conversations_on_ticket_updated_by"
     t.index ["uuid"], name: "index_conversations_on_uuid", unique: true
     t.index ["waiting_since"], name: "index_conversations_on_waiting_since"
   end
@@ -1069,6 +1083,41 @@ ActiveRecord::Schema[7.1].define(version: 2025_06_22_120000) do
     t.datetime "updated_at", precision: nil, null: false
   end
 
+  create_table "ticket_messages", force: :cascade do |t|
+    t.bigint "ticket_id", null: false
+    t.bigint "message_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["message_id"], name: "index_ticket_messages_on_message_id"
+    t.index ["ticket_id", "message_id"], name: "index_ticket_messages_on_ticket_id_and_message_id", unique: true
+    t.index ["ticket_id"], name: "index_ticket_messages_on_ticket_id"
+  end
+
+  create_table "tickets", force: :cascade do |t|
+    t.string "title", null: false
+    t.text "description"
+    t.integer "status", default: 0, null: false
+    t.integer "priority", default: 1, null: false
+    t.string "issue_type"
+    t.datetime "resolved_at"
+    t.bigint "account_id", null: false
+    t.bigint "conversation_id", null: false
+    t.bigint "contact_id"
+    t.bigint "created_by_id", null: false
+    t.bigint "assigned_agent_id"
+    t.string "jira_issue_key"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_tickets_on_account_id"
+    t.index ["assigned_agent_id"], name: "index_tickets_on_assigned_agent_id"
+    t.index ["contact_id"], name: "index_tickets_on_contact_id"
+    t.index ["conversation_id"], name: "index_tickets_on_conversation_id"
+    t.index ["created_by_id"], name: "index_tickets_on_created_by_id"
+    t.index ["jira_issue_key"], name: "index_tickets_on_jira_issue_key"
+    t.index ["priority"], name: "index_tickets_on_priority"
+    t.index ["status"], name: "index_tickets_on_status"
+  end
+
   create_table "users", id: :serial, force: :cascade do |t|
     t.string "provider", default: "email", null: false
     t.string "uid", default: "", null: false
@@ -1132,12 +1181,21 @@ ActiveRecord::Schema[7.1].define(version: 2025_06_22_120000) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "conversations", "users", column: "ticket_created_by"
+  add_foreign_key "conversations", "users", column: "ticket_updated_by"
   add_foreign_key "inboxes", "portals"
   add_foreign_key "jira_issue_links", "accounts"
   add_foreign_key "jira_issue_links", "conversations"
   add_foreign_key "jira_issue_links", "users"
   add_foreign_key "messages", "users", column: "pinned_by"
   add_foreign_key "messages", "users", column: "starred_by"
+  add_foreign_key "ticket_messages", "messages"
+  add_foreign_key "ticket_messages", "tickets"
+  add_foreign_key "tickets", "accounts"
+  add_foreign_key "tickets", "contacts"
+  add_foreign_key "tickets", "conversations"
+  add_foreign_key "tickets", "users", column: "assigned_agent_id"
+  add_foreign_key "tickets", "users", column: "created_by_id"
   create_trigger("accounts_after_insert_row_tr", :generated => true, :compatibility => 1).
       on("accounts").
       after(:insert).

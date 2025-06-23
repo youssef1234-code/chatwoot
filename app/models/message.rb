@@ -146,6 +146,8 @@ class Message < ApplicationRecord
   has_many :attachments, dependent: :destroy, autosave: true, before_add: :validate_attachments_limit
   has_one :csat_survey_response, dependent: :destroy_async
   has_many :notifications, as: :primary_actor, dependent: :destroy_async
+  has_many :ticket_messages, dependent: :destroy_async
+  has_many :tickets, through: :ticket_messages
 
   after_create_commit :execute_after_create_commit_callbacks
 

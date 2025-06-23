@@ -17,6 +17,15 @@ import {
   CMD_UNMUTE_CONVERSATION,
 } from 'dashboard/helper/commandbar/events';
 
+const props = defineProps({
+  isSelectionMode: {
+    type: Boolean,
+    default: false,
+  },
+});
+
+defineEmits(['toggle-selection-mode']);
+
 // No props needed as we're getting currentChat from the store directly
 const store = useStore();
 const { t } = useI18n();
@@ -93,6 +102,32 @@ onUnmounted(() => {
 
 <template>
   <div class="relative flex items-center gap-2 actions--container">
+    <ButtonV4
+      v-if="!isSelectionMode"
+      size="sm"
+      variant="ghost"
+      color="slate"
+      icon="i-lucide-check-square"
+      class="rounded-md"
+      :title="$t('CONVERSATION.HEADER.SELECT_MESSAGES')"
+      @click="$emit('toggle-selection-mode')"
+    >
+      {{ $t('CONVERSATION.HEADER.SELECT') }}
+    </ButtonV4>
+
+    <ButtonV4
+      v-else
+      size="sm"
+      variant="secondary"
+      color="slate"
+      icon="i-lucide-x"
+      class="rounded-md"
+      :title="$t('CONVERSATION.HEADER.CANCEL_SELECTION')"
+      @click="$emit('toggle-selection-mode')"
+    >
+      {{ $t('CONVERSATION.HEADER.CANCEL') }}
+    </ButtonV4>
+
     <JiraIssuesButton :conversation-id="currentChat.id" />
     <ResolveAction
       :conversation-id="currentChat.id"

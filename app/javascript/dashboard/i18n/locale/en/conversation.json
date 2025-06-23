@@ -44,6 +44,12 @@
     "UNKNOWN_FILE_TYPE": "Unknown File",
     "SAVE_CONTACT": "Save Contact",
     "NO_CONTENT": "No content to display",
+    "SELECTION_MODE": {
+      "ACTIVE": "Selection Mode Active",
+      "SELECTED_COUNT": "{count} message(s) selected",
+      "EXIT": "Exit Selection Mode",
+      "SELECT_MESSAGES": "Click on messages to select them for ticket creation"
+    },
     "SHARED_ATTACHMENT": {
       "CONTACT": "{sender} has shared a contact",
       "LOCATION": "{sender} has shared a location",
@@ -84,7 +90,11 @@
         "RT": "RT {status}",
         "MISSED": "missed",
         "DUE": "due"
-      }
+      },
+      "SELECT_MESSAGES": "Select messages to create tickets",
+      "SELECT": "Select",
+      "CANCEL_SELECTION": "Cancel message selection",
+      "CANCEL": "Cancel"
     },
     "RESOLVE_DROPDOWN": {
       "MARK_PENDING": "Mark as pending",

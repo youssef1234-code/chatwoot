@@ -1,0 +1,134 @@
+# == Schema Information
+#
+# Table name: tickets
+#
+#  id                :bigint           not null, primary key
+#  description       :text
+#  issue_type        :string
+#  jira_issue_key    :string
+#  priority          :integer          default("medium"), not null
+#  resolved_at       :datetime
+#  status            :integer          default("open"), not null
+#  title             :string           not null
+#  created_at        :datetime         not null
+#  updated_at        :datetime         not null
+#  account_id        :bigint           not null
+#  assigned_agent_id :bigint
+#  contact_id        :bigint
+#  conversation_id   :bigint           not null
+#  created_by_id     :bigint           not null
+#
+# Indexes
+#
+#  index_tickets_on_account_id         (account_id)
+#  index_tickets_on_assigned_agent_id  (assigned_agent_id)
+#  index_tickets_on_contact_id         (contact_id)
+#  index_tickets_on_conversation_id    (conversation_id)
+#  index_tickets_on_created_by_id      (created_by_id)
+#  index_tickets_on_jira_issue_key     (jira_issue_key)
+#  index_tickets_on_priority           (priority)
+#  index_tickets_on_status             (status)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (account_id => accounts.id)
+#  fk_rails_...  (assigned_agent_id => users.id)
+#  fk_rails_...  (contact_id => contacts.id)
+#  fk_rails_...  (conversation_id => conversations.id)
+#  fk_rails_...  (created_by_id => users.id)
+#
+
+class Ticket < ApplicationRecord
+  belongs_to :account
+  belongs_to :conversation
+  belongs_to :contact, optional: true
+  belongs_to :created_by, class_name: 'User'
+  belongs_to :assigned_agent, class_name: 'User', optional: true
+  
+  has_many :ticket_messages, dependent: :destroy
+  has_one :jira_issue_link, foreign_key: :conversation_id, primary_key: :conversation_id
+
+  validates :title, presence: true, length: { maximum: 255 }
+  validates :description, length: { maximum: 5000 }
+  validates :status, presence: true
+  validates :priority, presence: true
+  
+  enum status: {
+    open: 0,
+    in_progress: 1,
+    escalated: 2,
+    resolved: 3,
+    closed: 4
+  }
+  
+  enum priority: {
+    low: 0,
+    medium: 1,
+    high: 2,
+    urgent: 3
+  }
+
+  scope :for_account, ->(account_id) { where(account_id: account_id) }
+  scope :for_conversation, ->(conversation_id) { where(conversation_id: conversation_id) }
+  scope :by_status, ->(status) { where(status: status) }
+  scope :by_priority, ->(priority) { where(priority: priority) }
+  scope :created_by, ->(user_id) { where(created_by_id: user_id) }
+  scope :assigned_to, ->(user_id) { where(assigned_agent_id: user_id) }
+  scope :with_jira_link, -> { joins(:jira_issue_link) }
+  scope :without_jira_link, -> { left_joins(:jira_issue_link).where(jira_issue_links: { id: nil }) }
+
+  before_save :set_resolved_at
+
+  def escalate_to_jira!(jira_issue_key)
+    update!(
+      status: :escalated,
+      jira_issue_key: jira_issue_key
+    )
+  end
+
+  def resolve!
+    update!(
+      status: :resolved,
+      resolved_at: Time.current
+    )
+  end
+
+  def close!
+    update!(
+      status: :closed
+    )
+  end
+
+  def escalated_to_jira?
+    jira_issue_key.present? || jira_issue_link.present?
+  end
+
+  def jira_url
+    return nil unless jira_issue_key.present?
+    
+    jira_integration = account.integrations.find_by(name: 'jira')
+    return nil unless jira_integration&.settings&.dig('jira_site_url')
+    
+    "#{jira_integration.settings['jira_site_url']}/browse/#{jira_issue_key}"
+  end
+
+  def can_be_escalated?
+    !escalated_to_jira? && (open? || in_progress?)
+  end
+
+  def duration_to_resolve
+    return nil unless resolved_at.present?
+    
+    resolved_at - created_at
+  end
+
+  private
+
+  def set_resolved_at
+    if status_changed? && resolved?
+      self.resolved_at = Time.current if resolved_at.nil?
+    elsif status_changed? && !resolved?
+      self.resolved_at = nil
+    end
+  end
+end

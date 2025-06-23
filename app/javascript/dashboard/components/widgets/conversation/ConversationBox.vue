@@ -32,7 +32,10 @@ export default {
     },
   },
   data() {
-    return { activeIndex: 0 };
+    return { 
+      activeIndex: 0,
+      isSelectionMode: false,
+    };
   },
   computed: {
     ...mapGetters({
@@ -85,6 +88,9 @@ export default {
     onDashboardAppTabChange(index) {
       this.activeIndex = index;
     },
+    toggleSelectionMode() {
+      this.isSelectionMode = !this.isSelectionMode;
+    },
   },
 };
 </script>
@@ -100,6 +106,8 @@ export default {
       v-if="currentChat.id"
       :chat="currentChat"
       :show-back-button="isOnExpandedLayout && !isInboxView"
+      :is-selection-mode="isSelectionMode"
+      @toggle-selection-mode="toggleSelectionMode"
     />
     <woot-tabs
       v-if="dashboardApps.length && currentChat.id"
@@ -120,6 +128,8 @@ export default {
         v-if="currentChat.id"
         :inbox-id="inboxId"
         :is-inbox-view="isInboxView"
+        :is-selection-mode="isSelectionMode"
+        @toggle-selection-mode="toggleSelectionMode"
       />
       <EmptyState
         v-if="!currentChat.id && !isInboxView"

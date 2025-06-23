@@ -23,7 +23,13 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  isSelectionMode: {
+    type: Boolean,
+    default: false,
+  },
 });
+
+defineEmits(['toggle-selection-mode']);
 
 const { t } = useI18n();
 const store = useStore();
@@ -144,7 +150,11 @@ const hasSlaPolicyId = computed(() => props.chat?.sla_policy_id);
         :parent-width="width"
         class="hidden md:flex"
       />
-      <MoreActions :conversation-id="currentChat.id" />
+      <MoreActions 
+        :conversation-id="currentChat.id" 
+        :is-selection-mode="isSelectionMode"
+        @toggle-selection-mode="$emit('toggle-selection-mode')"
+      />
     </div>
   </div>
 </template>

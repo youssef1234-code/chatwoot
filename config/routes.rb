@@ -138,6 +138,16 @@ Rails.application.routes.draw do
             end
           end
 
+          resources :tickets do
+            member do
+              post :escalate_to_jira
+              post :resolve
+              post :close
+              post :add_messages
+              post :remove_messages
+            end
+          end
+
           resources :search, only: [:index] do
             collection do
               get :conversations

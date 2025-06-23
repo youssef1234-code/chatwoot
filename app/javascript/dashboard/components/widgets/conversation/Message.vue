@@ -77,6 +77,14 @@ export default {
       type: Object,
       default: () => ({}),
     },
+    isSelectionMode: {
+      type: Boolean,
+      default: false,
+    },
+    isSelected: {
+      type: Boolean,
+      default: false,
+    },
   },
   setup() {
     const { formatMessage } = useMessageFormatter();
@@ -356,6 +364,9 @@ export default {
     isEmailContentType() {
       return this.contentType === CONTENT_TYPES.INCOMING_EMAIL;
     },
+    isSelected() {
+      return this.selectedMessageIds.has(this.data.id);
+    },
   },
   watch: {
     data() {
@@ -372,6 +383,15 @@ export default {
     clearTimeout(this.higlightTimeout);
   },
   methods: {
+    toggleSelection() {
+      this.$emit('toggle-selection', this.data.id);
+    },
+    handleMessageClick(event) {
+      // Only handle click if in selection mode and not clicking on other interactive elements
+      if (this.isSelectionMode && !event.target.closest('.quick-reply-button, .context-menu-wrap, a, button')) {
+        this.toggleSelection();
+      }
+    },
     isAttachmentImageVideoAudio(fileType) {
       return ['image', 'audio', 'video', 'story_mention', 'ig_reel'].includes(
         fileType
@@ -459,6 +479,18 @@ export default {
         this.showBackgroundHighlight = false;
       }, HIGHLIGHT_TIMER);
     },
+    toggleSelection() {
+      if (this.isSelected) {
+        this.selectedMessageIds.delete(this.data.id);
+      } else {
+        this.selectedMessageIds.add(this.data.id);
+      }
+    },
+    handleMessageClick() {
+      if (this.isSelectionMode) {
+        this.toggleSelection();
+      }
+    },
   },
 };
 </script>
@@ -469,8 +501,31 @@ export default {
     v-if="shouldRenderMessage"
     :id="`message${data.id}`"
     class="group/context-menu"
-    :class="[alignBubble]"
+    :class="[
+      alignBubble, 
+      { 
+        'selected-message': isSelected,
+        'selection-mode-active': isSelectionMode,
+        'right': !isIncoming && isSelectionMode
+      }
+    ]"
+    @click="handleMessageClick"
+    :style="isSelectionMode ? 'border: 3px solid red !important; background: yellow !important;' : ''"
   >
+    <!-- Message Selection Checkbox - ALWAYS VISIBLE IN SELECTION MODE -->
+    <div
+      v-if="isSelectionMode"
+      class="message-selection-checkbox"
+      :class="{ 'is-outgoing': !isIncoming }"
+      @click.stop="toggleSelection"
+    >
+      <input
+        type="checkbox"
+        :checked="isSelected"
+        style="width: 20px; height: 20px; cursor: pointer;"
+        @change="toggleSelection"
+      />
+    </div>
     <div :class="wrapClass">
       <div
         v-if="isFailed && !hasOneDayPassed && !isAnEmailInbox"
@@ -840,5 +895,63 @@ li:hover .quick-reply-button button {
       @apply text-woot-75 dark:text-woot-75;
     }
   }
+}
+
+/* Message Selection Styles - SIMPLIFIED AND VISIBLE */
+.message-selection-checkbox {
+  position: absolute !important;
+  top: 5px !important;
+  left: 5px !important;
+  z-index: 999 !important;
+  background: #ffffff !important;
+  border: 2px solid #3b82f6 !important;
+  border-radius: 6px !important;
+  padding: 6px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 36px !important;
+  height: 36px !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.message-selection-checkbox.is-outgoing {
+  left: auto !important;
+  right: 5px !important;
+}
+
+.selected-message {
+  background-color: rgba(59, 130, 246, 0.2) !important;
+  border: 3px solid #3b82f6 !important;
+  border-radius: 12px !important;
+  padding: 8px !important;
+  margin: 8px 0 !important;
+}
+
+.selection-mode-active {
+  position: relative !important;
+  border: 2px dashed rgba(59, 130, 246, 0.5) !important;
+  border-radius: 12px !important;
+  padding: 12px !important;
+  margin: 8px 0 !important;
+  background-color: rgba(59, 130, 246, 0.05) !important;
+  cursor: pointer !important;
+}
+
+.selection-mode-active .message-selection-checkbox {
+  display: flex !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.message-selection-checkbox input[type="checkbox"] {
+  width: 20px !important;
+  height: 20px !important;
+  margin: 0 !important;
+  cursor: pointer !important;
+  accent-color: #3b82f6 !important;
 }
 </style>
