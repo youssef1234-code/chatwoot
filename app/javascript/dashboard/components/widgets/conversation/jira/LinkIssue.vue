@@ -129,7 +129,7 @@ const getStatusColor = (status) => {
 </script>
 
 <template>
-  <div class="flex flex-col h-full p-6">
+  <div class="flex flex-col p-6 min-h-[400px]">
     <div class="flex-1">
       <p class="text-sm text-n-slate-11 mb-4">
         {{ $t('INTEGRATION_SETTINGS.JIRA.ADD_OR_LINK.DESCRIPTION') }}

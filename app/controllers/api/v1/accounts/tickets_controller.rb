@@ -67,10 +67,6 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
   def escalate_to_jira
     jira_issue_key = params[:jira_issue_key]
 
-    Rails.logger.info "=== ESCALATE TO JIRA DEBUG ==="
-    Rails.logger.info "Ticket ID: #{@ticket.id}"
-    Rails.logger.info "JIRA Issue Key: #{jira_issue_key}"
-
     if jira_issue_key.blank?
       render json: { error: 'JIRA issue key is required' }, status: :unprocessable_entity
       return
@@ -78,14 +74,12 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
 
     begin
       @ticket.escalate_to_jira!(jira_issue_key)
-      Rails.logger.info "Ticket escalated successfully"
 
       # Create activity message
       create_ticket_activity_message(:escalated_to_jira)
 
       render :show
     rescue StandardError => e
-      Rails.logger.error "Escalation failed: #{e.message}"
       render json: { error: e.message }, status: :unprocessable_entity
     end
   end

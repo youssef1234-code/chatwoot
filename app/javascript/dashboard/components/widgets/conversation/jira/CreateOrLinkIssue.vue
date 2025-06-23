@@ -86,7 +86,7 @@ const conversationTitle = computed(() => {
     </div>
 
     <!-- Tab Content -->
-    <div class="overflow-hidden">
+    <div class="overflow-hidden p-6">
       <CreateIssue
         v-if="isCreateTabActive"
         :conversation-id="conversationId"

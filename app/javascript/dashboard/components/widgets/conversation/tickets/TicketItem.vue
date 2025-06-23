@@ -188,7 +188,7 @@ const viewJiraIssue = () => {
           </NextButton>
           
           <NextButton
-            v-if="!isEscalated"
+            v-if="!isEscalated && !isResolved"
             size="tiny"
             variant="ghost"
             color-scheme="secondary"
@@ -200,6 +200,7 @@ const viewJiraIssue = () => {
           </NextButton>
           
           <NextButton
+            v-if="!isResolved"
             size="tiny"
             variant="ghost"
             color-scheme="secondary"

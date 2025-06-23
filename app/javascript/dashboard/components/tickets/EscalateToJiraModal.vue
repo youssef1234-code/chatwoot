@@ -119,15 +119,11 @@ const generateJiraDescription = () => {
 };
 
 const onJiraIssueCreated = async (issueData) => {
-  console.log('=== JIRA ISSUE CREATED ===');
-  console.log('Issue data:', issueData);
   await linkJiraIssueToTicket(issueData.key);
   useAlert(t('TICKETS.JIRA_ISSUE_CREATED_AND_LINKED'));
 };
 
 const onJiraIssueLinked = async (issueData) => {
-  console.log('=== JIRA ISSUE LINKED ===');
-  console.log('Issue data:', issueData);
   await linkJiraIssueToTicket(issueData.key);
   useAlert(t('TICKETS.JIRA_ISSUE_LINKED_TO_TICKET'));
 };
@@ -136,17 +132,12 @@ const linkJiraIssueToTicket = async (jiraIssueKey) => {
   isEscalating.value = true;
   
   try {
-    console.log('=== ESCALATING TICKET TO JIRA ===');
-    console.log('Ticket ID:', props.ticket.id);
-    console.log('JIRA Issue Key:', jiraIssueKey);
-    
     // Use the escalate endpoint to ensure proper activity message creation
     await store.dispatch('tickets/escalateToJira', {
       ticketId: props.ticket.id,
       jiraIssueKey
     });
     
-    console.log('Escalation successful!');
     emit('escalated', { jiraIssueKey });
     onClose();
   } catch (error) {

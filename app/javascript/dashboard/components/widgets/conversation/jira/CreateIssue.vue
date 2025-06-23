@@ -297,7 +297,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex flex-col h-full p-6">
+  <div class="flex flex-col p-6 min-h-[400px]">
     <div class="flex-1 overflow-y-auto space-y-4">
       <!-- Summary -->
       <Input
