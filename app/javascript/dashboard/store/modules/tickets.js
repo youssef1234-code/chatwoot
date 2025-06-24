@@ -348,10 +348,8 @@ export const mutations = {
   },
 
   [types.ADD_TICKET]($state, ticket) {
-    console.log('Tickets Store Mutation: ADD_TICKET called with', ticket);
     $state.records[ticket.id] = ticket;
     $state.meta.total += 1;
-    console.log('Tickets Store Mutation: Ticket added, new total:', $state.meta.total);
   },
 
   [types.UPDATE_TICKET]($state, ticket) {

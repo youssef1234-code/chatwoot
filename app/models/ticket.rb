@@ -5,7 +5,9 @@
 #  id                :bigint           not null, primary key
 #  description       :text
 #  issue_type        :string
+#  jira_in_progress  :boolean
 #  jira_issue_key    :string
+#  jira_status       :string
 #  priority          :integer          default("medium"), not null
 #  resolved_at       :datetime
 #  status            :integer          default("open"), not null
@@ -113,18 +115,26 @@ class Ticket < ApplicationRecord
   end
 
   def jira_in_progress?
-    Rails.logger.warn("Jira STATUS FOR  #{jira_issue_key} IS #{jira_status}")
+    # First check if we have a stored jira_in_progress flag (from webhook updates)
+    return read_attribute(:jira_in_progress) if has_attribute?(:jira_in_progress) && !read_attribute(:jira_in_progress).nil?
+    
+    # Fallback to checking jira_status if no stored flag
     return false unless jira_status.present?
 
     # Common JIRA status values that indicate work in progress
     in_progress_statuses = [
-      'in progress'
+      'in progress', 'in-progress', 'doing', 'active', 'working', 'development', 'dev'
     ]
 
     in_progress_statuses.any? { |status| jira_status.downcase.include?(status) }
   end
 
   def jira_status
+    # First check if we have a stored jira_status (from webhook updates)
+    stored_status = read_attribute(:jira_status)
+    return stored_status if stored_status.present?
+    
+    # Fallback to jira_issue_link status
     jira_issue_link&.last_known_status
   end
 

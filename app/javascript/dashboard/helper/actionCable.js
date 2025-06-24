@@ -264,14 +264,10 @@ class ActionCableConnector extends BaseActionCableConnector {
     // data is already the ticket object from BaseActionCableConnector
     // Add ticket to the store if tickets module exists
     if (this.app.$store.hasModule('tickets')) {
-      console.log('Ticket ActionCable: Dispatching addTicket to store');
       this.app.$store.dispatch('tickets/addTicket', data);
-    } else {
-      console.log('Ticket ActionCable: No tickets module found in store');
     }
     
     // Emit event for ticket components to listen to
-    console.log('Ticket ActionCable: Emitting tickets:ticket-created event');
     emitter.emit('tickets:ticket-created', data);
     
     console.log('Ticket ActionCable: Emitted ticket creation events');

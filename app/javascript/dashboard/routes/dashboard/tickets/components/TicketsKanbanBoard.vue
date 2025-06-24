@@ -79,6 +79,8 @@ export default {
       });
     });
 
+    console.log('PROPS TICKETS:', props.tickets);
+
     const escalatedTickets = computed(() => {
       return props.tickets.filter(ticket => {
         // Only show escalated status tickets that are NOT in progress or actively worked on in JIRA

@@ -318,7 +318,6 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
   def broadcast_ticket_created
     # Broadcast to the account channel for real-time updates
     Rails.logger.info "Broadcasting ticket creation: #{@ticket.id}"
-    Rails.logger.info "Broadcasting to channel: account_#{current_account.id}"
     
     ActionCable.server.broadcast(
       "account_#{current_account.id}",
@@ -348,7 +347,6 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
         }
       }
     )
-    Rails.logger.info "Ticket broadcast completed"
   end
 
   def broadcast_ticket_updated

@@ -80,26 +80,10 @@ class BaseActionCableConnector {
   }
 
   onReceived = ({ event, data } = {}) => {
-    // Log only ticket-related events to reduce noise
-    if (event && event.includes('ticket')) {
-      console.log('BaseActionCableConnector: Received ticket WebSocket event', { event, data });
-      console.log('BaseActionCableConnector: isAValidEvent check:', this.isAValidEvent(data));
-      console.log('BaseActionCableConnector: Available events:', Object.keys(this.events));
-      console.log('BaseActionCableConnector: Handler exists:', this.events[event] && typeof this.events[event] === 'function');
-      console.log('BaseActionCableConnector: Handler type:', typeof this.events[event]);
-    }
-    
     if (this.isAValidEvent(data)) {
       if (this.events[event] && typeof this.events[event] === 'function') {
-        if (event && event.includes('ticket')) {
-          console.log('BaseActionCableConnector: Calling handler for ticket event', event);
-        }
         this.events[event](data);
-      } else if (event && event.includes('ticket')) {
-        console.log('BaseActionCableConnector: No handler found for ticket event', event);
       }
-    } else if (event && event.includes('ticket')) {
-      console.log('BaseActionCableConnector: Invalid event data for ticket event', data);
     }
   };
 }

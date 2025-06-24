@@ -127,6 +127,9 @@ class Api::V1::Accounts::Integrations::Jira::WebhooksController < Api::V1::Accou
   def update_issue_status_from_webhook(issue_key, new_status, account_id)
     Rails.logger.info("JIRA Webhook: Updating status for issue #{issue_key} to #{new_status}")
 
+    # Update tickets linked to this JIRA issue
+    update_linked_tickets_jira_status(issue_key, new_status, account_id)
+
     # Find all links for this issue in this account with eager loading
     issue_links = JiraIssueLink.for_issue(issue_key)
                                .where(account_id: account_id)
@@ -147,6 +150,48 @@ class Api::V1::Accounts::Integrations::Jira::WebhooksController < Api::V1::Accou
         Rails.logger.info("JIRA Webhook: No status change for link #{link.id} (already #{new_status})")
       end
     end
+  end
+
+  def update_linked_tickets_jira_status(issue_key, new_status, account_id)
+    Rails.logger.info("JIRA Webhook: Updating tickets linked to JIRA issue #{issue_key} with status #{new_status}")
+
+    # Find all tickets linked to this JIRA issue
+    tickets = Ticket.where(account_id: account_id, jira_issue_key: issue_key)
+
+    if tickets.empty?
+      Rails.logger.info("JIRA Webhook: No tickets found linked to issue #{issue_key}")
+      return
+    end
+
+    tickets.each do |ticket|
+      Rails.logger.info("JIRA Webhook: Updating ticket ##{ticket.id} JIRA status to #{new_status}")
+
+      begin
+        # Determine if the new status indicates "In Progress"
+        in_progress = in_progress_status?(new_status)
+        
+        # Update the ticket's JIRA status and in_progress flag
+        ticket.update!(
+          jira_status: new_status,
+          jira_in_progress: in_progress
+        )
+
+        # Broadcast ticket update to websockets for real-time UI updates
+        broadcast_ticket_update_for_jira_status(ticket)
+
+        Rails.logger.info("JIRA Webhook: Successfully updated ticket ##{ticket.id} - jira_in_progress: #{in_progress}")
+      rescue StandardError => e
+        Rails.logger.error("JIRA Webhook: Failed to update ticket ##{ticket.id}: #{e.message}")
+      end
+    end
+
+    Rails.logger.info("JIRA Webhook: Completed updating #{tickets.count} tickets for issue #{issue_key}")
+  end
+
+  def in_progress_status?(status)
+    # Define which statuses indicate "In Progress"
+    in_progress_statuses = ['in progress', 'in-progress', 'doing', 'active', 'working', 'development', 'dev']
+    in_progress_statuses.any? { |in_progress_status| status.downcase.include?(in_progress_status.downcase) }
   end
 
   def update_linked_tickets_on_jira_completion(issue_key, account_id)
@@ -232,6 +277,47 @@ class Api::V1::Accounts::Integrations::Jira::WebhooksController < Api::V1::Accou
     end
   rescue StandardError => e
     Rails.logger.error("JIRA Webhook: Failed to broadcast ticket update for ticket ##{ticket.id}: #{e.message}")
+  end
+
+  def broadcast_ticket_update_for_jira_status(ticket)
+    # Broadcast ticket update for JIRA status changes to account channel for real-time UI updates
+    Rails.logger.info("JIRA Webhook: Broadcasting ticket JIRA status update for ticket ##{ticket.id}")
+    
+    broadcast_data = {
+      id: ticket.id,
+      title: ticket.title,
+      description: ticket.description,
+      status: ticket.status,
+      priority: ticket.priority,
+      conversation_id: ticket.conversation_id,
+      account_id: ticket.account_id,
+      conversation: {
+        id: ticket.conversation.id,
+        display_id: ticket.conversation.display_id,
+        status: ticket.conversation.status
+      },
+      contact: ticket.contact,
+      assigned_agent: ticket.assigned_agent,
+      created_by: ticket.created_by,
+      created_at: ticket.created_at,
+      updated_at: ticket.updated_at,
+      jira_issue_key: ticket.jira_issue_key,
+      jira_status: ticket.jira_status,
+      jira_in_progress: ticket.jira_in_progress?
+    }
+
+    # Broadcast to the account channel for real-time updates
+    ActionCable.server.broadcast(
+      "account_#{ticket.account_id}",
+      {
+        event: 'ticket_updated',
+        data: broadcast_data
+      }
+    )
+
+    Rails.logger.info("JIRA Webhook: Broadcasted ticket JIRA status update to account_#{ticket.account_id}")
+  rescue StandardError => e
+    Rails.logger.error("JIRA Webhook: Failed to broadcast ticket JIRA status update for ticket ##{ticket.id}: #{e.message}")
   end
 
   def broadcast_jira_status_update(conversation, issue_key, new_status)
