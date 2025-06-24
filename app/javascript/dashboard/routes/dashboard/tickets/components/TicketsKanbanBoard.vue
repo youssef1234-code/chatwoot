@@ -36,12 +36,11 @@
     />
 
     <!-- Escalation Modal -->
-    <EscalationModal
-      :show="showEscalationModal"
+    <EscalateToJiraModal
+      v-if="showEscalationModal"
       :ticket="ticketToEscalate"
-      :is-loading="isEscalating"
       @close="handleEscalationModalClose"
-      @escalate="handleEscalationConfirm"
+      @escalated="handleEscalationConfirm"
     />
   </div>
 </template>
@@ -52,7 +51,7 @@ import { useStore } from "vuex";
 import { useI18n } from "vue-i18n";
 
 import KanbanColumn from "./KanbanColumn.vue";
-import EscalationModal from "./EscalationModal.vue";
+import EscalateToJiraModal from "dashboard/components/tickets/EscalateToJiraModal.vue";
 
 import { useAlert } from "dashboard/composables";
 
@@ -60,7 +59,7 @@ export default {
   name: "TicketsKanbanBoard",
   components: {
     KanbanColumn,
-    EscalationModal,
+    EscalateToJiraModal,
   },
   props: {
     tickets: {
@@ -287,22 +286,18 @@ export default {
       ticketToEscalate.value = null;
     };
 
-    const handleEscalationConfirm = async ({ ticket, note }) => {
+    const handleEscalationConfirm = async (escalationData) => {
       try {
-        isEscalating.value = true;
-
-        // Call the escalate action with the note
-        await store.dispatch("tickets/escalate", {
-          id: ticket.id,
-          note: note || undefined,
-        });
+        // The EscalateToJiraModal already handles the escalation process
+        // escalationData contains { jiraIssueKey }
+        console.log("Escalation completed:", escalationData);
 
         emit("ticket-updated");
         emit("refresh"); // Also emit refresh to reload data
         useAlert(t("TICKETS.KANBAN.ESCALATION_INITIATED"));
         handleEscalationModalClose();
       } catch (error) {
-        console.error("Failed to escalate ticket:", error);
+        console.error("Failed to handle escalation completion:", error);
         useAlert(t("TICKETS.KANBAN.STATUS_UPDATE_ERROR"));
       } finally {
         isEscalating.value = false;
