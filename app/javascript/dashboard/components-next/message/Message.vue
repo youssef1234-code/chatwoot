@@ -1,15 +1,15 @@
 <script setup>
-import { onMounted, computed, ref, toRefs } from 'vue';
-import { useTimeoutFn } from '@vueuse/core';
-import { provideMessageContext } from './provider.js';
-import { useTrack } from 'dashboard/composables';
-import { emitter } from 'shared/helpers/mitt';
-import { useI18n } from 'vue-i18n';
-import { useRoute } from 'vue-router';
-import { LocalStorage } from 'shared/helpers/localStorage';
-import { ACCOUNT_EVENTS } from 'dashboard/helper/AnalyticsHelper/events';
-import { LOCAL_STORAGE_KEYS } from 'dashboard/constants/localStorage';
-import { BUS_EVENTS } from 'shared/constants/busEvents';
+import { onMounted, computed, ref, toRefs } from "vue";
+import { useTimeoutFn } from "@vueuse/core";
+import { provideMessageContext } from "./provider.js";
+import { useTrack } from "dashboard/composables";
+import { emitter } from "shared/helpers/mitt";
+import { useI18n } from "vue-i18n";
+import { useRoute } from "vue-router";
+import { LocalStorage } from "shared/helpers/localStorage";
+import { ACCOUNT_EVENTS } from "dashboard/helper/AnalyticsHelper/events";
+import { LOCAL_STORAGE_KEYS } from "dashboard/constants/localStorage";
+import { BUS_EVENTS } from "shared/constants/busEvents";
 import {
   MESSAGE_TYPES,
   ATTACHMENT_TYPES,
@@ -18,27 +18,27 @@ import {
   ORIENTATION,
   MESSAGE_STATUS,
   CONTENT_TYPES,
-} from './constants';
+} from "./constants";
 
-import Avatar from 'next/avatar/Avatar.vue';
+import Avatar from "next/avatar/Avatar.vue";
 
-import TextBubble from './bubbles/Text/Index.vue';
-import ActivityBubble from './bubbles/Activity.vue';
-import ImageBubble from './bubbles/Image.vue';
-import FileBubble from './bubbles/File.vue';
-import AudioBubble from './bubbles/Audio.vue';
-import VideoBubble from './bubbles/Video.vue';
-import InstagramStoryBubble from './bubbles/InstagramStory.vue';
-import EmailBubble from './bubbles/Email/Index.vue';
-import UnsupportedBubble from './bubbles/Unsupported.vue';
-import ContactBubble from './bubbles/Contact.vue';
-import DyteBubble from './bubbles/Dyte.vue';
-import LocationBubble from './bubbles/Location.vue';
-import CSATBubble from './bubbles/CSAT.vue';
-import FormBubble from './bubbles/Form.vue';
+import TextBubble from "./bubbles/Text/Index.vue";
+import ActivityBubble from "./bubbles/Activity.vue";
+import ImageBubble from "./bubbles/Image.vue";
+import FileBubble from "./bubbles/File.vue";
+import AudioBubble from "./bubbles/Audio.vue";
+import VideoBubble from "./bubbles/Video.vue";
+import InstagramStoryBubble from "./bubbles/InstagramStory.vue";
+import EmailBubble from "./bubbles/Email/Index.vue";
+import UnsupportedBubble from "./bubbles/Unsupported.vue";
+import ContactBubble from "./bubbles/Contact.vue";
+import DyteBubble from "./bubbles/Dyte.vue";
+import LocationBubble from "./bubbles/Location.vue";
+import CSATBubble from "./bubbles/CSAT.vue";
+import FormBubble from "./bubbles/Form.vue";
 
-import MessageError from './MessageError.vue';
-import ContextMenu from 'dashboard/modules/conversations/components/MessageContextMenu.vue';
+import MessageError from "./MessageError.vue";
+import ContextMenu from "dashboard/modules/conversations/components/MessageContextMenu.vue";
 
 /**
  * @typedef {Object} Attachment
@@ -100,20 +100,20 @@ const props = defineProps({
   messageType: {
     type: Number,
     required: true,
-    validator: value => Object.values(MESSAGE_TYPES).includes(value),
+    validator: (value) => Object.values(MESSAGE_TYPES).includes(value),
   },
   status: {
     type: String,
     required: true,
-    validator: value => Object.values(MESSAGE_STATUS).includes(value),
+    validator: (value) => Object.values(MESSAGE_STATUS).includes(value),
   },
   attachments: { type: Array, default: () => [] },
   content: { type: String, default: null },
   contentAttributes: { type: Object, default: () => ({}) },
   contentType: {
     type: String,
-    default: 'text',
-    validator: value => Object.values(CONTENT_TYPES).includes(value),
+    default: "text",
+    validator: (value) => Object.values(CONTENT_TYPES).includes(value),
   },
   conversationId: { type: Number, required: true },
   createdAt: { type: Number, required: true }, // eslint-disable-line vue/no-unused-properties
@@ -127,7 +127,7 @@ const props = defineProps({
   sender: { type: Object, default: null },
   senderId: { type: Number, default: null },
   senderType: { type: String, default: null },
-  sourceId: { type: String, default: '' }, // eslint-disable-line vue/no-unused-properties
+  sourceId: { type: String, default: "" }, // eslint-disable-line vue/no-unused-properties
   isStarred: { type: Boolean, default: false },
   isPinned: { type: Boolean, default: false },
   // Selection mode props
@@ -135,14 +135,14 @@ const props = defineProps({
   isSelected: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['toggle-selection']);
+const emit = defineEmits(["toggle-selection"]);
 
 const contextMenuPosition = ref({});
 const showBackgroundHighlight = ref(false);
 const showContextMenu = ref(false);
 const { t } = useI18n();
 const route = useRoute();
-console.log('Message component initialized with props:', props);
+console.log("Message component initialized with props:", props);
 /**
  * Computes the message variant based on props
  * @type {import('vue').ComputedRef<'user'|'agent'|'activity'|'private'|'bot'|'template'>}
@@ -226,9 +226,9 @@ const orientation = computed(() => {
 
 const flexOrientationClass = computed(() => {
   const map = {
-    [ORIENTATION.LEFT]: 'justify-start',
-    [ORIENTATION.RIGHT]: 'justify-end',
-    [ORIENTATION.CENTER]: 'justify-center',
+    [ORIENTATION.LEFT]: "justify-start",
+    [ORIENTATION.RIGHT]: "justify-end",
+    [ORIENTATION.CENTER]: "justify-center",
   };
 
   return map[orientation.value];
@@ -236,8 +236,8 @@ const flexOrientationClass = computed(() => {
 
 const gridClass = computed(() => {
   const map = {
-    [ORIENTATION.LEFT]: 'grid grid-cols-1fr',
-    [ORIENTATION.RIGHT]: 'grid grid-cols-[1fr_24px]',
+    [ORIENTATION.LEFT]: "grid grid-cols-1fr",
+    [ORIENTATION.RIGHT]: "grid grid-cols-[1fr_24px]",
   };
 
   return map[orientation.value];
@@ -295,11 +295,11 @@ const componentToRender = computed(() => {
     return UnsupportedBubble;
   }
 
-  if (props.contentAttributes.type === 'dyte') {
+  if (props.contentAttributes.type === "dyte") {
     return DyteBubble;
   }
 
-  if (props.contentAttributes.imageType === 'story_mention') {
+  if (props.contentAttributes.imageType === "story_mention") {
     return InstagramStoryBubble;
   }
 
@@ -387,14 +387,14 @@ const shouldRenderMessage = computed(() => {
 
 function openContextMenu(e) {
   const shouldSkipContextMenu =
-    e.target?.classList.contains('skip-context-menu') ||
-    e.target?.tagName.toLowerCase() === 'a';
+    e.target?.classList.contains("skip-context-menu") ||
+    e.target?.tagName.toLowerCase() === "a";
   if (shouldSkipContextMenu || getSelection().toString()) {
     return;
   }
 
   e.preventDefault();
-  if (e.type === 'contextmenu') {
+  if (e.type === "contextmenu") {
     useTrack(ACCOUNT_EVENTS.OPEN_MESSAGE_CONTEXT_MENU);
   }
   contextMenuPosition.value = {
@@ -421,7 +421,9 @@ function handleQuickReply() {
   // Same functionality as handleReplyTo but triggered by the quick reply button
   handleReplyTo();
   // Optional: Focus the message editor after setting up reply
-  const messageEditor = document.querySelector('.input, .message-editor, [contenteditable="true"]');
+  const messageEditor = document.querySelector(
+    '.input, .message-editor, [contenteditable="true"]'
+  );
   if (messageEditor) {
     messageEditor.focus();
   }
@@ -429,7 +431,7 @@ function handleQuickReply() {
 
 // Selection mode functions
 function toggleSelection() {
-  emit('toggle-selection', props.id);
+  emit("toggle-selection", props.id);
 }
 
 function handleMessageClick(event) {
@@ -437,17 +439,17 @@ function handleMessageClick(event) {
   if (props.isSelectionMode) {
     // Only prevent selection if clicking on specific interactive elements
     const excludedElements = [
-      'button',
-      'a',
-      'input',
-      'textarea',
-      'select',
-      '.quick-reply-button',
-      '.context-menu-wrap',
-      '.message-failed--alert'
+      "button",
+      "a",
+      "input",
+      "textarea",
+      "select",
+      ".quick-reply-button",
+      ".context-menu-wrap",
+      ".message-failed--alert",
     ];
-    
-    const clickedElement = event.target.closest(excludedElements.join(', '));
+
+    const clickedElement = event.target.closest(excludedElements.join(", "));
     if (!clickedElement) {
       event.preventDefault();
       event.stopPropagation();
@@ -460,8 +462,8 @@ const avatarInfo = computed(() => {
   // If no sender, return bot info
   if (!props.sender) {
     return {
-      name: t('CONVERSATION.BOT'),
-      src: '',
+      name: t("CONVERSATION.BOT"),
+      src: "",
     };
   }
 
@@ -471,21 +473,21 @@ const avatarInfo = computed(() => {
   // If sender type is agent bot, use avatarUrl
   if ([SENDER_TYPES.AGENT_BOT, SENDER_TYPES.CAPTAIN_ASSISTANT].includes(type)) {
     return {
-      name: name ?? '',
-      src: avatarUrl ?? '',
+      name: name ?? "",
+      src: avatarUrl ?? "",
     };
   }
 
   // For all other senders, use thumbnail
   return {
-    name: name ?? '',
-    src: thumbnail ?? '',
+    name: name ?? "",
+    src: thumbnail ?? "",
   };
 });
 
 const avatarTooltip = computed(() => {
-  if (avatarInfo.value.name === '') return '';
-  return `${t('CONVERSATION.SENT_BY')} ${avatarInfo.value.name}`;
+  if (avatarInfo.value.name === "") return "";
+  return `${t("CONVERSATION.SENT_BY")} ${avatarInfo.value.name}`;
 });
 
 const setupHighlightTimer = () => {
@@ -530,7 +532,6 @@ provideMessageContext({
     ]"
     @click="handleMessageClick"
   >
-    
     <div v-if="variant === MESSAGE_VARIANTS.ACTIVITY">
       <ActivityBubble :content="content" />
     </div>
@@ -566,13 +567,25 @@ provideMessageContext({
       >
         <!-- Quick Reply Button for incoming messages -->
         <button
-          v-if="!props.private && props.inboxSupportsReplyTo?.outgoing"
+          v-if="!props.private"
           @click="handleQuickReply"
           class="absolute top-1 right-1 z-10 p-1 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-slate-50 dark:hover:bg-slate-700"
           :title="t('CONVERSATION.CONTEXT_MENU.REPLY_TO')"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M9 17l-5-5 5-5M4 12h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M9 17l-5-5 5-5M4 12h16"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
           </svg>
         </button>
         <Component :is="componentToRender" />
