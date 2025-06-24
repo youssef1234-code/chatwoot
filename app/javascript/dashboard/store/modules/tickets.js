@@ -300,19 +300,25 @@ export const actions = {
     console.log('Tickets Store: Updating ticket from WebSocket', ticketData);
     
     // Check if this ticket exists in our store
-    const existingTicket = state.records[ticketData.ticket_id];
+    const existingTicket = state.records[ticketData.ticket_id || ticketData.id];
     
     if (existingTicket) {
-      // Create updated ticket object
+      // Create updated ticket object, merging WebSocket data with existing ticket
       const updatedTicket = {
         ...existingTicket,
-        status: ticketData.status,
-        resolved_at: ticketData.resolved_at,
+        status: ticketData.status || existingTicket.status,
+        priority: ticketData.priority || existingTicket.priority,
+        resolved_at: ticketData.resolved_at || existingTicket.resolved_at,
+        updated_at: ticketData.updated_at || existingTicket.updated_at,
+        jira_issue_key: ticketData.jira_issue_key !== undefined ? ticketData.jira_issue_key : existingTicket.jira_issue_key,
+        jira_status: ticketData.jira_status !== undefined ? ticketData.jira_status : existingTicket.jira_status,
+        jira_in_progress: ticketData.jira_in_progress !== undefined ? ticketData.jira_in_progress : existingTicket.jira_in_progress,
+        escalated_to_jira: ticketData.escalated_to_jira !== undefined ? ticketData.escalated_to_jira : existingTicket.escalated_to_jira,
         // Preserve other fields that might not be in the WebSocket data
       };
       
       commit(types.UPDATE_TICKET, updatedTicket);
-      console.log('Tickets Store: Ticket updated via WebSocket');
+      console.log('Tickets Store: Ticket updated via WebSocket', updatedTicket);
     } else {
       console.log('Tickets Store: Ticket not found in store, ignoring WebSocket update');
     }
@@ -342,8 +348,10 @@ export const mutations = {
   },
 
   [types.ADD_TICKET]($state, ticket) {
+    console.log('Tickets Store Mutation: ADD_TICKET called with', ticket);
     $state.records[ticket.id] = ticket;
     $state.meta.total += 1;
+    console.log('Tickets Store Mutation: Ticket added, new total:', $state.meta.total);
   },
 
   [types.UPDATE_TICKET]($state, ticket) {

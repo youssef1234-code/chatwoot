@@ -627,7 +627,6 @@ export default {
         );
         }
       }
-        console.log('selectedStatuses VALUES:', selectedStatuses.value);
       if (selectedStatuses.value.length > 0) {
         filtered = filtered.filter(ticket => ((selectedStatuses.value.includes(ticket.status)) 
                                                                 ||
@@ -713,7 +712,6 @@ export default {
         
         // Extract organizations from ticket data
         allTickets.forEach(ticket => {
-        console.log('Ticket:', ticket);
           // Check the new organization field from contact
           if (ticket.contact?.organization) {
             organizationSet.add(ticket.contact.organization);
@@ -845,24 +843,29 @@ export default {
 
     // WebSocket event handlers
     const handleTicketUpdated = (data) => {
+      console.log('TicketsWrapper: Ticket updated event received', data);
       store.dispatch('tickets/updateTicketFromWebSocket', data);
       updateStats();
     };
 
     const handleTicketCreated = (data) => {
-      console.log('New ticket created:', data);
-      // Add the new ticket to store directly if we have the full data
+      console.log('TicketsWrapper: New ticket created event received', data);
+      
+      // Try to add the ticket directly to the store first
       if (data && data.id) {
+        console.log('TicketsWrapper: Adding ticket to store via WebSocket');
         store.dispatch('tickets/addTicket', data);
         updateStats();
         loadOrganizations(); // Reload organizations in case new one was added
       } else {
-        // Fallback: refresh all tickets
+        console.log('TicketsWrapper: Incomplete WebSocket data, refreshing all tickets');
         loadTickets();
       }
     };
 
     const handleJiraIssueUpdated = (data) => {
+      console.log('TicketsWrapper: JIRA issue updated event received', data);
+      // Refresh tickets when JIRA status changes to get the latest jira_in_progress state
       loadTickets();
     };
 

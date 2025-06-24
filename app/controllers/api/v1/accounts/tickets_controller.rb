@@ -318,11 +318,12 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
   def broadcast_ticket_created
     # Broadcast to the account channel for real-time updates
     Rails.logger.info "Broadcasting ticket creation: #{@ticket.id}"
+    Rails.logger.info "Broadcasting to channel: account_#{current_account.id}"
     
     ActionCable.server.broadcast(
-      "accounts:#{current_account.id}",
+      "account_#{current_account.id}",
       {
-        event: 'ticket.created',
+        event: 'ticket_created',
         data: {
           id: @ticket.id,
           title: @ticket.title,
@@ -330,6 +331,12 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
           status: @ticket.status,
           priority: @ticket.priority,
           conversation_id: @ticket.conversation_id,
+          account_id: current_account.id,
+          conversation: {
+            id: @ticket.conversation.id,
+            display_id: @ticket.conversation.display_id,
+            status: @ticket.conversation.status
+          },
           contact: @ticket.contact,
           assigned_agent: @ticket.assigned_agent,
           created_by: @ticket.created_by,
@@ -341,6 +348,7 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
         }
       }
     )
+    Rails.logger.info "Ticket broadcast completed"
   end
 
   def broadcast_ticket_updated
@@ -348,9 +356,9 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
     Rails.logger.info "Broadcasting ticket update: #{@ticket.id}"
     
     ActionCable.server.broadcast(
-      "accounts:#{current_account.id}",
+      "account_#{current_account.id}",
       {
-        event: 'ticket.updated',
+        event: 'ticket_updated',
         data: {
           id: @ticket.id,
           title: @ticket.title,
@@ -358,6 +366,12 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
           status: @ticket.status,
           priority: @ticket.priority,
           conversation_id: @ticket.conversation_id,
+          account_id: current_account.id,
+          conversation: {
+            id: @ticket.conversation.id,
+            display_id: @ticket.conversation.display_id,
+            status: @ticket.conversation.status
+          },
           contact: @ticket.contact,
           assigned_agent: @ticket.assigned_agent,
           created_by: @ticket.created_by,
