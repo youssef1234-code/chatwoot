@@ -156,6 +156,9 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
       # Create activity message
       create_ticket_activity_message(:escalated_to_jira)
 
+      # Broadcast ticket update to WebSocket for real-time updates
+      broadcast_ticket_updated
+
       render :show
     rescue StandardError => e
       render json: { error: e.message }, status: :unprocessable_entity
@@ -168,6 +171,9 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
     # Create activity message
     create_ticket_activity_message(:resolved)
 
+    # Broadcast ticket update to WebSocket for real-time updates
+    broadcast_ticket_updated
+
     render :show
   rescue StandardError => e
     render json: { error: e.message }, status: :unprocessable_entity
@@ -178,6 +184,9 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
 
     # Create activity message
     create_ticket_activity_message(:closed)
+
+    # Broadcast ticket update to WebSocket for real-time updates
+    broadcast_ticket_updated
 
     render :show
   rescue StandardError => e
@@ -195,6 +204,9 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
         next
       end
 
+      # Broadcast ticket update to WebSocket for real-time updates
+      broadcast_ticket_updated
+
       render :show
     else
       render json: { error: 'No message IDs provided' }, status: :unprocessable_entity
@@ -206,6 +218,10 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
 
     if message_ids.any?
       @ticket.ticket_messages.where(message_id: message_ids).destroy_all
+      
+      # Broadcast ticket update to WebSocket for real-time updates
+      broadcast_ticket_updated
+      
       render :show
     else
       render json: { error: 'No message IDs provided' }, status: :unprocessable_entity
