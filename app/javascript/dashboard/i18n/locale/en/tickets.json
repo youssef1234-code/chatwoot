@@ -36,6 +36,8 @@
       "CURRENT_DESCRIPTION": "Current Description",
       "NO_DESCRIPTION": "No description provided",
       "ENHANCEMENT_OPTIONS": "Enhancement Options",
+      "CANCEL" : "Cancel",
+      "ENHANCE": "Enhance With AI",
       "OPTIONS": {
         "IMPROVE_TITLE": "Improve Title",
         "IMPROVE_TITLE_DESC": "Make the title more clear and descriptive",

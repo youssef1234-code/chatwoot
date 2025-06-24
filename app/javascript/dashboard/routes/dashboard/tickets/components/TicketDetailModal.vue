@@ -605,7 +605,7 @@ export default {
       },
       { 
         id: 'messages', 
-        label: t('TICKETS.DETAIL.MESSAGES'), 
+        label: t('TICKETS.DETAIL.LINKED_MESSAGES'), 
         icon: 'i-lucide-messages-square' 
       },
       ...(props.ticket.jira_issue_key || canEscalateToJira.value ? [{
