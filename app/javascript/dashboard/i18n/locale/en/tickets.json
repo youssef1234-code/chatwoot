@@ -67,6 +67,7 @@
     },
     "DETAIL": {
       "TITLE": "Ticket Details",
+      "CONVERSATION": "Linked Conversation",
       "SUBTITLE": "Ticket #{id}",
       "BASIC_INFO": "Basic Information",
       "ASSIGNMENT": "Assignment",
@@ -117,7 +118,10 @@
       "TIMESTAMPS": "Timestamps",
       "LINKED_JIRA_ISSUE": "Linked JIRA Issue",
       "LOADING_JIRA": "Loading JIRA details...",
-      "LAST_UPDATED": "Last updated"
+      "LAST_UPDATED": "Last updated",
+      "TICKETS.DETAIL.SAVE_CHANGES": "Save Changes",
+      "TICKETS.DETAIL.DISCARD_CHANGES": "Discard Changes",
+      "TICKETS.DETAIL.UNSAVED_CHANGES" : "You have unsaved changes"
     },
     "UNTITLED": "Untitled Ticket",
     "SELECTED_MESSAGES": "Selected {count} messages",
@@ -144,6 +148,7 @@
     "TITLE_PLACEHOLDER": "Enter a descriptive title for this ticket",
     "DESCRIPTION_PLACEHOLDER": "Describe the issue in detail",
     "ISSUE_TYPE_PLACEHOLDER": "e.g., Bug, Feature Request, Support",
+    "MESSAGES":"Messages",
     "PRIORITY":{
         "LABEL": "Priority",
         "LOW": "Low",

@@ -66,181 +66,227 @@
           <!-- Basic Information Tab -->
           <div v-show="activeTab === 'basic'" class="h-full overflow-y-auto p-6 space-y-6">
             <form @submit.prevent="saveChanges" class="space-y-6">
-              <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <!-- Left Column -->
-                <div class="space-y-6">
-                  <!-- Title -->
-                  <div>
-                    <label class="block text-sm font-medium text-n-slate-12 mb-2">
-                      {{ $t('TICKETS.TITLE') }} *
-                    </label>
-                    <input
-                      v-model="editForm.title"
-                      type="text"
-                      class="w-full px-3 py-2 border border-n-slate-6 rounded-md focus:outline-none focus:ring-2 focus:ring-n-blue-6 bg-n-slate-1 text-n-slate-12"
-                      :placeholder="$t('TICKETS.TITLE_PLACEHOLDER')"
-                      required
-                      @input="markAsChanged"
-                    />
-                    <p v-if="errors.title" class="mt-1 text-sm text-red-600">{{ errors.title }}</p>
-                  </div>
+              <!-- Title -->
+              <div>
+                <label class="block text-sm font-medium text-n-slate-12 mb-2">
+                  {{ $t('TICKETS.TITLE') }} *
+                </label>
+                <input
+                  v-model="editForm.title"
+                  type="text"
+                  class="w-full px-3 py-2 border border-n-slate-6 rounded-md focus:outline-none focus:ring-2 focus:ring-n-blue-6 bg-n-slate-1 text-n-slate-12"
+                  :placeholder="$t('TICKETS.TITLE_PLACEHOLDER')"
+                  required
+                  @input="markAsChanged"
+                />
+                <p v-if="errors.title" class="mt-1 text-sm text-red-600">{{ errors.title }}</p>
+              </div>
 
-                  <!-- Description -->
-                  <div>
-                    <label class="block text-sm font-medium text-n-slate-12 mb-2">
-                      {{ $t('TICKETS.DESCRIPTION') }}
-                    </label>
-                    <textarea
-                      v-model="editForm.description"
-                      rows="4"
-                      class="w-full px-3 py-2 border border-n-slate-6 rounded-md focus:outline-none focus:ring-2 focus:ring-n-blue-6 bg-n-slate-1 text-n-slate-12"
-                      :placeholder="$t('TICKETS.DESCRIPTION_PLACEHOLDER')"
-                      @input="markAsChanged"
-                    ></textarea>
-                    <p v-if="errors.description" class="mt-1 text-sm text-red-600">{{ errors.description }}</p>
-                  </div>
+              <!-- Description -->
+              <div>
+                <label class="block text-sm font-medium text-n-slate-12 mb-2">
+                  {{ $t('TICKETS.DESCRIPTION') }}
+                </label>
+                <textarea
+                  v-model="editForm.description"
+                  rows="4"
+                  class="w-full px-3 py-2 border border-n-slate-6 rounded-md focus:outline-none focus:ring-2 focus:ring-n-blue-6 bg-n-slate-1 text-n-slate-12"
+                  :placeholder="$t('TICKETS.DESCRIPTION_PLACEHOLDER')"
+                  @input="markAsChanged"
+                ></textarea>
+                <p v-if="errors.description" class="mt-1 text-sm text-red-600">{{ errors.description }}</p>
+              </div>
 
-                  <!-- Customer Information -->
-                  <div v-if="ticket.contact" class="p-4 bg-n-slate-2 rounded-lg border border-n-weak">
-                    <h3 class="text-sm font-medium text-n-slate-12 mb-3 flex items-center gap-2">
-                      <Icon icon="i-lucide-user" class="w-4 h-4" />
-                      {{ $t('TICKETS.DETAIL.CUSTOMER_INFO') }}
-                    </h3>
-                    <div class="space-y-3">
-                      <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                          {{ getInitials(ticket.contact.name) }}
-                        </div>
-                        <div>
-                          <p class="font-medium text-n-slate-12">{{ ticket.contact.name }}</p>
-                          <p class="text-sm text-n-slate-10">{{ ticket.contact.email }}</p>
-                        </div>
+              <!-- Status and Priority in one row -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-n-slate-12 mb-2">
+                    {{ $t('TICKETS.STATUS.LABEL') }}
+                  </label>
+                  <select
+                    v-model="editForm.status"
+                    class="w-full px-3 py-2 border border-n-slate-6 rounded-md focus:outline-none focus:ring-2 focus:ring-n-blue-6 bg-n-slate-1 text-n-slate-12"
+                    @change="markAsChanged"
+                  >
+                    <option value="open">{{ $t('TICKETS.STATUS.OPEN') }}</option>
+                    <option value="in_progress">{{ $t('TICKETS.STATUS.IN_PROGRESS') }}</option>
+                    <option value="escalated">{{ $t('TICKETS.STATUS.ESCALATED') }}</option>
+                    <option value="resolved">{{ $t('TICKETS.STATUS.RESOLVED') }}</option>
+                    <option value="closed">{{ $t('TICKETS.STATUS.CLOSED') }}</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-n-slate-12 mb-2">
+                    {{ $t('TICKETS.PRIORITY.LABEL') }}
+                  </label>
+                  <select
+                    v-model="editForm.priority"
+                    class="w-full px-3 py-2 border border-n-slate-6 rounded-md focus:outline-none focus:ring-2 focus:ring-n-blue-6 bg-n-slate-1 text-n-slate-12"
+                    @change="markAsChanged"
+                  >
+                    <option value="low">{{ $t('TICKETS.PRIORITY.LOW') }}</option>
+                    <option value="medium">{{ $t('TICKETS.PRIORITY.MEDIUM') }}</option>
+                    <option value="high">{{ $t('TICKETS.PRIORITY.HIGH') }}</option>
+                    <option value="urgent">{{ $t('TICKETS.PRIORITY.URGENT') }}</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Assigned Agent -->
+              <div>
+                <label class="block text-sm font-medium text-n-slate-12 mb-2">
+                  {{ $t('TICKETS.DETAIL.ASSIGNED_AGENT') }}
+                </label>
+                <select
+                  v-model="editForm.assigned_agent_id"
+                  class="w-full px-3 py-2 border border-n-slate-6 rounded-md focus:outline-none focus:ring-2 focus:ring-n-blue-6 bg-n-slate-1 text-n-slate-12"
+                  @change="markAsChanged"
+                >
+                  <option value="">{{ $t('TICKETS.UNASSIGNED') }}</option>
+                  <option
+                    v-for="agent in agents"
+                    :key="agent.id"
+                    :value="agent.id"
+                  >
+                    {{ agent.name }}
+                  </option>
+                </select>
+                <div v-if="assignedAgent" class="mt-3 flex items-center gap-3 p-3 bg-n-slate-2 rounded-lg border border-n-weak">
+                  <div class="w-8 h-8 bg-gradient-to-br from-green-500 to-teal-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                    {{ getInitials(assignedAgent.name) }}
+                  </div>
+                  <div>
+                    <p class="font-medium text-n-slate-12">{{ assignedAgent.name }}</p>
+                    <p class="text-sm text-n-slate-10">{{ assignedAgent.email }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Enhanced Customer Information -->
+              <div v-if="ticket.contact" class="p-6 bg-n-slate-2 rounded-lg border border-n-weak">
+                <h3 class="text-lg font-semibold text-n-slate-12 mb-4 flex items-center gap-2">
+                  <Icon icon="i-lucide-user-circle" class="w-5 h-5" />
+                  {{ $t('TICKETS.DETAIL.CUSTOMER_INFO') }}
+                </h3>
+                <div class="space-y-4">
+                  <!-- Customer Name and Avatar -->
+                  <div class="flex items-center gap-4 p-3 bg-n-slate-1 rounded-lg">
+                    <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-lg font-bold">
+                      {{ getInitials(ticket.contact.name) }}
+                    </div>
+                    <div class="flex-1">
+                      <h4 class="font-semibold text-n-slate-12 text-lg">{{ ticket.contact.name }}</h4>
+                      <p class="text-n-slate-10">{{ ticket.contact.email }}</p>
+                    </div>
+                  </div>
+                  
+                  <!-- Contact Details Grid -->
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Phone -->
+                    <div v-if="ticket.contact.phone_number" class="flex items-center gap-3 p-3 bg-n-slate-1 rounded-lg">
+                      <div class="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                        <Icon icon="i-lucide-phone" class="w-4 h-4 text-blue-600 dark:text-blue-400" />
                       </div>
-                      <div v-if="ticket.contact.phone_number" class="flex items-center gap-3 text-sm text-n-slate-10">
-                        <Icon icon="i-lucide-phone" class="w-4 h-4" />
-                        <span>{{ ticket.contact.phone_number }}</span>
+                      <div>
+                        <p class="text-xs font-medium text-n-slate-10 uppercase tracking-wide">Phone</p>
+                        <p class="text-sm font-medium text-n-slate-12">{{ ticket.contact.phone_number }}</p>
                       </div>
-                      <div v-if="ticket.contact.organization" class="flex items-center gap-3 text-sm text-n-slate-10">
-                        <Icon icon="i-lucide-building" class="w-4 h-4" />
-                        <span>{{ ticket.contact.organization }}</span>
+                    </div>
+                    
+                    <!-- Location -->
+                    <div v-if="ticket.contact.location" class="flex items-center gap-3 p-3 bg-n-slate-1 rounded-lg">
+                      <div class="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                        <Icon icon="i-lucide-map-pin" class="w-4 h-4 text-green-600 dark:text-green-400" />
+                      </div>
+                      <div>
+                        <p class="text-xs font-medium text-n-slate-10 uppercase tracking-wide">Location</p>
+                        <p class="text-sm font-medium text-n-slate-12">{{ ticket.contact.location }}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Organization -->
+                  <div v-if="ticket.contact.company || ticket.contact.organization" class="p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                    <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 bg-purple-100 dark:bg-purple-900/50 rounded-lg flex items-center justify-center">
+                        <Icon icon="i-lucide-building-2" class="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                      </div>
+                      <div class="flex-1">
+                        <p class="text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wide">Organization</p>
+                        <h4 class="text-lg font-bold text-purple-900 dark:text-purple-100">
+                          {{ ticket.contact.company || ticket.contact.organization }}
+                        </h4>
+                        <p v-if="ticket.contact.company_size" class="text-sm text-purple-700 dark:text-purple-300">
+                          {{ ticket.contact.company_size }} employees
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Additional Info -->
+                  <div v-if="ticket.contact.additional_attributes && Object.keys(ticket.contact.additional_attributes).length > 0" class="space-y-2">
+                    <h5 class="text-sm font-semibold text-n-slate-12 flex items-center gap-2">
+                      <Icon icon="i-lucide-info" class="w-4 h-4" />
+                      Additional Information
+                    </h5>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div 
+                        v-for="(value, key) in ticket.contact.additional_attributes"
+                        :key="key"
+                        class="flex items-center gap-2 p-2 bg-n-slate-1 rounded text-sm"
+                      >
+                        <span class="font-medium text-n-slate-10 capitalize">{{ key.replace(/_/g, ' ') }}:</span>
+                        <span class="text-n-slate-12">{{ value }}</span>
                       </div>
                     </div>
                   </div>
                 </div>
+              </div>
 
-                <!-- Right Column -->
-                <div class="space-y-6">
-                  <!-- Status and Priority -->
-                  <div class="grid grid-cols-1 gap-4">
-                    <div>
-                      <label class="block text-sm font-medium text-n-slate-12 mb-2">
-                        {{ $t('TICKETS.STATUS.LABEL') }}
-                      </label>
-                      <select
-                        v-model="editForm.status"
-                        class="w-full px-3 py-2 border border-n-slate-6 rounded-md focus:outline-none focus:ring-2 focus:ring-n-blue-6 bg-n-slate-1 text-n-slate-12"
-                        @change="markAsChanged"
-                      >
-                        <option value="open">{{ $t('TICKETS.STATUS.OPEN') }}</option>
-                        <option value="in_progress">{{ $t('TICKETS.STATUS.IN_PROGRESS') }}</option>
-                        <option value="escalated">{{ $t('TICKETS.STATUS.ESCALATED') }}</option>
-                        <option value="resolved">{{ $t('TICKETS.STATUS.RESOLVED') }}</option>
-                        <option value="closed">{{ $t('TICKETS.STATUS.CLOSED') }}</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-n-slate-12 mb-2">
-                        {{ $t('TICKETS.PRIORITY.LABEL') }}
-                      </label>
-                      <select
-                        v-model="editForm.priority"
-                        class="w-full px-3 py-2 border border-n-slate-6 rounded-md focus:outline-none focus:ring-2 focus:ring-n-blue-6 bg-n-slate-1 text-n-slate-12"
-                        @change="markAsChanged"
-                      >
-                        <option value="low">{{ $t('TICKETS.PRIORITY.LOW') }}</option>
-                        <option value="medium">{{ $t('TICKETS.PRIORITY.MEDIUM') }}</option>
-                        <option value="high">{{ $t('TICKETS.PRIORITY.HIGH') }}</option>
-                        <option value="urgent">{{ $t('TICKETS.PRIORITY.URGENT') }}</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <!-- Assigned Agent -->
+              <!-- Escalation Section -->
+              <div v-if="canEscalateToJira" class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                <div class="flex items-center justify-between">
                   <div>
-                    <label class="block text-sm font-medium text-n-slate-12 mb-2">
-                      {{ $t('TICKETS.DETAIL.ASSIGNED_AGENT') }}
-                    </label>
-                    <select
-                      v-model="editForm.assigned_agent_id"
-                      class="w-full px-3 py-2 border border-n-slate-6 rounded-md focus:outline-none focus:ring-2 focus:ring-n-blue-6 bg-n-slate-1 text-n-slate-12"
-                      @change="markAsChanged"
-                    >
-                      <option value="">{{ $t('TICKETS.UNASSIGNED') }}</option>
-                      <option
-                        v-for="agent in agents"
-                        :key="agent.id"
-                        :value="agent.id"
-                      >
-                        {{ agent.name }}
-                      </option>
-                    </select>
-                    <div v-if="assignedAgent" class="mt-3 flex items-center gap-3 p-3 bg-n-slate-2 rounded-lg">
-                      <div class="w-8 h-8 bg-gradient-to-br from-green-500 to-teal-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                        {{ getInitials(assignedAgent.name) }}
-                      </div>
-                      <div>
-                        <p class="font-medium text-n-slate-12">{{ assignedAgent.name }}</p>
-                        <p class="text-sm text-n-slate-10">{{ assignedAgent.email }}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Escalation Section -->
-                  <div v-if="canEscalateToJira" class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
-                    <div class="flex items-center justify-between">
-                      <div>
-                        <h3 class="text-sm font-medium text-amber-900 dark:text-amber-100 mb-1">
-                          {{ $t('TICKETS.DETAIL.ESCALATE_TO_JIRA') }}
-                        </h3>
-                        <p class="text-xs text-amber-800 dark:text-amber-200">
-                          {{ $t('TICKETS.DETAIL.ESCALATE_DESCRIPTION') }}
-                        </p>
-                      </div>
-                      <Button
-                        amber
-                        size="sm"
-                        :loading="isEscalating"
-                        @click="showEscalateModal"
-                      >
-                        {{ $t('TICKETS.DETAIL.ESCALATE') }}
-                      </Button>
-                    </div>
-                  </div>
-
-                  <!-- Timestamps -->
-                  <div class="p-4 bg-n-slate-2 rounded-lg border border-n-weak">
-                    <h3 class="text-sm font-medium text-n-slate-12 mb-3 flex items-center gap-2">
-                      <Icon icon="i-lucide-clock" class="w-4 h-4" />
-                      {{ $t('TICKETS.DETAIL.TIMESTAMPS') }}
+                    <h3 class="text-sm font-medium text-amber-900 dark:text-amber-100 mb-1">
+                      {{ $t('TICKETS.DETAIL.ESCALATE_TO_JIRA') }}
                     </h3>
-                    <div class="space-y-2 text-sm">
-                      <div class="flex justify-between">
-                        <span class="text-n-slate-10">{{ $t('TICKETS.DETAIL.CREATED_AT') }}:</span>
-                        <span class="text-n-slate-12 font-medium">{{ formatDate(ticket.created_at) }}</span>
-                      </div>
-                      <div v-if="ticket.updated_at !== ticket.created_at" class="flex justify-between">
-                        <span class="text-n-slate-10">{{ $t('TICKETS.DETAIL.UPDATED_AT') }}:</span>
-                        <span class="text-n-slate-12 font-medium">{{ formatDate(ticket.updated_at) }}</span>
-                      </div>
-                      <div v-if="ticket.resolved_at" class="flex justify-between">
-                        <span class="text-n-slate-10">{{ $t('TICKETS.DETAIL.RESOLVED_AT') }}:</span>
-                        <span class="text-n-slate-12 font-medium">{{ formatDate(ticket.resolved_at) }}</span>
-                      </div>
-                      <div v-if="ticket.duration_to_resolve" class="flex justify-between">
-                        <span class="text-n-slate-10">{{ $t('TICKETS.DETAIL.RESOLUTION_TIME') }}:</span>
-                        <span class="text-n-slate-12 font-medium">{{ ticket.duration_to_resolve }}</span>
-                      </div>
-                    </div>
+                    <p class="text-xs text-amber-800 dark:text-amber-200">
+                      {{ $t('TICKETS.DETAIL.ESCALATE_DESCRIPTION') }}
+                    </p>
+                  </div>
+                  <Button
+                    amber
+                    size="sm"
+                    :loading="isEscalating"
+                    @click="showEscalateModal"
+                  >
+                    {{ $t('TICKETS.DETAIL.ESCALATE') }}
+                  </Button>
+                </div>
+              </div>
+
+              <!-- Timestamps -->
+              <div class="p-4 bg-n-slate-2 rounded-lg border border-n-weak">
+                <h3 class="text-sm font-medium text-n-slate-12 mb-3 flex items-center gap-2">
+                  <Icon icon="i-lucide-clock" class="w-4 h-4" />
+                  {{ $t('TICKETS.DETAIL.TIMESTAMPS') }}
+                </h3>
+                <div class="space-y-2 text-sm">
+                  <div class="flex justify-between">
+                    <span class="text-n-slate-10">{{ $t('TICKETS.DETAIL.CREATED_AT') }}:</span>
+                    <span class="text-n-slate-12 font-medium">{{ formatDate(ticket.created_at) }}</span>
+                  </div>
+                  <div v-if="ticket.updated_at !== ticket.created_at" class="flex justify-between">
+                    <span class="text-n-slate-10">{{ $t('TICKETS.DETAIL.UPDATED_AT') }}:</span>
+                    <span class="text-n-slate-12 font-medium">{{ formatDate(ticket.updated_at) }}</span>
+                  </div>
+                  <div v-if="ticket.resolved_at" class="flex justify-between">
+                    <span class="text-n-slate-10">{{ $t('TICKETS.DETAIL.RESOLVED_AT') }}:</span>
+                    <span class="text-n-slate-12 font-medium">{{ formatDate(ticket.resolved_at) }}</span>
+                  </div>
+                  <div v-if="ticket.duration_to_resolve" class="flex justify-between">
+                    <span class="text-n-slate-10">{{ $t('TICKETS.DETAIL.RESOLUTION_TIME') }}:</span>
+                    <span class="text-n-slate-12 font-medium">{{ ticket.duration_to_resolve }}</span>
                   </div>
                 </div>
               </div>
@@ -393,7 +439,7 @@
             <div class="p-6 border-b border-slate-200 dark:border-slate-600">
               <div class="flex items-center justify-between">
                 <h3 class="text-lg font-medium text-n-slate-12">
-                  {{ $t('TICKETS.DETAIL.LINKED_MESSAGES') }}
+                  {{ $t('TICKETS.LINKED_MESSAGES.TITLE') }}
                 </h3>
                 <span class="text-sm text-n-slate-10">
                   {{ messages.length }} {{ $t('TICKETS.DETAIL.MESSAGES') }}
