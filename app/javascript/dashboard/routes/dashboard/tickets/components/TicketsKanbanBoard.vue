@@ -6,9 +6,16 @@
       class="absolute inset-0 bg-black bg-opacity-20 backdrop-blur-sm flex items-center justify-center z-50"
     >
       <div class="bg-white rounded-lg shadow-xl p-6 flex items-center gap-4">
-        <Icon icon="i-lucide-loader-2" class="w-6 h-6 animate-spin text-blue-600" />
+        <Icon
+          icon="i-lucide-loader-2"
+          class="w-6 h-6 animate-spin text-blue-600"
+        />
         <span class="font-medium">
-          {{ isResolving ? $t('TICKETS.KANBAN.RESOLVING') : $t('TICKETS.KANBAN.ESCALATING') }}
+          {{
+            isResolving
+              ? $t("TICKETS.KANBAN.RESOLVING")
+              : $t("TICKETS.KANBAN.ESCALATING")
+          }}
         </span>
       </div>
     </div>
@@ -21,7 +28,7 @@
       :is-loading="isLoading"
       :status="column.status"
       :color="column.color"
-      :can-accept-drop="isValidTransition"
+      :can-accept-drop="canAcceptDrop"
       class="flex-1 min-w-80"
       @ticket-move="handleTicketMove"
       @ticket-click="handleTicketClick"
@@ -40,17 +47,17 @@
 </template>
 
 <script>
-import { computed, ref, watch } from 'vue';
-import { useStore } from 'vuex';
-import { useI18n } from 'vue-i18n';
+import { computed, ref, watch } from "vue";
+import { useStore } from "vuex";
+import { useI18n } from "vue-i18n";
 
-import KanbanColumn from './KanbanColumn.vue';
-import EscalationModal from './EscalationModal.vue';
+import KanbanColumn from "./KanbanColumn.vue";
+import EscalationModal from "./EscalationModal.vue";
 
-import { useAlert } from 'dashboard/composables';
+import { useAlert } from "dashboard/composables";
 
 export default {
-  name: 'TicketsKanbanBoard',
+  name: "TicketsKanbanBoard",
   components: {
     KanbanColumn,
     EscalationModal,
@@ -77,7 +84,13 @@ export default {
       default: () => [],
     },
   },
-  emits: ['ticket-updated', 'refresh', 'enhance-with-ai', 'ticket-click', 'ticket-escalate'],
+  emits: [
+    "ticket-updated",
+    "refresh",
+    "enhance-with-ai",
+    "ticket-click",
+    "ticket-escalate",
+  ],
   setup(props, { emit }) {
     const store = useStore();
     const { t } = useI18n();
@@ -90,75 +103,86 @@ export default {
 
     // Computed - Organize tickets by status
     const notDoneTickets = computed(() => {
-      return props.tickets.filter(ticket => ticket.status === 'open');
+      return props.tickets.filter((ticket) => ticket.status === "open");
     });
 
     const inProgressTickets = computed(() => {
-      return props.tickets.filter(ticket => {
+      return props.tickets.filter((ticket) => {
         // Explicitly in progress status takes priority - even if escalated
-        if (ticket.status === 'in_progress') {
+        if (ticket.status === "in_progress") {
           return true;
         }
-        
+
         // JIRA linked tickets that are actively being worked on
         // Higher priority: if jira_in_progress is true, show here regardless of escalation
-        if (ticket.jira_in_progress && ticket.status !== 'resolved' && ticket.status !== 'closed') {
+        if (
+          ticket.jira_in_progress &&
+          ticket.status !== "resolved" &&
+          ticket.status !== "closed"
+        ) {
           return true;
         }
-        
+
         return false;
       });
     });
 
-    console.log('PROPS TICKETS:', props.tickets);
+    console.log("PROPS TICKETS:", props.tickets);
 
     const escalatedTickets = computed(() => {
-      return props.tickets.filter(ticket => {
+      return props.tickets.filter((ticket) => {
         // Only show escalated status tickets that are NOT in progress or actively worked on in JIRA
-        return ticket.status === 'escalated' && ticket.status !== 'in_progress' && !ticket.jira_in_progress;
+        return (
+          ticket.status === "escalated" &&
+          ticket.status !== "in_progress" &&
+          !ticket.jira_in_progress
+        );
       });
     });
 
     const doneTickets = computed(() => {
-      return props.tickets.filter(ticket => 
-        ticket.status === 'resolved' || ticket.status === 'closed' || ticket.status === 'done'
+      return props.tickets.filter(
+        (ticket) =>
+          ticket.status === "resolved" ||
+          ticket.status === "closed" ||
+          ticket.status === "done"
       );
     });
 
     // Define all possible columns
     const allColumns = computed(() => [
       {
-        key: 'not_done',
-        title: t('TICKETS.KANBAN.NOT_DONE'),
-        status: 'not_done',
-        color: 'blue',
+        key: "not_done",
+        title: t("TICKETS.KANBAN.NOT_DONE"),
+        status: "not_done",
+        color: "blue",
         tickets: notDoneTickets.value,
-        statusFilters: ['open']
+        statusFilters: ["open"],
       },
       {
-        key: 'escalated',
-        title: t('TICKETS.KANBAN.ESCALATED'),
-        status: 'escalated',
-        color: 'orange',
+        key: "escalated",
+        title: t("TICKETS.KANBAN.ESCALATED"),
+        status: "escalated",
+        color: "orange",
         tickets: escalatedTickets.value,
-        statusFilters: ['escalated']
+        statusFilters: ["escalated"],
       },
       {
-        key: 'in_progress',
-        title: t('TICKETS.KANBAN.IN_PROGRESS'),
-        status: 'in_progress',
-        color: 'yellow',
+        key: "in_progress",
+        title: t("TICKETS.KANBAN.IN_PROGRESS"),
+        status: "in_progress",
+        color: "yellow",
         tickets: inProgressTickets.value,
-        statusFilters: ['in_progress']
+        statusFilters: ["in_progress"],
       },
       {
-        key: 'done',
-        title: t('TICKETS.KANBAN.DONE'),
-        status: 'done',
-        color: 'green',
+        key: "done",
+        title: t("TICKETS.KANBAN.DONE"),
+        status: "done",
+        color: "green",
         tickets: doneTickets.value,
-        statusFilters: ['resolved', 'closed']
-      }
+        statusFilters: ["resolved", "closed"],
+      },
     ]);
 
     // Show only columns that match selected statuses, or all if none selected
@@ -166,70 +190,92 @@ export default {
       if (props.selectedStatuses.length === 0) {
         return allColumns.value;
       }
-      
-      return allColumns.value.filter(column => 
-        column.statusFilters.some(status => props.selectedStatuses.includes(status))
+
+      return allColumns.value.filter((column) =>
+        column.statusFilters.some((status) =>
+          props.selectedStatuses.includes(status)
+        )
       );
     });
 
     // Methods
     const isValidTransition = (ticket, newStatus) => {
       const currentStatus = getTicketDisplayStatus(ticket);
-      
+
+      console.log("Checking transition:", {
+        ticketId: ticket.id,
+        currentStatus,
+        newStatus,
+        actualTicketStatus: ticket.status,
+        jiraInProgress: ticket.jira_in_progress,
+      });
+
       // Only allow transitions from 'not_done' to 'done' or 'escalated'
-      if (currentStatus === 'not_done') {
-        return newStatus === 'done' || newStatus === 'escalated';
+      if (currentStatus === "not_done") {
+        const isValid = newStatus === "done" || newStatus === "escalated";
+        console.log("Transition validation result:", isValid);
+        return isValid;
       }
-      
+
       // No other transitions are allowed
+      console.log("Transition blocked - not from not_done status");
       return false;
     };
 
     const getTicketDisplayStatus = (ticket) => {
       // Priority: jira_in_progress > escalated > resolved/closed > open
-      if (ticket.jira_in_progress) {
-        return 'in_progress';
+      if (ticket.status === "in_progress" || ticket.jira_in_progress) {
+        return "in_progress";
       }
-      if (ticket.jira_issue_key || ticket.status === 'escalated') {
-        return 'escalated';
+      if (ticket.status === "escalated" || ticket.jira_issue_key) {
+        return "escalated";
       }
-      if (ticket.status === 'resolved' || ticket.status === 'closed') {
-        return 'done';
+      if (ticket.status === "resolved" || ticket.status === "closed") {
+        return "done";
       }
-      return 'not_done'; // open, in_progress
+      return "not_done"; // open, in_progress without jira
     };
 
     const handleTicketMove = async (ticket, newStatus) => {
+      console.log("handleTicketMove called:", {
+        ticket: ticket.id,
+        newStatus,
+        currentStatus: ticket.status,
+      });
+
       // Check if the transition is valid
       if (!isValidTransition(ticket, newStatus)) {
         const currentStatus = getTicketDisplayStatus(ticket);
-        useAlert(t('TICKETS.KANBAN.INVALID_TRANSITION', { 
-          from: t(`TICKETS.KANBAN.${currentStatus.toUpperCase()}`),
-          to: t(`TICKETS.KANBAN.${newStatus.toUpperCase()}`)
-        }));
+        useAlert(
+          t("TICKETS.KANBAN.INVALID_TRANSITION", {
+            from: t(`TICKETS.KANBAN.${currentStatus.toUpperCase()}`),
+            to: t(`TICKETS.KANBAN.${newStatus.toUpperCase()}`),
+          })
+        );
         return false;
       }
 
       try {
-        if (newStatus === 'done') {
+        if (newStatus === "done") {
           // Show loading state and resolve ticket
           isResolving.value = true;
-          await store.dispatch('tickets/resolve', ticket.id);
-          emit('ticket-updated');
-          useAlert(t('TICKETS.KANBAN.TICKET_RESOLVED'));
-          isResolving.value = false;
-        } else if (newStatus === 'escalated') {
+          await store.dispatch("tickets/resolve", ticket.id);
+          emit("ticket-updated");
+          emit("refresh"); // Also emit refresh to reload data
+          useAlert(t("TICKETS.KANBAN.TICKET_RESOLVED"));
+          return true;
+        } else if (newStatus === "escalated") {
           // Show escalation modal
           ticketToEscalate.value = ticket;
           showEscalationModal.value = true;
           // Don't return true yet - wait for modal confirmation
           return null; // Indicates pending action
         }
-        
+
         return true;
       } catch (error) {
-        console.error('Failed to update ticket status:', error);
-        useAlert(t('TICKETS.KANBAN.STATUS_UPDATE_ERROR'));
+        console.error("Failed to update ticket status:", error);
+        useAlert(t("TICKETS.KANBAN.STATUS_UPDATE_ERROR"));
         return false;
       } finally {
         isResolving.value = false;
@@ -244,27 +290,27 @@ export default {
     const handleEscalationConfirm = async ({ ticket, note }) => {
       try {
         isEscalating.value = true;
-        
+
         // Call the escalate action with the note
-        await store.dispatch('tickets/escalate', { 
-          id: ticket.id, 
-          note: note || undefined 
+        await store.dispatch("tickets/escalate", {
+          id: ticket.id,
+          note: note || undefined,
         });
-        
-        emit('ticket-updated');
-        useAlert(t('TICKETS.KANBAN.ESCALATION_INITIATED'));
+
+        emit("ticket-updated");
+        emit("refresh"); // Also emit refresh to reload data
+        useAlert(t("TICKETS.KANBAN.ESCALATION_INITIATED"));
         handleEscalationModalClose();
-        
       } catch (error) {
-        console.error('Failed to escalate ticket:', error);
-        useAlert(t('TICKETS.KANBAN.STATUS_UPDATE_ERROR'));
+        console.error("Failed to escalate ticket:", error);
+        useAlert(t("TICKETS.KANBAN.STATUS_UPDATE_ERROR"));
       } finally {
         isEscalating.value = false;
       }
     };
 
     const handleTicketClick = (ticket) => {
-      emit('ticket-click', ticket);
+      emit("ticket-click", ticket);
     };
 
     return {
@@ -273,7 +319,7 @@ export default {
       ticketToEscalate,
       isEscalating,
       isResolving,
-      
+
       // Computed
       notDoneTickets,
       inProgressTickets,
@@ -281,7 +327,7 @@ export default {
       doneTickets,
       allColumns,
       visibleColumns,
-      
+
       // Methods
       isValidTransition,
       getTicketDisplayStatus,
