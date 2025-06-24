@@ -1,5 +1,18 @@
 <template>
-  <div class="flex h-full overflow-x-auto gap-6 min-h-96 p-6">
+  <div class="flex h-full overflow-x-auto gap-6 min-h-96 p-6 relative">
+    <!-- Loading overlay for actions -->
+    <div
+      v-if="isResolving || isEscalating"
+      class="absolute inset-0 bg-black bg-opacity-20 backdrop-blur-sm flex items-center justify-center z-50"
+    >
+      <div class="bg-white rounded-lg shadow-xl p-6 flex items-center gap-4">
+        <Icon icon="i-lucide-loader-2" class="w-6 h-6 animate-spin text-blue-600" />
+        <span class="font-medium">
+          {{ isResolving ? $t('TICKETS.KANBAN.RESOLVING') : $t('TICKETS.KANBAN.ESCALATING') }}
+        </span>
+      </div>
+    </div>
+
     <KanbanColumn
       v-for="column in visibleColumns"
       :key="column.key"
@@ -8,10 +21,20 @@
       :is-loading="isLoading"
       :status="column.status"
       :color="column.color"
+      :can-accept-drop="isValidTransition"
       class="flex-1 min-w-80"
       @ticket-move="handleTicketMove"
       @ticket-click="handleTicketClick"
       @enhance-with-ai="$emit('enhance-with-ai', $event)"
+    />
+
+    <!-- Escalation Modal -->
+    <EscalationModal
+      :show="showEscalationModal"
+      :ticket="ticketToEscalate"
+      :is-loading="isEscalating"
+      @close="handleEscalationModalClose"
+      @escalate="handleEscalationConfirm"
     />
   </div>
 </template>
@@ -22,6 +45,7 @@ import { useStore } from 'vuex';
 import { useI18n } from 'vue-i18n';
 
 import KanbanColumn from './KanbanColumn.vue';
+import EscalationModal from './EscalationModal.vue';
 
 import { useAlert } from 'dashboard/composables';
 
@@ -29,6 +53,7 @@ export default {
   name: 'TicketsKanbanBoard',
   components: {
     KanbanColumn,
+    EscalationModal,
   },
   props: {
     tickets: {
@@ -52,10 +77,16 @@ export default {
       default: () => [],
     },
   },
-  emits: ['ticket-updated', 'refresh', 'enhance-with-ai', 'ticket-click'],
+  emits: ['ticket-updated', 'refresh', 'enhance-with-ai', 'ticket-click', 'ticket-escalate'],
   setup(props, { emit }) {
     const store = useStore();
     const { t } = useI18n();
+
+    // State
+    const showEscalationModal = ref(false);
+    const ticketToEscalate = ref(null);
+    const isEscalating = ref(false);
+    const isResolving = ref(false);
 
     // Computed - Organize tickets by status
     const notDoneTickets = computed(() => {
@@ -142,61 +173,93 @@ export default {
     });
 
     // Methods
+    const isValidTransition = (ticket, newStatus) => {
+      const currentStatus = getTicketDisplayStatus(ticket);
+      
+      // Only allow transitions from 'not_done' to 'done' or 'escalated'
+      if (currentStatus === 'not_done') {
+        return newStatus === 'done' || newStatus === 'escalated';
+      }
+      
+      // No other transitions are allowed
+      return false;
+    };
+
+    const getTicketDisplayStatus = (ticket) => {
+      // Priority: jira_in_progress > escalated > resolved/closed > open
+      if (ticket.jira_in_progress) {
+        return 'in_progress';
+      }
+      if (ticket.jira_issue_key || ticket.status === 'escalated') {
+        return 'escalated';
+      }
+      if (ticket.status === 'resolved' || ticket.status === 'closed') {
+        return 'done';
+      }
+      return 'not_done'; // open, in_progress
+    };
+
     const handleTicketMove = async (ticket, newStatus) => {
+      // Check if the transition is valid
+      if (!isValidTransition(ticket, newStatus)) {
+        const currentStatus = getTicketDisplayStatus(ticket);
+        useAlert(t('TICKETS.KANBAN.INVALID_TRANSITION', { 
+          from: t(`TICKETS.KANBAN.${currentStatus.toUpperCase()}`),
+          to: t(`TICKETS.KANBAN.${newStatus.toUpperCase()}`)
+        }));
+        return false;
+      }
+
       try {
-        // Map kanban status to ticket status
-        const statusMap = {
-          'not_done': 'open',
-          'in_progress': 'in_progress',
-          'escalated': 'escalated',
-          'done': 'resolved',
-        };
-
-        const targetStatus = statusMap[newStatus];
-
-        // Use specific API methods for certain status changes
-        if (targetStatus === 'resolved') {
+        if (newStatus === 'done') {
+          // Show loading state and resolve ticket
+          isResolving.value = true;
           await store.dispatch('tickets/resolve', ticket.id);
-        } else if (targetStatus === 'escalated') {
-          // For escalation, automatically create and link JIRA issue
-          try {
-            // Import JIRA API
-            const JiraAPI = await import('dashboard/api/integrations/jira');
-            
-            // Create JIRA issue automatically
-            const jiraResponse = await JiraAPI.default.createIssue({
-              summary: ticket.title || `Ticket #${ticket.id}`,
-              description: ticket.description || 'No description provided',
-              issueType: 'Task',
-              priority: ticket.priority || 'Medium',
-            });
-            
-            // Link the created JIRA issue to the ticket and update status
-            await store.dispatch('tickets/escalateToJira', {
-              ticketId: ticket.id,
-              jiraIssueKey: jiraResponse.data.key,
-              jiraUrl: jiraResponse.data.self,
-            });
-          } catch (error) {
-            console.error('Failed to create JIRA issue:', error);
-            // Fallback: just update status to escalated
-            await store.dispatch('tickets/updateTicket', {
-              id: ticket.id,
-              status: targetStatus,
-            });
-          }
-        } else {
-          await store.dispatch('tickets/updateTicket', {
-            id: ticket.id,
-            status: targetStatus,
-          });
+          emit('ticket-updated');
+          useAlert(t('TICKETS.KANBAN.TICKET_RESOLVED'));
+          isResolving.value = false;
+        } else if (newStatus === 'escalated') {
+          // Show escalation modal
+          ticketToEscalate.value = ticket;
+          showEscalationModal.value = true;
+          // Don't return true yet - wait for modal confirmation
+          return null; // Indicates pending action
         }
-
-        emit('ticket-updated');
-        useAlert(t('TICKETS.KANBAN.STATUS_UPDATED'));
+        
+        return true;
       } catch (error) {
         console.error('Failed to update ticket status:', error);
         useAlert(t('TICKETS.KANBAN.STATUS_UPDATE_ERROR'));
+        return false;
+      } finally {
+        isResolving.value = false;
+      }
+    };
+
+    const handleEscalationModalClose = () => {
+      showEscalationModal.value = false;
+      ticketToEscalate.value = null;
+    };
+
+    const handleEscalationConfirm = async ({ ticket, note }) => {
+      try {
+        isEscalating.value = true;
+        
+        // Call the escalate action with the note
+        await store.dispatch('tickets/escalate', { 
+          id: ticket.id, 
+          note: note || undefined 
+        });
+        
+        emit('ticket-updated');
+        useAlert(t('TICKETS.KANBAN.ESCALATION_INITIATED'));
+        handleEscalationModalClose();
+        
+      } catch (error) {
+        console.error('Failed to escalate ticket:', error);
+        useAlert(t('TICKETS.KANBAN.STATUS_UPDATE_ERROR'));
+      } finally {
+        isEscalating.value = false;
       }
     };
 
@@ -205,6 +268,12 @@ export default {
     };
 
     return {
+      // State
+      showEscalationModal,
+      ticketToEscalate,
+      isEscalating,
+      isResolving,
+      
       // Computed
       notDoneTickets,
       inProgressTickets,
@@ -214,7 +283,11 @@ export default {
       visibleColumns,
       
       // Methods
+      isValidTransition,
+      getTicketDisplayStatus,
       handleTicketMove,
+      handleEscalationModalClose,
+      handleEscalationConfirm,
       handleTicketClick,
     };
   },

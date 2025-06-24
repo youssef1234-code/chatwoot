@@ -142,6 +142,7 @@ Rails.application.routes.draw do
             member do
               get :messages
               post :escalate_to_jira
+              post :escalate
               post :resolve
               post :close
               post :add_messages

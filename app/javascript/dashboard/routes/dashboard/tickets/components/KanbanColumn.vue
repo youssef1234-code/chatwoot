@@ -20,13 +20,45 @@
 
     <!-- Column Content -->
     <div
-      class="flex-1 p-4 space-y-3 overflow-y-auto"
+      class="flex-1 p-4 space-y-3 overflow-y-auto transition-all duration-300 min-h-32 relative border-2 border-transparent"
       @drop="handleDrop"
       @dragover="handleDragOver"
       @dragenter="handleDragEnter"
       @dragleave="handleDragLeave"
-      :class="{ 'bg-n-alpha-1': isDragOver }"
+      :class="{
+        'bg-green-50 border-green-300 border-dashed transform scale-[1.02] shadow-xl': isDragOver && isValidDrop,
+        'bg-red-50 border-red-300 border-dashed shadow-inner': isDragOver && !isValidDrop,
+        'bg-n-alpha-1': !isDragOver
+      }"
     >
+      <!-- Drag Overlay -->
+      <div
+        v-if="isDragOver"
+        class="absolute inset-0 flex items-center justify-center z-10 pointer-events-none backdrop-blur-sm drag-overlay"
+      >
+        <div
+          class="px-8 py-6 rounded-xl shadow-2xl text-center transition-all duration-200 transform scale-110 border-2"
+          :class="{
+            'bg-green-100 text-green-800 border-green-300': isValidDrop,
+            'bg-red-100 text-red-800 border-red-300': !isValidDrop
+          }"
+        >
+          <Icon
+            :icon="isValidDrop ? 'i-lucide-check-circle' : 'i-lucide-x-circle'"
+            :class="{
+              'text-green-600': isValidDrop,
+              'text-red-600': !isValidDrop
+            }"
+            class="w-12 h-12 mx-auto mb-3"
+          />
+          <p class="font-bold text-xl mb-2">
+            {{ isValidDrop ? getDragHintText() : $t('TICKETS.KANBAN.DRAG_HINT_INVALID') }}
+          </p>
+          <p class="text-sm opacity-75">
+            {{ isValidDrop ? 'Release to apply' : 'This transition is not allowed' }}
+          </p>
+        </div>
+      </div>
       <!-- Loading State -->
       <div v-if="isLoading" class="space-y-3">
         <div
@@ -54,6 +86,10 @@
         :ticket="ticket"
         :color="color"
         :draggable="true"
+        :class="{
+          'opacity-50 transform rotate-2 scale-95': draggedTicket && draggedTicket.id === ticket.id
+        }"
+        class="transition-all duration-200"
         @click="$emit('ticket-click', ticket)"
         @dragstart="handleDragStart(ticket, $event)"
         @dragend="handleDragEnd"
@@ -65,6 +101,7 @@
 
 <script>
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import TicketCard from './TicketCard.vue';
 
@@ -95,11 +132,18 @@ export default {
       type: String,
       default: 'blue',
     },
+    canAcceptDrop: {
+      type: Function,
+      default: () => true,
+    },
   },
   emits: ['ticket-move', 'ticket-click', 'enhance-with-ai'],
   setup(props, { emit }) {
+    const { t } = useI18n();
+    
     // State
     const isDragOver = ref(false);
+    const isValidDrop = ref(true);
     const draggedTicket = ref(null);
 
     // Methods
@@ -116,23 +160,44 @@ export default {
 
     const handleDragStart = (ticket, event) => {
       draggedTicket.value = ticket;
-      event.dataTransfer.setData('ticket', JSON.stringify(ticket));
-      event.dataTransfer.effectAllowed = 'move';
+      // The TicketCard already sets the drag data, so we don't need to do it again
     };
 
-    const handleDragEnd = () => {
+    const handleDragEnd = (event) => {
       draggedTicket.value = null;
       isDragOver.value = false;
+      isValidDrop.value = true;
+    };
+
+    const canAcceptTicket = (ticket) => {
+      // Use the parent's validation function if provided
+      if (props.canAcceptDrop) {
+        return props.canAcceptDrop(ticket, props.status);
+      }
+      return true;
     };
 
     const handleDragOver = (event) => {
       event.preventDefault();
-      event.dataTransfer.dropEffect = 'move';
+      
+      // Check if this is a valid drop target
+      if (draggedTicket.value && canAcceptTicket(draggedTicket.value)) {
+        event.dataTransfer.dropEffect = 'move';
+        isValidDrop.value = true;
+      } else {
+        event.dataTransfer.dropEffect = 'none';
+        isValidDrop.value = false;
+      }
     };
 
     const handleDragEnter = (event) => {
       event.preventDefault();
       isDragOver.value = true;
+      
+      // Set validity based on the ticket being dragged
+      if (draggedTicket.value) {
+        isValidDrop.value = canAcceptTicket(draggedTicket.value);
+      }
     };
 
     const handleDragLeave = (event) => {
@@ -143,26 +208,46 @@ export default {
       
       if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
         isDragOver.value = false;
+        isValidDrop.value = true;
       }
     };
 
-    const handleDrop = (event) => {
+    const handleDrop = async (event) => {
       event.preventDefault();
       isDragOver.value = false;
+      isValidDrop.value = true;
       
       try {
         const ticketData = JSON.parse(event.dataTransfer.getData('ticket'));
-        if (ticketData && ticketData.id) {
-          emit('ticket-move', ticketData, props.status);
+        if (ticketData && ticketData.id && canAcceptTicket(ticketData)) {
+          const success = await emit('ticket-move', ticketData, props.status);
+          
+          // If the move failed, we could add additional feedback here
+          if (success === false) {
+            // Handle failed move
+            console.log('Ticket move was rejected');
+          }
         }
       } catch (error) {
         console.error('Failed to parse dropped ticket data:', error);
       }
     };
 
+    const getDragHintText = () => {
+      if (!isValidDrop.value) {
+        return t('TICKETS.KANBAN.DRAG_HINT_INVALID');
+      }
+      
+      const actionKey = props.status === 'done' ? 'ACTION_RESOLVE' : 'ACTION_ESCALATE';
+      return t('TICKETS.KANBAN.DRAG_HINT_VALID', { 
+        action: t(`TICKETS.KANBAN.${actionKey}`)
+      });
+    };
+
     return {
       // State
       isDragOver,
+      isValidDrop,
       draggedTicket,
       
       // Methods
@@ -173,6 +258,8 @@ export default {
       handleDragEnter,
       handleDragLeave,
       handleDrop,
+      canAcceptTicket,
+      getDragHintText,
     };
   },
 };
@@ -201,5 +288,38 @@ export default {
 
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
   background: rgba(156, 163, 175, 0.7);
+}
+
+/* Animation keyframes */
+@keyframes bounceIn {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+/* Apply animations */
+.drag-overlay {
+  animation: bounceIn 0.3s ease-out;
+}
+
+.pulse-animation {
+  animation: pulse 2s infinite;
 }
 </style>

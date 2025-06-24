@@ -231,6 +231,20 @@ export const actions = {
     }
   },
 
+  async escalate({ commit }, { id, note }) {
+    commit(types.SET_TICKETS_UI_FLAG, { isUpdating: true });
+    try {
+      const response = await TicketsAPI.escalate(id, note);
+      commit(types.UPDATE_TICKET, response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error escalating ticket:', error);
+      throw error;
+    } finally {
+      commit(types.SET_TICKETS_UI_FLAG, { isUpdating: false });
+    }
+  },
+
   async resolve({ commit }, ticketId) {
     commit(types.SET_TICKETS_UI_FLAG, { isUpdating: true });
     try {

@@ -1,11 +1,46 @@
 <template>
   <div
-    class="p-4 bg-white dark:bg-n-slate-2 rounded-lg border border-n-weak hover:border-n-strong transition-all duration-200 cursor-pointer group"
-    :class="{ 'opacity-50': isDragging }"
-    @click="$emit('click')"
-    @dragstart="handleDragStart"
-    @dragend="handleDragEnd"
+    class="p-4 bg-white dark:bg-n-slate-2 rounded-lg border border-n-weak hover:border-n-strong transition-all duration-200 group relative overflow-visible"
+    :class="{ 
+      'opacity-50 transform rotate-1 scale-95 shadow-xl': isDragging,
+      'hover:shadow-md': !isDragging,
+      'cursor-pointer': !isDragging
+    }"
+    @click="handleCardClick"
   >
+    <!-- Enhanced Drag Handle - More prominent and always visible -->
+    <div
+      v-if="draggable"
+      class="absolute -left-3 top-0 bottom-0 w-6 flex items-center justify-center cursor-grab hover:bg-blue-50 transition-all duration-200 rounded-l-lg group/drag drag-handle"
+      :class="{ 
+        'cursor-grabbing bg-blue-100': isDragging,
+        'opacity-60 hover:opacity-100': !isDragging
+      }"
+      @dragstart="handleDragStart"
+      @dragend="handleDragEnd"
+      @keydown="handleKeyDown"
+      draggable="true"
+      tabindex="0"
+      role="button"
+      :aria-label="`Drag ticket ${ticket.id} to move between columns`"
+      title="Drag to move ticket between columns (or press Enter for options)"
+    >
+      <!-- Drag icon - always visible -->
+      <div class="flex flex-col items-center gap-0.5 transition-all duration-200 group-hover/drag:scale-110 drag-dots">
+        <div class="w-1 h-1 bg-blue-400 rounded-full group-hover/drag:bg-blue-600"></div>
+        <div class="w-1 h-1 bg-blue-400 rounded-full group-hover/drag:bg-blue-600"></div>
+        <div class="w-1 h-1 bg-blue-400 rounded-full group-hover/drag:bg-blue-600"></div>
+        <div class="w-1 h-1 bg-blue-400 rounded-full group-hover/drag:bg-blue-600"></div>
+        <div class="w-1 h-1 bg-blue-400 rounded-full group-hover/drag:bg-blue-600"></div>
+        <div class="w-1 h-1 bg-blue-400 rounded-full group-hover/drag:bg-blue-600"></div>
+      </div>
+      
+      <!-- Hover hint -->
+      <div class="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover/drag:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+        Drag to move
+        <div class="absolute left-0 top-1/2 transform -translate-x-1 -translate-y-1/2 w-0 h-0 border-t-2 border-b-2 border-r-4 border-transparent border-r-gray-900"></div>
+      </div>
+    </div>
     <!-- Header -->
     <div class="flex items-start justify-between mb-3">
       <div class="flex items-center gap-2">
@@ -201,6 +236,7 @@ export default {
     // State
     const isDragging = ref(false);
     const showActionsMenu = ref(false);
+    const dragStartTime = ref(0);
 
     // Computed
     const customerInfo = computed(() => {
@@ -284,13 +320,85 @@ export default {
     };
 
     const handleDragStart = (event) => {
+      // Only handle dragstart events
+      if (event.type !== 'dragstart' || !event.dataTransfer) {
+        return;
+      }
+      
+      console.log('Drag started for ticket:', props.ticket.id);
+      
       isDragging.value = true;
+      dragStartTime.value = Date.now();
+      
+      // Set drag data
+      event.dataTransfer.setData('ticket', JSON.stringify(props.ticket));
+      event.dataTransfer.effectAllowed = 'move';
+      
+      // Prevent the default ghost image and create custom one
+      const dragImage = document.createElement('div');
+      dragImage.innerHTML = `
+        <div style="
+          background: white; 
+          border: 2px solid #3b82f6; 
+          border-radius: 8px; 
+          padding: 12px; 
+          box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+          font-family: system-ui;
+          font-size: 14px;
+          max-width: 300px;
+          opacity: 0.9;
+        ">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <div style="width: 8px; height: 8px; background: #3b82f6; border-radius: 50%;"></div>
+            <span style="font-weight: 600; color: #1f2937;">#${props.ticket.id}</span>
+          </div>
+          <div style="color: #374151; font-weight: 500; margin-bottom: 4px;">${props.ticket.title || 'Untitled'}</div>
+          <div style="color: #6b7280; font-size: 12px;">Drag to resolve or escalate</div>
+        </div>
+      `;
+      dragImage.style.position = 'absolute';
+      dragImage.style.top = '-1000px';
+      dragImage.style.left = '-1000px';
+      document.body.appendChild(dragImage);
+      
+      event.dataTransfer.setDragImage(dragImage, 150, 50);
+      
+      // Clean up drag image
+      setTimeout(() => {
+        if (document.body.contains(dragImage)) {
+          document.body.removeChild(dragImage);
+        }
+      }, 100);
+      
       emit('dragstart', event);
     };
 
     const handleDragEnd = (event) => {
-      isDragging.value = false;
+      setTimeout(() => {
+        isDragging.value = false;
+      }, 100); // Small delay to prevent click after drag
+      
       emit('dragend', event);
+    };
+
+    const handleCardClick = (event) => {
+      // Prevent click if we just finished dragging
+      const timeSinceDrag = Date.now() - dragStartTime.value;
+      if (isDragging.value || timeSinceDrag < 200) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+      
+      emit('click');
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        // Show a context menu or quick actions for keyboard users
+        showActionsMenu.value = !showActionsMenu.value;
+      }
     };
 
     const openInConversation = () => {
@@ -316,6 +424,7 @@ export default {
       // State
       isDragging,
       showActionsMenu,
+      dragStartTime,
       
       // Computed
       customerInfo,
@@ -330,6 +439,8 @@ export default {
       formatDate,
       handleDragStart,
       handleDragEnd,
+      handleCardClick,
+      handleKeyDown,
       openInConversation,
       openJiraIssue,
     };
@@ -352,5 +463,47 @@ export default {
 
 .cursor-grabbing {
   cursor: grabbing;
+}
+
+/* Enhanced drag handle styles */
+.group\/drag:hover {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+}
+
+.group\/drag:active {
+  background: linear-gradient(135deg, #bfdbfe 0%, #93c5fd 100%);
+}
+
+/* Improved drag detection */
+.group\/drag {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* Better visual feedback */
+.group\/drag:hover .drag-dots {
+  transform: scale(1.2);
+}
+
+/* Subtle pulse animation for drag handle discovery */
+@keyframes dragHintPulse {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.drag-handle {
+  animation: dragHintPulse 3s ease-in-out infinite;
+}
+
+/* Smooth transitions */
+* {
+  transition: all 0.2s ease;
 }
 </style>

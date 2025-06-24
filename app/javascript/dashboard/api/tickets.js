@@ -32,6 +32,12 @@ class TicketsAPI extends ApiClient {
     });
   }
 
+  async escalate(ticketId, note = null) {
+    return axios.post(`${this.url}/${ticketId}/escalate`, {
+      note: note,
+    });
+  }
+
   async resolve(ticketId) {
     return axios.post(`${this.url}/${ticketId}/resolve`);
   }

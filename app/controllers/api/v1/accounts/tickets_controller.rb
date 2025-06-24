@@ -165,6 +165,25 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
     end
   end
 
+  def escalate
+    note = params[:note]
+
+    begin
+      @ticket.escalate!
+
+      # Create activity message with optional note
+      message_content = note.present? ? "Ticket escalated: #{note}" : "Ticket escalated"
+      create_ticket_activity_message(:escalated, message_content)
+
+      # Broadcast ticket update to WebSocket for real-time updates
+      broadcast_ticket_updated
+
+      render :show
+    rescue StandardError => e
+      render json: { error: e.message }, status: :unprocessable_entity
+    end
+  end
+
   def resolve
     @ticket.resolve!
 
@@ -300,21 +319,23 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
     @ticket.previous_changes.key?('status') || @ticket.previous_changes.key?('priority')
   end
 
-  def create_ticket_activity_message(action_type)
-    message_content = case action_type
-                      when :created
-                        "Ticket ##{@ticket.id} \"#{@ticket.title}\" was created"
-                      when :updated
-                        "Ticket ##{@ticket.id} \"#{@ticket.title}\" was updated"
-                      when :deleted
-                        "Ticket ##{@ticket.id} \"#{@ticket.title}\" was deleted"
-                      when :escalated_to_jira
-                        "Ticket ##{@ticket.id} \"#{@ticket.title}\" was escalated to JIRA (#{@ticket.jira_issue_key})"
-                      when :resolved
-                        "Ticket ##{@ticket.id} \"#{@ticket.title}\" was resolved"
-                      when :closed
-                        "Ticket ##{@ticket.id} \"#{@ticket.title}\" was closed"
-                      end
+  def create_ticket_activity_message(action_type, custom_message = nil)
+    message_content = custom_message || case action_type
+                                        when :created
+                                          "Ticket ##{@ticket.id} \"#{@ticket.title}\" was created"
+                                        when :updated
+                                          "Ticket ##{@ticket.id} \"#{@ticket.title}\" was updated"
+                                        when :deleted
+                                          "Ticket ##{@ticket.id} \"#{@ticket.title}\" was deleted"
+                                        when :escalated
+                                          "Ticket ##{@ticket.id} \"#{@ticket.title}\" was escalated"
+                                        when :escalated_to_jira
+                                          "Ticket ##{@ticket.id} \"#{@ticket.title}\" was escalated to JIRA (#{@ticket.jira_issue_key})"
+                                        when :resolved
+                                          "Ticket ##{@ticket.id} \"#{@ticket.title}\" was resolved"
+                                        when :closed
+                                          "Ticket ##{@ticket.id} \"#{@ticket.title}\" was closed"
+                                        end
 
     Messages::MessageBuilder.new(
       Current.user,

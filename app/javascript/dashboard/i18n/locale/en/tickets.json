@@ -240,7 +240,24 @@
       "DONE": "Done",
       "NO_TICKETS": "No tickets in this column",
       "STATUS_UPDATED": "Ticket status updated successfully",
-      "STATUS_UPDATE_ERROR": "Failed to update ticket status"
+      "STATUS_UPDATE_ERROR": "Failed to update ticket status",
+      "INVALID_TRANSITION": "Invalid transition from {from} to {to}",
+      "TICKET_RESOLVED": "Ticket has been resolved successfully",
+      "ESCALATION_INITIATED": "Ticket escalation initiated",
+      "ESCALATION_CONFIRM": "Are you sure you want to escalate this ticket?",
+      "ESCALATION_CONFIRM_TEXT": "This will create a JIRA issue and mark the ticket as escalated. You can optionally add a note about the escalation.",
+      "ESCALATION_NOTE": "Escalation Note (Optional)",
+      "ESCALATION_NOTE_PLACEHOLDER": "Add a note about why this ticket is being escalated...",
+      "CONFIRM_ESCALATE": "Escalate Ticket",
+      "CANCEL": "Cancel",
+      "DRAG_HINT_VALID": "Drop here to {action}",
+      "DRAG_HINT_INVALID": "Cannot move here",
+      "ACTION_RESOLVE": "resolve ticket",
+      "ACTION_ESCALATE": "escalate ticket",
+      "RESOLVING": "Resolving ticket...",
+      "ESCALATING": "Escalating ticket...",
+      "DRAG_HELP": "Hover over tickets to see drag handle",
+      "DRAG_INSTRUCTION": "Use the blue handle on the left to drag tickets between columns"
     },
     
     "FILTERS": {

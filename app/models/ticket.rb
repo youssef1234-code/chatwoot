@@ -88,6 +88,10 @@ class Ticket < ApplicationRecord
     )
   end
 
+  def escalate!
+    update!(status: :escalated)
+  end
+
   def resolve!
     update!(
       status: :resolved,
