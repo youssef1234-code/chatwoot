@@ -45,16 +45,118 @@ class Integrations::Openai::ProcessorService < Integrations::OpenaiBaseService
   end
 
   def enhance_ticket_message
-    ticket_data = event['data']
+    Rails.logger.info 'Processing AI enhancement for support ticket'
     
-    system_content = "#{AGENT_INSTRUCTION} You are helping to improve ticket titles and descriptions. " \
-                     "Please enhance the provided ticket information to make it clearer, more descriptive, and professional. " \
-                     "Return ONLY a valid JSON response with 'title' and 'description' fields. " \
-                     "Do not include any markdown formatting or additional text."
+    # Handle ActionController::Parameters properly
+    ticket_data = if event['data'].is_a?(ActionController::Parameters)
+                    event['data'].permit!.to_h
+                  else
+                    event['data']
+                  end
     
-    user_content = "Current Title: #{ticket_data['title']}\nCurrent Description: #{ticket_data['description']}"
+    enhancement_options = ticket_data['enhancement_options'] || []
+    Rails.logger.info "Enhancement options: #{enhancement_options.inspect}"
     
-    make_api_call(build_api_call_body(system_content, user_content))
+    # Build system instructions based on selected options
+    system_instructions = build_enhancement_instructions(enhancement_options)
+    Rails.logger.info "System instructions: #{system_instructions}"
+    
+    # Build user content with linked messages as primary source
+    user_content = build_user_content_for_enhancement(ticket_data)
+    Rails.logger.info "User content: #{user_content}"
+    
+    Rails.logger.info 'Making API call to OpenAI'
+    result = make_api_call(build_api_call_body(system_instructions, user_content))
+    Rails.logger.info "OpenAI API result: #{result.inspect}"
+    
+    result
+  end
+
+  def build_enhancement_instructions(enhancement_options)
+    base_instruction = "#{AGENT_INSTRUCTION} You are helping to enhance support tickets based on conversation messages. "
+
+    instructions = []
+
+    if enhancement_options.include?('improve_title')
+      instructions << '- Create a clear, concise, and descriptive title that captures the main issue'
+    end
+
+    if enhancement_options.include?('improve_description')
+      instructions << "- Write a comprehensive description that summarizes the customer's issue and relevant context"
+    end
+
+    if enhancement_options.include?('suggest_priority')
+      instructions << '- Suggest an appropriate priority level (low, medium, high, urgent) based on the issue severity'
+    end
+
+    if enhancement_options.include?('suggest_labels')
+      instructions << '- Suggest relevant labels/tags that categorize this issue (max 5)'
+    end
+
+    if enhancement_options.include?('action_recommendations')
+      instructions << '- Provide actionable next steps or recommendations for resolving this issue'
+    end
+
+    instructions_text = instructions.join("\n")
+
+    response_format = build_response_format_instructions(enhancement_options)
+
+    "#{base_instruction}\n\nPlease:\n#{instructions_text}\n\n#{response_format}"
+  end
+
+  def build_response_format_instructions(enhancement_options)
+    format_fields = []
+
+    format_fields << '"title": "enhanced title text"' if enhancement_options.include?('improve_title')
+
+    format_fields << '"description": "enhanced description text"' if enhancement_options.include?('improve_description')
+
+    format_fields << '"priority": "low|medium|high|urgent"' if enhancement_options.include?('suggest_priority')
+
+    format_fields << '"labels": ["label1", "label2", ...]' if enhancement_options.include?('suggest_labels')
+
+    if enhancement_options.include?('action_recommendations')
+      format_fields << '"recommendations": ["action1", "action2", ...]'
+    end
+
+    format_text = format_fields.join(', ')
+
+    "Return ONLY a valid JSON response with the following structure: { #{format_text} }. " \
+    'Do not include any markdown formatting, explanations, or additional text outside the JSON.'
+  end
+
+  def build_user_content_for_enhancement(ticket_data)
+    content_parts = []
+
+    # Add linked messages as primary source of information
+    if ticket_data['messages'].present?
+      content_parts << '=== CONVERSATION MESSAGES ==='
+      content_parts << ticket_data['messages'].strip
+      content_parts << ''
+    end
+
+    # Add existing title/description only as reference context (don't send if empty)
+    existing_info = []
+
+    if ticket_data['title'].present? && ticket_data['title'].strip != ''
+      existing_info << "Current Title: #{ticket_data['title'].strip}"
+    end
+
+    if ticket_data['description'].present? && ticket_data['description'].strip != ''
+      existing_info << "Current Description: #{ticket_data['description'].strip}"
+    end
+
+    if existing_info.any?
+      content_parts << '=== EXISTING TICKET INFO ==='
+      content_parts.concat(existing_info)
+    end
+
+    # Fallback if no messages or existing content
+    if content_parts.empty?
+      content_parts << 'No conversation messages or existing ticket information provided. Please create a generic support ticket structure.'
+    end
+
+    content_parts.join("\n")
   end
 
   private
@@ -82,7 +184,8 @@ class Integrations::Openai::ProcessorService < Integrations::OpenaiBaseService
 
   def add_messages_until_token_limit(conversation, messages, in_array_format, start_from = 0)
     character_count = start_from
-    conversation.messages.where(message_type: [:incoming, :outgoing]).where(private: false).reorder('id desc').each do |message|
+    conversation.messages.where(message_type: %i[incoming
+                                                 outgoing]).where(private: false).reorder('id desc').each do |message|
       character_count, message_added = add_message_if_within_limit(character_count, message, messages, in_array_format)
       break unless message_added
     end

@@ -1,25 +1,23 @@
 <template>
-  <Modal
-    :show="true"
-    :on-close="onClose"
-    :close-on-backdrop-click="false"
-  >
+  <Modal :show="true" :on-close="onClose" :close-on-backdrop-click="false">
     <div class="w-full max-w-2xl mx-auto">
       <div class="flex flex-col h-[600px]">
         <!-- Header -->
-        <div class="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-600">
+        <div
+          class="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-600"
+        >
           <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
-            {{ $t('TICKETS.CREATE_TICKET') }}
+            {{ $t("TICKETS.CREATE_TICKET") }}
           </h2>
         </div>
-        
+
         <!-- Content -->
         <div class="flex-1 overflow-y-auto p-6">
           <form @submit.prevent="createTicket" class="space-y-4">
             <!-- Title -->
             <div>
               <label class="block text-sm font-medium text-n-slate-12 mb-2">
-                {{ $t('TICKETS.TITLE') }} *
+                {{ $t("TICKETS.TITLE") }} *
               </label>
               <input
                 v-model="ticketForm.title"
@@ -28,13 +26,15 @@
                 :placeholder="$t('TICKETS.TITLE_PLACEHOLDER')"
                 required
               />
-              <p v-if="errors.title" class="mt-1 text-sm text-red-600">{{ errors.title[0] }}</p>
+              <p v-if="errors.title" class="mt-1 text-sm text-red-600">
+                {{ errors.title[0] }}
+              </p>
             </div>
 
             <!-- Description -->
             <div>
               <label class="block text-sm font-medium text-n-slate-12 mb-2">
-                {{ $t('TICKETS.DESCRIPTION') }}
+                {{ $t("TICKETS.DESCRIPTION") }}
               </label>
               <textarea
                 v-model="ticketForm.description"
@@ -42,29 +42,35 @@
                 class="w-full px-3 py-2 border border-n-slate-6 rounded-md focus:outline-none focus:ring-2 focus:ring-n-blue-6 bg-n-slate-1 text-n-slate-12"
                 :placeholder="$t('TICKETS.DESCRIPTION_PLACEHOLDER')"
               ></textarea>
-              <p v-if="errors.description" class="mt-1 text-sm text-red-600">{{ errors.description[0] }}</p>
+              <p v-if="errors.description" class="mt-1 text-sm text-red-600">
+                {{ errors.description[0] }}
+              </p>
             </div>
 
             <!-- Priority -->
             <div>
               <label class="block text-sm font-medium text-n-slate-12 mb-2">
-                {{ $t('TICKETS.PRIORITY.LABEL') }}
+                {{ $t("TICKETS.PRIORITY.LABEL") }}
               </label>
               <select
                 v-model="ticketForm.priority"
                 class="w-full px-3 py-2 border border-n-slate-6 rounded-md focus:outline-none focus:ring-2 focus:ring-n-blue-6 bg-n-slate-1 text-n-slate-12"
               >
-                <option value="low">{{ $t('TICKETS.PRIORITY.LOW') }}</option>
-                <option value="medium">{{ $t('TICKETS.PRIORITY.MEDIUM') }}</option>
-                <option value="high">{{ $t('TICKETS.PRIORITY.HIGH') }}</option>
-                <option value="urgent">{{ $t('TICKETS.PRIORITY.URGENT') }}</option>
+                <option value="low">{{ $t("TICKETS.PRIORITY.LOW") }}</option>
+                <option value="medium">
+                  {{ $t("TICKETS.PRIORITY.MEDIUM") }}
+                </option>
+                <option value="high">{{ $t("TICKETS.PRIORITY.HIGH") }}</option>
+                <option value="urgent">
+                  {{ $t("TICKETS.PRIORITY.URGENT") }}
+                </option>
               </select>
             </div>
 
             <!-- Issue Type -->
             <div>
               <label class="block text-sm font-medium text-n-slate-12 mb-2">
-                {{ $t('TICKETS.ISSUE_TYPE') }}
+                {{ $t("TICKETS.ISSUE_TYPE") }}
               </label>
               <input
                 v-model="ticketForm.issue_type"
@@ -77,21 +83,23 @@
             <!-- Link to JIRA Issue -->
             <div v-if="isLoadingJiraIssues">
               <label class="block text-sm font-medium text-n-slate-12 mb-2">
-                {{ $t('TICKETS.LINK_JIRA_ISSUE') }}
+                {{ $t("TICKETS.LINK_JIRA_ISSUE") }}
               </label>
-              <div class="w-full px-3 py-2 border border-n-slate-6 rounded-md bg-n-slate-1 text-n-slate-10 text-sm">
-                {{ $t('TICKETS.LOADING_JIRA_ISSUES') }}
+              <div
+                class="w-full px-3 py-2 border border-n-slate-6 rounded-md bg-n-slate-1 text-n-slate-10 text-sm"
+              >
+                {{ $t("TICKETS.LOADING_JIRA_ISSUES") }}
               </div>
             </div>
             <div v-else-if="availableJiraIssues.length > 0">
               <label class="block text-sm font-medium text-n-slate-12 mb-2">
-                {{ $t('TICKETS.LINK_JIRA_ISSUE') }}
+                {{ $t("TICKETS.LINK_JIRA_ISSUE") }}
               </label>
               <select
                 v-model="ticketForm.jira_issue_key"
                 class="w-full px-3 py-2 border border-n-slate-6 rounded-md focus:outline-none focus:ring-2 focus:ring-n-blue-6 bg-n-slate-1 text-n-slate-12"
               >
-                <option value="">{{ $t('TICKETS.SELECT_JIRA_ISSUE') }}</option>
+                <option value="">{{ $t("TICKETS.SELECT_JIRA_ISSUE") }}</option>
                 <option
                   v-for="issue in availableJiraIssues"
                   :key="issue.key"
@@ -101,36 +109,68 @@
                 </option>
               </select>
               <p class="mt-1 text-xs text-n-slate-10">
-                {{ $t('TICKETS.JIRA_LINK_HELP') }}
+                {{ $t("TICKETS.JIRA_LINK_HELP") }}
               </p>
             </div>
-
 
             <!-- Selected Messages Preview -->
             <div v-if="selectedMessageIds.length > 0">
               <label class="block text-sm font-medium text-n-slate-12 mb-2">
-                {{ $t('TICKETS.SELECTED_MESSAGES_PREVIEW', { count: selectedMessageIds.length }) }}
+                {{
+                  $t("TICKETS.SELECTED_MESSAGES_PREVIEW", {
+                    count: selectedMessageIds.length,
+                  })
+                }}
               </label>
-              <div class="max-h-40 overflow-y-auto border border-n-slate-6 rounded-md bg-n-slate-1">
+              <div
+                class="max-h-40 overflow-y-auto border border-n-slate-6 rounded-md bg-n-slate-1"
+              >
                 <div
                   v-for="message in selectedMessagesPreview"
                   :key="message.id"
                   class="p-3 border-b border-n-slate-4 last:border-b-0"
                 >
                   <div class="text-xs text-n-slate-10 mb-1">
-                    {{ formatMessageSender(message) }} • {{ formatDate(message.created_at) }}
+                    {{ formatMessageSender(message) }} •
+                    {{ formatDate(message.created_at) }}
                   </div>
                   <div class="text-sm text-n-slate-12 line-clamp-2">
-                    {{ message.content || $t('TICKETS.NO_CONTENT') }}
+                    {{ message.content || $t("TICKETS.NO_CONTENT") }}
                   </div>
                 </div>
               </div>
+            </div>
+
+            <!-- AI Enhancement Option -->
+            <div
+              v-if="
+                selectedMessageIds.length > 0 &&
+                (!ticketForm.title.trim() || !ticketForm.description.trim())
+              "
+            >
+              <Button
+                variant="outline"
+                color="blue"
+                size="small"
+                :loading="isGeneratingWithAI"
+                :disabled="isLoading"
+                @click="generateTitleAndDescriptionWithAI"
+                class="w-full"
+              >
+                <Icon icon="i-lucide-sparkles" class="w-4 h-4 mr-2" />
+                {{ $t("TICKETS.GENERATE_WITH_AI") }}
+              </Button>
+              <p class="mt-1 text-xs text-n-slate-10">
+                {{ $t("TICKETS.GENERATE_WITH_AI_HELP") }}
+              </p>
             </div>
           </form>
         </div>
 
         <!-- Footer -->
-        <div class="flex justify-end gap-3 p-6 border-t border-slate-200 dark:border-slate-600">
+        <div
+          class="flex justify-end gap-3 p-6 border-t border-slate-200 dark:border-slate-600"
+        >
           <Button
             ghost
             slate
@@ -138,7 +178,7 @@
             @click="onClose"
             :disabled="isLoading"
           />
-          
+
           <Button
             blue
             :label="$t('TICKETS.CREATE_TICKET')"
@@ -153,13 +193,17 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { useStore } from 'vuex';
-import { useI18n } from 'vue-i18n';
-import { useAlert } from 'dashboard/composables';
-import Modal from 'dashboard/components/Modal.vue';
-import Button from 'dashboard/components-next/button/Button.vue';
-import JiraAPI from 'dashboard/api/integrations/jira';
+import { ref, computed, onMounted } from "vue";
+import { useI18n } from "vue-i18n";
+import { useAlert } from "dashboard/composables";
+import Modal from "dashboard/components/Modal.vue";
+import Button from "dashboard/components-next/button/Button.vue";
+import Icon from "dashboard/components-next/icon/Icon.vue";
+import JiraAPI from "dashboard/api/integrations/jira";
+import OpenaiAPI from "dashboard/api/integrations/openapi";
+import { useStoreGetters, useStore } from "dashboard/composables/store";
+
+const getters = useStoreGetters();
 
 const props = defineProps({
   conversationId: {
@@ -172,7 +216,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['close', 'created']);
+const emit = defineEmits(["close", "created"]);
 
 const store = useStore();
 const { t } = useI18n();
@@ -182,16 +226,17 @@ const currentUser = computed(() => store.getters.getCurrentUser);
 const currentChat = computed(() => store.getters.getSelectedChat);
 
 const ticketForm = ref({
-  title: '',
-  description: '',
-  priority: 'medium',
-  issue_type: '',
-  jira_issue_key: '',
-  assigned_agent_id: currentUser.value?.id || '',
+  title: "",
+  description: "",
+  priority: "medium",
+  issue_type: "",
+  jira_issue_key: "",
+  assigned_agent_id: currentUser.value?.id || "",
   conversation_id: props.conversationId,
 });
 
 const isLoading = ref(false);
+const isGeneratingWithAI = ref(false);
 const errors = ref({});
 
 // JIRA issues loaded from API
@@ -201,18 +246,18 @@ const isLoadingJiraIssues = ref(false);
 // Load JIRA issues for the conversation
 const loadJiraIssues = async () => {
   if (!props.conversationId) return;
-  
+
   isLoadingJiraIssues.value = true;
   try {
     const response = await JiraAPI.getLinkedIssues(props.conversationId);
-    availableJiraIssues.value = (response.data || []).map(issue => ({
+    availableJiraIssues.value = (response.data || []).map((issue) => ({
       key: issue.key,
       summary: issue.summary || issue.title,
       status: issue.status,
-      url: issue.url
+      url: issue.url,
     }));
   } catch (error) {
-    console.error('Failed to load JIRA issues:', error);
+    console.error("Failed to load JIRA issues:", error);
     availableJiraIssues.value = [];
   } finally {
     isLoadingJiraIssues.value = false;
@@ -224,16 +269,17 @@ const selectedMessagesPreview = computed(() => {
   if (!conversation || !conversation.messages) {
     return [];
   }
-  
-  return conversation.messages
-    .filter(message => props.selectedMessageIds.includes(message.id))
+
+  return conversation.messages.filter((message) =>
+    props.selectedMessageIds.includes(message.id)
+  );
 });
 
 const formatMessageSender = (message) => {
   if (message.message_type === 0) {
-    return message.sender?.name || t('TICKETS.CUSTOMER');
+    return message.sender?.name || t("TICKETS.CUSTOMER");
   }
-  return message.sender?.name || t('TICKETS.AGENT');
+  return message.sender?.name || t("TICKETS.AGENT");
 };
 
 const formatDate = (dateString) => {
@@ -244,29 +290,130 @@ const createTicket = async () => {
   if (!ticketForm.value.title.trim()) {
     return;
   }
-  
+
   isLoading.value = true;
   errors.value = {};
-  
+
   try {
     const ticketData = {
       ...ticketForm.value,
       message_ids: props.selectedMessageIds,
     };
-    
-    await store.dispatch('tickets/create', ticketData);
-    
-    useAlert(t('TICKETS.CREATE_SUCCESS'));
-    emit('created');
+
+    await store.dispatch("tickets/create", ticketData);
+
+    useAlert(t("TICKETS.CREATE_SUCCESS"));
+    emit("created");
     onClose();
   } catch (error) {
-    console.error('Error creating ticket:', error);
+    console.error("Error creating ticket:", error);
     if (error.response?.data?.errors) {
       errors.value = error.response.data.errors;
     }
-    useAlert(t('TICKETS.CREATE_ERROR'));
+    useAlert(t("TICKETS.CREATE_ERROR"));
   } finally {
     isLoading.value = false;
+  }
+};
+
+// AI generation function for ticket title and description
+const generateTitleAndDescriptionWithAI = async () => {
+  if (isGeneratingWithAI.value || props.selectedMessageIds.length === 0) return;
+
+  isGeneratingWithAI.value = true;
+
+  try {
+    // Get OpenAI integration
+    const integrations = getters["integrations/getAppIntegrations"].value;
+
+    const openaiHook = integrations.find(
+      (hook) => hook.id === "openai" && hook.enabled
+    );
+
+    if (!openaiHook) {
+      throw new Error(t("TICKETS.AI_ENHANCEMENT.OPENAI_NOT_CONFIGURED"));
+    }
+    if (!openaiHook) {
+      throw new Error(t("TICKETS.AI_ENHANCEMENT.OPENAI_NOT_CONFIGURED"));
+    }
+
+    // Get selected messages content
+    const conversation = currentChat.value;
+    const selectedMessages =
+      conversation.messages?.filter((message) =>
+        props.selectedMessageIds.includes(message.id)
+      ) || [];
+
+    if (selectedMessages.length === 0) {
+      throw new Error(t("TICKETS.AI_ENHANCEMENT.NO_MESSAGES_ERROR"));
+    }
+
+    // Format messages for AI
+    const messagesContent = selectedMessages
+      .map((message) => {
+        const sender = message.message_type === 0 ? "Customer" : "Agent";
+        const senderName = message.sender?.name || "Unknown";
+        return `${sender} (${senderName}): ${message.content}`;
+      })
+      .join("\n\n");
+
+    // Generate with AI
+    const enhancementOptions = [];
+    if (!ticketForm.value.title.trim())
+      enhancementOptions.push("improve_title");
+    if (!ticketForm.value.description.trim())
+      enhancementOptions.push("improve_description");
+
+    const response = await OpenaiAPI.enhanceTicket({
+      title: ticketForm.value.title || "",
+      description: ticketForm.value.description || "",
+      messages: messagesContent,
+      enhancementOptions,
+      hookId: openaiHook?.hooks[0]?.id,
+    });
+
+    // Parse response
+    let aiData = response.data;
+    if (typeof aiData === "string") {
+      try {
+        aiData = JSON.parse(aiData);
+      } catch (e) {
+        aiData = { description: aiData };
+      }
+    }
+
+    // Handle nested message structure
+    if (aiData.message) {
+      if (typeof aiData.message === "string") {
+        try {
+          aiData = JSON.parse(aiData.message);
+        } catch (e) {
+          aiData = { description: aiData.message };
+        }
+      } else {
+        aiData = aiData.message;
+      }
+    }
+
+    // Update form with AI-generated content
+    if (aiData.title && !ticketForm.value.title.trim()) {
+      ticketForm.value.title = aiData.title;
+    }
+
+    if (aiData.description && !ticketForm.value.description.trim()) {
+      ticketForm.value.description = aiData.description;
+    }
+
+    useAlert(t("TICKETS.AI_GENERATION_SUCCESS"));
+  } catch (error) {
+    console.error("AI generation failed:", error);
+    let errorMessage = error.message || t("TICKETS.AI_GENERATION_ERROR");
+    if (error.response?.data?.error) {
+      errorMessage = error.response.data.error;
+    }
+    useAlert(errorMessage);
+  } finally {
+    isGeneratingWithAI.value = false;
   }
 };
 
@@ -276,6 +423,6 @@ onMounted(() => {
 });
 
 const onClose = () => {
-  emit('close');
+  emit("close");
 };
 </script>

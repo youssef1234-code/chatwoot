@@ -7,17 +7,28 @@ class Integrations::OpenaiBaseService
   API_URL = 'https://api.openai.com/v1/chat/completions'.freeze
   GPT_MODEL = ENV.fetch('OPENAI_GPT_MODEL', 'gpt-4o-mini').freeze
 
-  ALLOWED_EVENT_NAMES = %w[rephrase summarize reply_suggestion fix_spelling_grammar shorten expand make_friendly make_formal simplify enhance_ticket].freeze
+  ALLOWED_EVENT_NAMES = %w[rephrase summarize reply_suggestion fix_spelling_grammar shorten expand make_friendly
+                           make_formal simplify enhance_ticket].freeze
   CACHEABLE_EVENTS = %w[].freeze
 
-  pattr_initialize [:hook!, :event!]
+  pattr_initialize %i[hook! event!]
 
   def perform
+    Rails.logger.info "OpenAI perform called with event: #{event.inspect}"
+    Rails.logger.info "Event name: #{event_name}"
+    Rails.logger.info "Valid event name? #{valid_event_name?}"
+    
     return nil unless valid_event_name?
 
-    return value_from_cache if value_from_cache.present?
+    Rails.logger.info "Checking cache for key: #{cache_key}"
+    cached_value = value_from_cache
+    Rails.logger.info "Cached value: #{cached_value.inspect}"
+    return cached_value if cached_value.present?
 
+    Rails.logger.info "Calling method: #{event_name}_message"
     response = send("#{event_name}_message")
+    Rails.logger.info "Method response: #{response.inspect}"
+    
     save_to_cache(response) if response.present?
 
     response
@@ -82,18 +93,32 @@ class Integrations::OpenaiBaseService
   end
 
   def make_api_call(body)
+    Rails.logger.info "Making OpenAI API call"
+    Rails.logger.info "Hook settings: #{hook.settings.inspect}"
+    
+    api_key = hook.settings['api_key']
+    Rails.logger.info "API key present: #{api_key.present?}"
+    Rails.logger.info "API key length: #{api_key&.length}"
+    
     headers = {
       'Content-Type' => 'application/json',
-      'Authorization' => "Bearer #{hook.settings['api_key']}"
+      'Authorization' => "Bearer #{api_key}"
     }
 
-    Rails.logger.info("OpenAI API request: #{body}")
+    Rails.logger.info("OpenAI API request body: #{body}")
+    Rails.logger.info("OpenAI API URL: #{API_URL}")
+    
     response = HTTParty.post(API_URL, headers: headers, body: body)
-    Rails.logger.info("OpenAI API response: #{response.body}")
+    Rails.logger.info("OpenAI API response status: #{response.code}")
+    Rails.logger.info("OpenAI API response body: #{response.body}")
 
-    return { error: response.parsed_response, error_code: response.code } unless response.success?
+    unless response.success?
+      Rails.logger.error("OpenAI API error: #{response.parsed_response}")
+      return { error: response.parsed_response, error_code: response.code }
+    end
 
     choices = JSON.parse(response.body)['choices']
+    Rails.logger.info("OpenAI choices: #{choices.inspect}")
 
     return { message: choices.first['message']['content'] } if choices.present?
 

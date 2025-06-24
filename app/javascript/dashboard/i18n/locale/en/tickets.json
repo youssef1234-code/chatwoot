@@ -60,13 +60,15 @@
       "PROCESSING": "Processing with AI...",
       "SUCCESS": "Ticket enhanced successfully",
       "ERROR": "Failed to enhance ticket with AI",
+      "ERROR_TITLE": "Enhancement Failed",
       "OPENAI_NOT_CONFIGURED": "OpenAI integration is not configured",
-      "NO_MESSAGES_ERROR": "No messages found for this ticket",
+      "NO_MESSAGES_ERROR": "No messages found for this ticket. Please link messages to the ticket first.",
       "NO_TEXT_CONTENT": "No text content found in linked messages",
       "NO_OPTIONS_SELECTED": "Please select at least one enhancement option",
       "INTEGRATION_ERROR": "Failed to load integrations", 
       "MESSAGES_FETCH_ERROR": "Failed to fetch ticket messages",
-      "API_ERROR": "Failed to communicate with AI service"
+      "API_ERROR": "Failed to communicate with AI service",
+      "LINKED_MESSAGES": "Linked Messages"
     },
     "DETAIL": {
       "TITLE": "Ticket Details",
@@ -346,5 +348,10 @@
     "JIRA_DESCRIPTION": "Description", 
     "JIRA_ASSIGNEE": "Assignee",
     "LOADING_JIRA": "Loading JIRA details..."
-  }
+  },
+  "GENERATE_WITH_AI": "Generate with AI",
+  "GENERATE_WITH_AI_HELP": "Let AI create title and description from selected messages",
+  "AI_GENERATION_SUCCESS": "Title and description generated successfully",
+  "AI_GENERATION_ERROR": "Failed to generate with AI",
+  "UNTITLED": "Untitled"
 }

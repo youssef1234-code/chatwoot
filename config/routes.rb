@@ -147,6 +147,7 @@ Rails.application.routes.draw do
               post :close
               post :add_messages
               post :remove_messages
+              post :enhance_with_ai
             end
           end
 

@@ -110,6 +110,12 @@ class TicketsAPI extends ApiClient {
       jira_url: jiraUrl,
     });
   }
+
+  async enhanceWithAI(ticketId, enhancementOptions) {
+    return axios.post(`${this.url}/${ticketId}/enhance_with_ai`, {
+      enhancement_options: enhancementOptions,
+    });
+  }
 }
 
 export default new TicketsAPI();

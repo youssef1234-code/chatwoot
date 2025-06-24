@@ -26,7 +26,9 @@ class Integrations::Hook < ApplicationRecord
   validates :inbox_id, presence: true, if: -> { hook_type == 'inbox' }
   validate :validate_settings_json_schema
   validate :ensure_feature_enabled
-  validates :app_id, uniqueness: { scope: [:account_id], unless: -> { app.present? && app.params[:allow_multiple_hooks].present? } }
+  validates :app_id, uniqueness: { scope: [:account_id], unless: lambda {
+    app.present? && app.params[:allow_multiple_hooks].present?
+  } }
 
   # TODO: This seems to be only used for slack at the moment
   # We can add a validator when storing the integration settings and toggle this in future
@@ -58,6 +60,7 @@ class Integrations::Hook < ApplicationRecord
   end
 
   def process_event(event)
+    Rails.logger.info "Processing event for hook: #{id}, event: #{event.inspect}"
     case app_id
     when 'openai'
       Integrations::Openai::ProcessorService.new(hook: self, event: event).perform if app_id == 'openai'
@@ -88,7 +91,10 @@ class Integrations::Hook < ApplicationRecord
   def validate_settings_json_schema
     return if app.blank? || app.params[:settings_json_schema].blank?
 
-    errors.add(:settings, ': Invalid settings data') unless JSONSchemer.schema(app.params[:settings_json_schema]).valid?(settings)
+    return if JSONSchemer.schema(app.params[:settings_json_schema]).valid?(settings)
+
+    errors.add(:settings,
+               ': Invalid settings data')
   end
 
   def trigger_setup_if_crm

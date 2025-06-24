@@ -247,6 +247,60 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
     end
   end
 
+  def enhance_with_ai
+    # Get the OpenAI hook for the account
+    openai_hook = current_account.hooks.find_by(app_id: 'openai', status: 'enabled')
+    
+    if openai_hook.blank?
+      render json: { error: 'OpenAI integration is not configured or enabled for this account' }, status: :unprocessable_entity
+      return
+    end
+
+    enhancement_options = params[:enhancement_options] || []
+    
+    if enhancement_options.empty?
+      render json: { error: 'At least one enhancement option must be selected' }, status: :unprocessable_entity
+      return
+    end
+
+    begin
+      # Get linked messages content for the ticket
+      linked_messages_content = get_linked_messages_content(@ticket)
+      
+      # Build the enhancement data
+      enhancement_data = {
+        title: @ticket.title || '',
+        description: @ticket.description || '',
+        messages: linked_messages_content,
+        enhancement_options: enhancement_options
+      }
+
+      # Call the OpenAI processor service
+      result = openai_hook.process_event({
+        event: 'enhance_ticket',
+        data: enhancement_data
+      })
+
+      if result && result[:error].blank?
+        # Parse the AI response
+        enhanced_data = parse_ai_enhancement_response(result)
+        
+        render json: { 
+          success: true, 
+          enhanced_data: enhanced_data,
+          message: 'Ticket enhanced successfully with AI'
+        }
+      else
+        error_message = result[:error] || 'Failed to enhance ticket with AI'
+        render json: { error: error_message }, status: :unprocessable_entity
+      end
+    rescue StandardError => e
+      Rails.logger.error "AI enhancement error: #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+      render json: { error: 'An error occurred while enhancing the ticket with AI' }, status: :internal_server_error
+    end
+  end
+
   private
 
   def fetch_ticket
@@ -418,5 +472,71 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
         }
       }
     )
+  end
+
+  def get_linked_messages_content(ticket)
+    # Get linked messages for the ticket
+    linked_messages = ticket.ticket_messages
+                           .includes(message: %i[sender conversation])
+                           .joins(:message)
+                           .order('messages.created_at ASC')
+                           .map(&:message)
+    
+    return '' if linked_messages.empty?
+    
+    # Format messages for AI processing
+    messages_content = linked_messages.map do |message|
+      sender_type = message.incoming? ? 'Customer' : 'Agent'
+      sender_name = message.sender&.name || 'Unknown'
+      timestamp = message.created_at.strftime('%Y-%m-%d %H:%M:%S')
+      
+      "[#{timestamp}] #{sender_type} (#{sender_name}): #{message.content}"
+    end
+    
+    messages_content.join("\n")
+  end
+  
+  def parse_ai_enhancement_response(result)
+    # Handle different response formats from OpenAI
+    response_text = result.is_a?(String) ? result : result.to_s
+    
+    begin
+      # Try to parse as JSON first
+      parsed_response = JSON.parse(response_text)
+      
+      # Handle nested message structure if present
+      if parsed_response.is_a?(Hash) && parsed_response['message']
+        message_content = parsed_response['message']
+        if message_content.is_a?(String)
+          # Try to parse the message content as JSON
+          begin
+            parsed_response = JSON.parse(message_content)
+          rescue JSON::ParserError
+            # If message content is not JSON, use it as description
+            parsed_response = { 'description' => message_content }
+          end
+        else
+          parsed_response = message_content
+        end
+      end
+      
+      # Ensure we return a hash with expected keys
+      {
+        title: parsed_response['title'] || parsed_response['enhanced_title'],
+        description: parsed_response['description'] || parsed_response['enhanced_description'],
+        priority: parsed_response['priority'] || parsed_response['suggested_priority'],
+        labels: parsed_response['labels'] || parsed_response['suggested_labels'] || [],
+        recommendations: parsed_response['recommendations'] || parsed_response['action_recommendations'] || []
+      }.compact
+      
+    rescue JSON::ParserError => e
+      Rails.logger.warn "Failed to parse AI response as JSON: #{e.message}"
+      Rails.logger.warn "Response was: #{response_text}"
+      
+      # Fallback: treat the entire response as description
+      {
+        description: response_text.strip
+      }
+    end
   end
 end
