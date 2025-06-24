@@ -226,6 +226,89 @@
             </div>
           </div>
 
+          <!-- Date Range Filter -->
+          <div class="relative min-w-48">
+            <label class="block text-sm font-medium text-n-slate-10 mb-1">
+              {{ $t('TICKETS.TRACKING.DATE_RANGE') }}
+            </label>
+            <div class="flex gap-1">
+              <NextInput
+                v-model="dateRange.start"
+                type="date"
+                size="sm"
+                :placeholder="$t('TICKETS.TRACKING.START_DATE')"
+                class="flex-1"
+              />
+              <NextInput
+                v-model="dateRange.end"
+                type="date"
+                size="sm"
+                :placeholder="$t('TICKETS.TRACKING.END_DATE')"
+                class="flex-1"
+              />
+            </div>
+          </div>
+
+          <!-- Organization Filter -->
+          <div class="relative min-w-40">
+            <label class="block text-sm font-medium text-n-slate-10 mb-1">
+              {{ $t('TICKETS.TRACKING.ORGANIZATION_FILTER') }}
+            </label>
+            <div class="relative">
+              <button
+                type="button"
+                class="w-full px-3 py-2 border border-n-weak rounded-lg bg-white dark:bg-n-slate-1 text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                @click="showOrganizationDropdown = !showOrganizationDropdown"
+              >
+                <span v-if="selectedOrganizations.length === 0" class="text-n-slate-9">
+                  {{ $t('TICKETS.TRACKING.ORGANIZATION_FILTER') }}
+                </span>
+                <span v-else class="text-n-slate-12">
+                  {{ selectedOrganizations.length }} selected
+                </span>
+                <Icon icon="i-lucide-chevron-down" class="absolute right-2 top-2.5 w-4 h-4" />
+              </button>
+              
+              <div
+                v-if="showOrganizationDropdown"
+                v-on-clickaway="() => showOrganizationDropdown = false"
+                class="absolute z-10 w-full mt-1 bg-white dark:bg-n-slate-1 border border-n-weak rounded-lg shadow-lg py-1 max-h-60 overflow-y-auto"
+              >
+                <!-- Search Input -->
+                <div class="px-3 py-2 border-b border-n-weak">
+                  <NextInput
+                    v-model="organizationSearchQuery"
+                    :placeholder="$t('TICKETS.TRACKING.SEARCH_ORGANIZATIONS')"
+                    type="search"
+                    size="sm"
+                  >
+                    <template #leading>
+                      <Icon icon="i-lucide-search" class="w-4 h-4 text-n-slate-9" />
+                    </template>
+                  </NextInput>
+                </div>
+                
+                <!-- Organization Options -->
+                <div v-if="filteredOrganizationOptions.length === 0" class="px-3 py-2 text-sm text-n-slate-9">
+                  {{ $t('TICKETS.TRACKING.NO_ORGANIZATIONS_FOUND') }}
+                </div>
+                <label
+                  v-for="option in filteredOrganizationOptions"
+                  :key="option.value"
+                  class="flex items-center px-3 py-2 hover:bg-n-alpha-1 cursor-pointer"
+                >
+                  <input
+                    v-model="selectedOrganizations"
+                    type="checkbox"
+                    :value="option.value"
+                    class="mr-2 text-blue-600 focus:ring-blue-500 rounded"
+                  />
+                  <span class="text-sm text-n-slate-12">{{ option.label }}</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
           <!-- Clear Filters -->
           <NextButton
             v-if="hasActiveFilters"
@@ -367,12 +450,19 @@ export default {
     const isLoading = ref(false);
     const isAiLoading = ref(false);
     const searchQuery = ref('');
+    const organizationSearchQuery = ref('');
     const selectedStatuses = ref([]);
     const selectedPriorities = ref([]);
     const selectedAgents = ref([]);
+    const selectedOrganizations = ref([]);
+    const dateRange = reactive({
+      start: '',
+      end: ''
+    });
     const showStatusDropdown = ref(false);
     const showPriorityDropdown = ref(false);
     const showAgentDropdown = ref(false);
+    const showOrganizationDropdown = ref(false);
     const isAiEnhancementEnabled = ref(false);
     const showDetailModal = ref(false);
     const showAiModal = ref(false);
@@ -425,11 +515,26 @@ export default {
       }));
     });
 
+    const organizationOptions = ref([]);
+
+    const filteredOrganizationOptions = computed(() => {
+      if (!organizationSearchQuery.value) {
+        return organizationOptions.value;
+      }
+      const query = organizationSearchQuery.value.toLowerCase();
+      return organizationOptions.value.filter(option =>
+        option.label.toLowerCase().includes(query)
+      );
+    });
+
     const hasActiveFilters = computed(() => {
       return selectedStatuses.value.length > 0 || 
              selectedPriorities.value.length > 0 || 
-             selectedAgents.value.length > 0 || 
-             searchQuery.value || 
+             selectedAgents.value.length > 0 ||
+             selectedOrganizations.value.length > 0 ||
+             dateRange.start ||
+             dateRange.end ||
+             searchQuery.value ||
              activeQuickFilter.value !== 'my_tickets';
     });
 
@@ -480,6 +585,34 @@ export default {
         );
       }
 
+      // Apply organization filter (multi-select)
+      if (selectedOrganizations.value.length > 0) {
+        filtered = filtered.filter(ticket => {
+          const contactOrg = ticket.contact?.organization ||
+                           ticket.contact?.custom_attributes?.organization ||
+                           ticket.contact?.custom_attributes?.company ||
+                           ticket.contact?.additional_attributes?.company_name;
+          return contactOrg && selectedOrganizations.value.includes(contactOrg);
+        });
+      }
+
+      // Apply date range filter
+      if (dateRange.start) {
+        const startDate = new Date(dateRange.start);
+        filtered = filtered.filter(ticket => {
+          const ticketDate = new Date(ticket.created_at);
+          return ticketDate >= startDate;
+        });
+      }
+      if (dateRange.end) {
+        const endDate = new Date(dateRange.end);
+        endDate.setHours(23, 59, 59, 999); // Include the entire end date
+        filtered = filtered.filter(ticket => {
+          const ticketDate = new Date(ticket.created_at);
+          return ticketDate <= endDate;
+        });
+      }
+
       return filtered;
     });
 
@@ -487,14 +620,59 @@ export default {
     const loadTickets = async () => {
       isLoading.value = true;
       try {
-        const params = {};
-        await store.dispatch('tickets/fetchTickets', params);
+        // Fetch all tickets across all pages
+        await store.dispatch('tickets/fetchAllTickets');
         updateStats();
+        
+        // Load organizations after tickets are loaded
+        await loadOrganizations();
       } catch (error) {
         console.error('Failed to load tickets:', error);
         useAlert(t('TICKETS.TRACKING.LOAD_ERROR'));
       } finally {
         isLoading.value = false;
+      }
+    };
+
+    const loadOrganizations = async () => {
+      try {
+        // Get all unique organizations from tickets that already have conversation data
+        const allTickets = store.getters['tickets/getTickets'];
+        const organizationSet = new Set();
+        
+        // Extract organizations from ticket data
+        allTickets.forEach(ticket => {
+        console.log('Ticket:', ticket);
+          // Check the new organization field from contact
+          if (ticket.contact?.organization) {
+            organizationSet.add(ticket.contact.organization);
+          }
+          
+          // Also check custom_attributes and additional_attributes
+          if (ticket.contact?.custom_attributes?.organization) {
+            organizationSet.add(ticket.contact.custom_attributes.organization);
+          }
+          
+          if (ticket.contact?.custom_attributes?.company) {
+            organizationSet.add(ticket.contact.custom_attributes.company);
+          }
+          
+          if (ticket.contact?.additional_attributes?.company_name) {
+            organizationSet.add(ticket.contact.additional_attributes.company_name);
+          }
+        });
+        
+        // Convert to options array
+        organizationOptions.value = Array.from(organizationSet)
+          .filter(org => org && org.trim())
+          .sort()
+          .map(org => ({
+            label: org,
+            value: org,
+          }));
+          
+      } catch (error) {
+        console.error('Failed to load organizations:', error);
       }
     };
 
@@ -526,6 +704,10 @@ export default {
       selectedStatuses.value = [];
       selectedPriorities.value = [];
       selectedAgents.value = [];
+      selectedOrganizations.value = [];
+      dateRange.start = '';
+      dateRange.end = '';
+      organizationSearchQuery.value = '';
       activeQuickFilter.value = 'my_tickets';
     };
 
@@ -600,22 +782,37 @@ export default {
       updateStats();
     };
 
+    const handleTicketCreated = (data) => {
+      console.log('New ticket created:', data);
+      // Add the new ticket to store directly if we have the full data
+      if (data && data.id) {
+        store.dispatch('tickets/addTicket', data);
+        updateStats();
+        loadOrganizations(); // Reload organizations in case new one was added
+      } else {
+        // Fallback: refresh all tickets
+        loadTickets();
+      }
+    };
+
     const handleJiraIssueUpdated = (data) => {
       loadTickets();
     };
 
     // Lifecycle
     onMounted(() => {
-      loadTickets();
+      loadTickets(); // This will also load organizations
       store.dispatch('agents/get');
       
       // Set up WebSocket listeners
       emitter.on('tickets:ticket-updated', handleTicketUpdated);
+      emitter.on('tickets:ticket-created', handleTicketCreated);
       emitter.on('jira:issue-status-updated', handleJiraIssueUpdated);
     });
 
     onUnmounted(() => {
       emitter.off('tickets:ticket-updated', handleTicketUpdated);
+      emitter.off('tickets:ticket-created', handleTicketCreated);
       emitter.off('jira:issue-status-updated', handleJiraIssueUpdated);
     });
 
@@ -627,12 +824,16 @@ export default {
       isLoading,
       isAiLoading,
       searchQuery,
+      organizationSearchQuery,
       selectedStatuses,
       selectedPriorities,
       selectedAgents,
+      selectedOrganizations,
+      dateRange,
       showStatusDropdown,
       showPriorityDropdown,
       showAgentDropdown,
+      showOrganizationDropdown,
       isAiEnhancementEnabled,
       showDetailModal,
       showAiModal,
@@ -650,11 +851,14 @@ export default {
       statusOptions,
       priorityOptions,
       agentOptions,
+      organizationOptions,
+      filteredOrganizationOptions,
       hasActiveFilters,
       filteredTickets,
       
       // Methods
       loadTickets,
+      loadOrganizations,
       refreshTickets,
       applyQuickFilter,
       clearFilters,

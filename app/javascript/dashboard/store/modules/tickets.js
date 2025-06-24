@@ -33,10 +33,14 @@ export const actions = {
     try {
       const response = await TicketsAPI.getAll(params);
       commit(types.SET_TICKETS, response.data);
+      
+      // Try to get total count from headers, fallback to response data length
+      const totalCount = parseInt(response.headers['X-Total-Count'] || response.headers['x-total-count'] || response.data.length, 10);
+      
       commit(types.SET_TICKETS_META, {
-        total: response.headers['x-total-count'] || response.data.length,
-        currentPage: params.page || 1,
-        perPage: params.per_page || 25,
+        total: totalCount,
+        currentPage: parseInt(params.page || 1, 10),
+        perPage: parseInt(params.per_page || 25, 10),
       });
       return response.data;
     } catch (error) {
@@ -51,11 +55,21 @@ export const actions = {
     commit(types.SET_TICKETS_UI_FLAG, { isFetching: true });
     try {
       const response = await TicketsAPI.getAll(params);
-      commit(types.SET_TICKETS, response.data);
+      
+      // If it's the first page, replace all tickets, otherwise append
+      if (!params.page || params.page === 1) {
+        commit(types.SET_TICKETS, response.data);
+      } else {
+        commit(types.APPEND_TICKETS, response.data);
+      }
+      
+      // Try to get total count from headers, fallback to response data length
+      const totalCount = parseInt(response.headers['X-Total-Count'] || response.headers['x-total-count'] || response.data.length, 10);
+      
       commit(types.SET_TICKETS_META, {
-        total: response.headers['x-total-count'] || response.data.length,
-        currentPage: params.page || 1,
-        perPage: params.per_page || 25,
+        total: totalCount,
+        currentPage: parseInt(params.page || 1, 10),
+        perPage: parseInt(params.per_page || 25, 10),
       });
       return response.data;
     } catch (error) {
@@ -64,6 +78,40 @@ export const actions = {
     } finally {
       commit(types.SET_TICKETS_UI_FLAG, { isFetching: false });
     }
+  },
+
+  async fetchAllTickets({ dispatch, getters }) {
+    console.log('fetchAllTickets: Starting to fetch all pages');
+    
+    // Fetch first page with explicit per_page
+    const firstPageData = await dispatch('fetchTickets', { page: 1, per_page: 25 });
+    console.log('fetchAllTickets: First page fetched, data length:', firstPageData?.length);
+    
+    const meta = getters.getMeta;
+    console.log('fetchAllTickets: Meta after first page:', meta);
+    
+    const totalPages = Math.ceil(meta.total / meta.perPage);
+    console.log('fetchAllTickets: Total pages calculated:', totalPages);
+    
+    // Fetch remaining pages if they exist
+    const promises = [];
+    for (let page = 2; page <= totalPages; page++) {
+      console.log(`fetchAllTickets: Queueing page ${page}`);
+      promises.push(dispatch('fetchTickets', { page, per_page: 25 }));
+    }
+    
+    if (promises.length > 0) {
+      console.log(`fetchAllTickets: Fetching ${promises.length} additional pages`);
+      const additionalPages = await Promise.all(promises);
+      console.log('fetchAllTickets: Additional pages fetched:', additionalPages.map(page => page?.length));
+    } else {
+      console.log('fetchAllTickets: No additional pages to fetch');
+    }
+    
+    const allTickets = getters.getTickets;
+    console.log('fetchAllTickets: Total tickets in store:', allTickets.length);
+    
+    return allTickets;
   },
 
   async fetchTicket({ commit }, ticketId) {
@@ -111,6 +159,18 @@ export const actions = {
       throw error;
     } finally {
       commit(types.SET_TICKETS_UI_FLAG, { isCreating: false });
+    }
+  },
+
+  // Action for adding tickets from WebSocket events
+  addTicket({ commit }, ticketData) {
+    console.log('Tickets Store: Adding ticket from WebSocket', ticketData);
+    commit(types.ADD_TICKET, ticketData);
+    if (ticketData.conversation && ticketData.conversation.id) {
+      commit(types.ADD_TICKET_TO_CONVERSATION, {
+        conversationId: ticketData.conversation.id,
+        ticket: ticketData,
+      });
     }
   },
 
@@ -269,6 +329,12 @@ export const mutations = {
       acc[ticket.id] = ticket;
       return acc;
     }, {});
+  },
+
+  [types.APPEND_TICKETS]($state, tickets) {
+    tickets.forEach(ticket => {
+      $state.records[ticket.id] = ticket;
+    });
   },
 
   [types.SET_TICKET]($state, ticket) {

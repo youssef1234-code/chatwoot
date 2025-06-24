@@ -122,6 +122,18 @@
       </div>
     </div>
 
+    <!-- Customer Info -->
+    <div v-if="customerInfo" class="mb-3">
+      <div class="flex items-center gap-2 text-sm text-n-slate-9 mb-1">
+        <Icon icon="i-lucide-user" class="w-4 h-4" />
+        <span class="font-medium">{{ customerInfo.name }}</span>
+      </div>
+      <div v-if="customerInfo.organization" class="flex items-center gap-2 text-xs text-n-slate-8 ml-6">
+        <Icon icon="i-lucide-building" class="w-3 h-3" />
+        <span>{{ customerInfo.organization }}</span>
+      </div>
+    </div>
+
     <!-- Messages Count -->
     <div class="mb-3">
       <div class="flex items-center gap-2 text-sm text-n-slate-9">

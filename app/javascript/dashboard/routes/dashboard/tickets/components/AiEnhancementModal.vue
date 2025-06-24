@@ -150,42 +150,45 @@
         <!-- Loading State -->
         <div v-if="isEnhancing" class="text-center py-8">
           <div class="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p class="text-sm text-n-slate-9">          {{ $t('TICKETS.AI_ENHANCEMENT.PROCESSING') }}
-        </p>
-      </div>
+          <p class="text-sm text-n-slate-9">
+            {{ $t('TICKETS.AI_ENHANCEMENT.PROCESSING') }}
+          </p>
+        </div>
 
-      <!-- Footer -->
-      <div class="flex items-center justify-between mt-6 pt-4 border-t border-n-weak">
-        <NextButton
-          variant="outline"
-          @click="$emit('close')"
-        >
-          {{ $t('TICKETS.AI_ENHANCEMENT.CANCEL') }}
-        </NextButton>
-        
-        <div class="flex items-center gap-2">
+        <!-- Footer -->
+        <div class="flex items-center justify-between mt-6 pt-4 border-t border-n-weak">
           <NextButton
-            v-if="!enhancementResults"
-            color="blue"
-            :is-loading="isEnhancing"
-            :disabled="selectedOptions.length === 0"
-            @click="enhanceWithAI"
+            variant="outline"
+            @click="$emit('close')"
           >
-            <Icon icon="i-lucide-sparkles" class="w-4 h-4 mr-2" />
-            {{ $t('TICKETS.AI_ENHANCEMENT.ENHANCE') }}
+            {{ $t('TICKETS.AI_ENHANCEMENT.CANCEL') }}
           </NextButton>
           
-          <NextButton
-            v-else
-            color="blue"
-            @click="applyEnhancements"
-          >
-            {{ $t('TICKETS.AI_ENHANCEMENT.APPLY') }}
-          </NextButton>
+          <div class="flex items-center gap-2">
+            <NextButton
+              v-if="!enhancementResults"
+              variant="solid"
+              color="blue"
+              :is-loading="isEnhancing"
+              :disabled="selectedOptions.length === 0"
+              @click="enhanceWithAI"
+            >
+              <Icon icon="i-lucide-sparkles" class="w-4 h-4 mr-2" />
+              {{ $t('TICKETS.AI_ENHANCEMENT.ENHANCE') }}
+            </NextButton>
+            
+            <NextButton
+              v-else
+              variant="solid"
+              color="blue"
+              @click="applyEnhancements"
+            >
+              {{ $t('TICKETS.AI_ENHANCEMENT.APPLY') }}
+            </NextButton>
+          </div>
         </div>
       </div>
-        </div>
-</div>
+    </div>
   </Modal>
 </template>
 
@@ -269,12 +272,25 @@ export default {
 
     // Methods
     const enhanceWithAI = async () => {
+      if (isEnhancing.value) return; // Prevent double clicks
+      
       isEnhancing.value = true;
       
       try {
+        // Validate we have selected options
+        if (selectedOptions.value.length === 0) {
+          throw new Error(t('TICKETS.AI_ENHANCEMENT.NO_OPTIONS_SELECTED'));
+        }
+
         // Get the OpenAI hook ID from integrations
-        const integrations = await $store.dispatch('integrations/get');
-        const openaiHook = integrations?.find(hook => hook.app_id === 'openai' && hook.status === 'enabled');
+        let openaiHook;
+        try {
+          const integrations = await $store.dispatch('integrations/get');
+          openaiHook = integrations?.find(hook => hook.app_id === 'openai' && hook.status === 'enabled');
+        } catch (error) {
+          console.error('Failed to fetch integrations:', error);
+          throw new Error(t('TICKETS.AI_ENHANCEMENT.INTEGRATION_ERROR'));
+        }
         
         if (!openaiHook) {
           throw new Error(t('TICKETS.AI_ENHANCEMENT.OPENAI_NOT_CONFIGURED'));
@@ -282,10 +298,12 @@ export default {
 
         // Get ONLY linked messages for the ticket (no old title/description sent)
         let messagesContent = '';
+        let linkedMessages = [];
+        
         try {
           const TicketsAPI = await import('dashboard/api/tickets');
           const messagesResponse = await TicketsAPI.default.getMessages(props.ticket.id);
-          const linkedMessages = messagesResponse.data.messages || [];
+          linkedMessages = messagesResponse.data.messages || [];
           
           if (linkedMessages.length === 0) {
             throw new Error(t('TICKETS.AI_ENHANCEMENT.NO_MESSAGES_ERROR'));
@@ -293,29 +311,38 @@ export default {
           
           // Extract ONLY the content of linked messages - no old title/description
           messagesContent = linkedMessages
-            .filter(msg => msg.content && msg.content.trim())
+            .filter(msg => msg && msg.content && typeof msg.content === 'string' && msg.content.trim())
             .map(msg => msg.content.trim())
             .join('\n\n');
             
           if (!messagesContent.trim()) {
-            throw new Error('No text content found in linked messages.');
+            throw new Error(t('TICKETS.AI_ENHANCEMENT.NO_TEXT_CONTENT'));
           }
         } catch (error) {
           console.error('Failed to fetch ticket messages:', error);
-          throw error;
+          if (error.message.includes('TICKETS.AI_ENHANCEMENT.')) {
+            throw error;
+          }
+          throw new Error(t('TICKETS.AI_ENHANCEMENT.MESSAGES_FETCH_ERROR'));
         }
 
         // Call the OpenAI API - send ONLY the linked messages content (no old values)
-        const OpenaiAPI = await import('dashboard/api/integrations/openapi');
-        const response = await OpenaiAPI.default.enhanceTicket({
-          title: '', // Don't send existing title
-          description: '', // Don't send existing description  
-          messages: messagesContent, // Send ONLY the linked messages content
-          enhancementOptions: selectedOptions.value,
-          hookId: openaiHook.id,
-        });
+        let response;
+        try {
+          const OpenaiAPI = await import('dashboard/api/integrations/openapi');
+          response = await OpenaiAPI.default.enhanceTicket({
+            title: '', // Don't send existing title
+            description: '', // Don't send existing description  
+            messages: messagesContent, // Send ONLY the linked messages content
+            enhancementOptions: selectedOptions.value,
+            hookId: openaiHook.id,
+          });
+        } catch (error) {
+          console.error('OpenAI API call failed:', error);
+          throw new Error(t('TICKETS.AI_ENHANCEMENT.API_ERROR'));
+        }
         
-        // Parse the AI response
+        // Parse the AI response safely
         let enhancedData;
         try {
           enhancedData = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
@@ -323,6 +350,7 @@ export default {
             enhancedData = typeof enhancedData.message === 'string' ? JSON.parse(enhancedData.message) : enhancedData.message;
           }
         } catch (parseError) {
+          console.warn('Failed to parse AI response as JSON, using text fallback:', parseError);
           // If parsing fails, treat the entire response as description
           const responseText = response.data?.message || response.data || 'AI enhancement completed';
           enhancedData = {
@@ -332,18 +360,26 @@ export default {
           };
         }
         
+        // Safely extract enhanced data
         enhancementResults.value = {
-          title: selectedOptions.value.includes('improve_title') ? (enhancedData.title || enhancedData.enhanced_title) : null,
-          description: selectedOptions.value.includes('improve_description') ? (enhancedData.description || enhancedData.enhanced_description) : null,
-          priority: selectedOptions.value.includes('suggest_priority') ? enhancedData.suggested_priority : null,
-          labels: selectedOptions.value.includes('suggest_labels') ? enhancedData.suggested_labels : null,
-          recommendations: selectedOptions.value.includes('action_recommendations') ? enhancedData.recommendations : null,
+          title: selectedOptions.value.includes('improve_title') ? 
+            (enhancedData.title || enhancedData.enhanced_title || null) : null,
+          description: selectedOptions.value.includes('improve_description') ? 
+            (enhancedData.description || enhancedData.enhanced_description || null) : null,
+          priority: selectedOptions.value.includes('suggest_priority') ? 
+            (enhancedData.suggested_priority || enhancedData.priority || null) : null,
+          labels: selectedOptions.value.includes('suggest_labels') ? 
+            (enhancedData.suggested_labels || enhancedData.labels || null) : null,
+          recommendations: selectedOptions.value.includes('action_recommendations') ? 
+            (enhancedData.recommendations || enhancedData.action_recommendations || null) : null,
         };
 
         showAlert(t('TICKETS.AI_ENHANCEMENT.SUCCESS'));
       } catch (error) {
         console.error('AI enhancement failed:', error);
         showAlert(error.message || t('TICKETS.AI_ENHANCEMENT.ERROR'));
+        // Reset enhancement results on error
+        enhancementResults.value = null;
       } finally {
         isEnhancing.value = false;
       }

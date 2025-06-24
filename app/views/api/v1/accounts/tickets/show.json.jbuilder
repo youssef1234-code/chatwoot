@@ -26,6 +26,9 @@ if @ticket.contact
     json.email @ticket.contact.email
     json.phone_number @ticket.contact.phone_number
     json.identifier @ticket.contact.identifier
+    json.organization @ticket.contact.additional_attributes&.dig('company_name') || @ticket.contact.custom_attributes&.dig('organization') || @ticket.contact.custom_attributes&.dig('company') || @ticket.contact.additional_attributes&.dig('organization')
+    json.additional_attributes @ticket.contact.additional_attributes
+    json.custom_attributes @ticket.contact.custom_attributes
   end
 end
 

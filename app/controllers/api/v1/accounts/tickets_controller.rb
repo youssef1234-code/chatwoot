@@ -12,7 +12,16 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
     @tickets = @tickets.created_by(params[:created_by_id]) if params[:created_by_id].present?
     @tickets = @tickets.assigned_to(params[:assigned_agent_id]) if params[:assigned_agent_id].present?
 
+    # Get total count before pagination
+    @total_count = @tickets.count
+
     @tickets = @tickets.page(params[:page]).per(params[:per_page] || 25)
+    
+    # Set pagination headers
+    response.headers['X-Total-Count'] = @total_count.to_s
+    response.headers['X-Current-Page'] = @tickets.current_page.to_s
+    response.headers['X-Per-Page'] = @tickets.limit_value.to_s
+    response.headers['X-Total-Pages'] = @tickets.total_pages.to_s
   end
 
   def show

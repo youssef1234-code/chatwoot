@@ -1,164 +1,321 @@
 <template>
   <Modal
-    v-model:show="showModal"
+    :show="showModal"
     :on-close="() => $emit('close')"
-    size="medium"
-    :full-width="true"
+    :close-on-backdrop-click="false"
   >
-    <div class="p-6">
-      <!-- Header -->
-      <div class="flex items-center justify-between mb-6">
-        <div>
-          <h2 class="text-xl font-semibold text-n-slate-12">
-            {{ $t('TICKETS.DETAIL.TITLE') }}
-          </h2>
-          <p class="text-sm text-n-slate-10 mt-1">
-            {{ $t('TICKETS.DETAIL.SUBTITLE', { id: ticket.id }) }}
-          </p>
+    <div class="w-full max-w-4xl mx-auto">
+      <div class="flex flex-col h-[700px]">
+        <!-- Header -->
+        <div class="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-600">
+          <div class="flex items-center gap-4">
+            <div class="w-10 h-10 bg-purple-600 rounded-lg text-white text-lg flex items-center justify-center font-bold">
+              T
+            </div>
+            <div>
+              <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                {{ $t('TICKETS.DETAIL.TITLE') }} #{{ ticket.id }}
+              </h2>
+              <div class="flex items-center gap-3 mt-1">
+                <!-- Status Badge -->
+                <span
+                  class="px-2 py-1 text-xs font-medium rounded-full border"
+                  :class="getStatusBadgeColor(ticket.status)"
+                >
+                  {{ $t(`TICKETS.STATUS.${ticket.status?.toUpperCase()}`) }}
+                </span>
+                <!-- Priority Badge -->
+                <span
+                  class="px-2 py-1 text-xs font-medium rounded-full border"
+                  :class="getPriorityBadgeColor(ticket.priority)"
+                >
+                  {{ $t(`TICKETS.PRIORITY.${ticket.priority?.toUpperCase()}`) }}
+                </span>
+                <!-- JIRA Badge -->
+                <span
+                  v-if="ticket.jira_issue_key"
+                  class="px-2 py-1 text-xs font-medium rounded-full bg-blue-50 text-blue-700 border border-blue-200"
+                >
+                  {{ ticket.jira_issue_key }}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="flex items-center gap-2">
-          <NextButton
-            variant="outline"
-            size="sm"
-            @click="refreshTicket"
-            :is-loading="isRefreshing"
+
+        <!-- Tabs Navigation -->
+        <div class="flex border-b border-slate-200 dark:border-slate-600">
+          <button
+            v-for="tab in tabs"
+            :key="tab.id"
+            @click="activeTab = tab.id"
+            :class="[
+              activeTab === tab.id
+                ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/30'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700',
+              'flex-1 px-6 py-3 text-sm font-medium transition-colors'
+            ]"
           >
-            <Icon icon="i-lucide-refresh-cw" class="w-4 h-4 mr-2" />
-            {{ $t('TICKETS.DETAIL.REFRESH') }}
-          </NextButton>
+            <Icon :icon="tab.icon" class="w-4 h-4 mr-2" />
+            {{ tab.label }}
+          </button>
         </div>
-      </div>
-      <div class="flex h-full max-h-[70vh]">
-        <!-- Left Panel - Ticket Details -->
-        <div class="flex-1 pr-6 border-r border-n-weak overflow-y-auto">
-          <!-- Ticket Info -->
-          <div class="space-y-6">
-            <!-- Status and Priority -->
-            <div class="flex items-center gap-4">
-              <div>
-                <NextSelect
-                  v-model="ticketForm.status"
-                  :label="$t('TICKETS.DETAIL.STATUS')"
-                  name="status"
-                  :options="statusOptions"
-                  @update:model-value="updateTicket"
-                />
-              </div>
-              <div>
-                <NextSelect
-                  v-model="ticketForm.priority"
-                  :label="$t('TICKETS.DETAIL.PRIORITY')"
-                  name="priority"
-                  :options="priorityOptions"
-                  @update:model-value="updateTicket"
-                />
-              </div>
-            </div>
 
-            <!-- Title and Description -->
-            <div>
-              <label class="block text-sm font-medium text-n-slate-10 mb-1">
-                {{ $t('TICKETS.DETAIL.TITLE') }}
-              </label>
-              <NextInput
-                v-model="ticketForm.title"
-                :placeholder="$t('TICKETS.DETAIL.TITLE_PLACEHOLDER')"
-                @blur="updateTicket"
-              />
-            </div>
-
-            <div>
-              <NextTextarea
-                v-model="ticketForm.description"
-                :label="$t('TICKETS.DETAIL.DESCRIPTION')"
-                name="description"
-                :placeholder="$t('TICKETS.DETAIL.DESCRIPTION_PLACEHOLDER')"
-                :rows="4"
-                @blur="updateTicket"
-              />
-            </div>
-
-            <!-- Assignment -->
-            <div>
-              <NextSelect
-                v-model="ticketForm.assigned_agent_id"
-                :label="$t('TICKETS.DETAIL.ASSIGNED_AGENT')"
-                name="assigned_agent"
-                :options="agentOptions"
-                :placeholder="$t('TICKETS.DETAIL.SELECT_AGENT')"
-                @update:model-value="updateTicket"
-              />
-            </div>
-
-            <!-- JIRA Integration -->
-            <div v-if="ticket.jira_issue_key || canEscalateToJira" class="space-y-4">
-              <h3 class="text-lg font-medium text-n-slate-12">
-                {{ $t('TICKETS.DETAIL.JIRA_INTEGRATION') }}
-              </h3>
-              
-              <!-- Existing JIRA Issue -->
-              <div v-if="ticket.jira_issue_key" class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200">
-                <div class="flex items-center justify-between mb-3">
-                  <div class="flex items-center gap-2">
-                    <Icon icon="i-lucide-external-link" class="w-5 h-5 text-blue-600" />
-                    <span class="font-medium text-blue-800 dark:text-blue-200">
-                      {{ ticket.jira_issue_key }}
-                    </span>
+        <!-- Tab Content -->
+        <div class="flex-1 overflow-hidden">
+          <!-- Basic Information Tab -->
+          <div v-show="activeTab === 'basic'" class="h-full overflow-y-auto p-6 space-y-6">
+            <form @submit.prevent="saveChanges" class="space-y-6">
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Left Column -->
+                <div class="space-y-6">
+                  <!-- Title -->
+                  <div>
+                    <label class="block text-sm font-medium text-n-slate-12 mb-2">
+                      {{ $t('TICKETS.TITLE') }} *
+                    </label>
+                    <input
+                      v-model="editForm.title"
+                      type="text"
+                      class="w-full px-3 py-2 border border-n-slate-6 rounded-md focus:outline-none focus:ring-2 focus:ring-n-blue-6 bg-n-slate-1 text-n-slate-12"
+                      :placeholder="$t('TICKETS.TITLE_PLACEHOLDER')"
+                      required
+                      @input="markAsChanged"
+                    />
+                    <p v-if="errors.title" class="mt-1 text-sm text-red-600">{{ errors.title }}</p>
                   </div>
-                  <NextButton
-                    variant="solid"
-                    color="blue"
-                    size="sm"
+
+                  <!-- Description -->
+                  <div>
+                    <label class="block text-sm font-medium text-n-slate-12 mb-2">
+                      {{ $t('TICKETS.DESCRIPTION') }}
+                    </label>
+                    <textarea
+                      v-model="editForm.description"
+                      rows="4"
+                      class="w-full px-3 py-2 border border-n-slate-6 rounded-md focus:outline-none focus:ring-2 focus:ring-n-blue-6 bg-n-slate-1 text-n-slate-12"
+                      :placeholder="$t('TICKETS.DESCRIPTION_PLACEHOLDER')"
+                      @input="markAsChanged"
+                    ></textarea>
+                    <p v-if="errors.description" class="mt-1 text-sm text-red-600">{{ errors.description }}</p>
+                  </div>
+
+                  <!-- Customer Information -->
+                  <div v-if="ticket.contact" class="p-4 bg-n-slate-2 rounded-lg border border-n-weak">
+                    <h3 class="text-sm font-medium text-n-slate-12 mb-3 flex items-center gap-2">
+                      <Icon icon="i-lucide-user" class="w-4 h-4" />
+                      {{ $t('TICKETS.DETAIL.CUSTOMER_INFO') }}
+                    </h3>
+                    <div class="space-y-3">
+                      <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                          {{ getInitials(ticket.contact.name) }}
+                        </div>
+                        <div>
+                          <p class="font-medium text-n-slate-12">{{ ticket.contact.name }}</p>
+                          <p class="text-sm text-n-slate-10">{{ ticket.contact.email }}</p>
+                        </div>
+                      </div>
+                      <div v-if="ticket.contact.phone_number" class="flex items-center gap-3 text-sm text-n-slate-10">
+                        <Icon icon="i-lucide-phone" class="w-4 h-4" />
+                        <span>{{ ticket.contact.phone_number }}</span>
+                      </div>
+                      <div v-if="ticket.contact.organization" class="flex items-center gap-3 text-sm text-n-slate-10">
+                        <Icon icon="i-lucide-building" class="w-4 h-4" />
+                        <span>{{ ticket.contact.organization }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Right Column -->
+                <div class="space-y-6">
+                  <!-- Status and Priority -->
+                  <div class="grid grid-cols-1 gap-4">
+                    <div>
+                      <label class="block text-sm font-medium text-n-slate-12 mb-2">
+                        {{ $t('TICKETS.STATUS.LABEL') }}
+                      </label>
+                      <select
+                        v-model="editForm.status"
+                        class="w-full px-3 py-2 border border-n-slate-6 rounded-md focus:outline-none focus:ring-2 focus:ring-n-blue-6 bg-n-slate-1 text-n-slate-12"
+                        @change="markAsChanged"
+                      >
+                        <option value="open">{{ $t('TICKETS.STATUS.OPEN') }}</option>
+                        <option value="in_progress">{{ $t('TICKETS.STATUS.IN_PROGRESS') }}</option>
+                        <option value="escalated">{{ $t('TICKETS.STATUS.ESCALATED') }}</option>
+                        <option value="resolved">{{ $t('TICKETS.STATUS.RESOLVED') }}</option>
+                        <option value="closed">{{ $t('TICKETS.STATUS.CLOSED') }}</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="block text-sm font-medium text-n-slate-12 mb-2">
+                        {{ $t('TICKETS.PRIORITY.LABEL') }}
+                      </label>
+                      <select
+                        v-model="editForm.priority"
+                        class="w-full px-3 py-2 border border-n-slate-6 rounded-md focus:outline-none focus:ring-2 focus:ring-n-blue-6 bg-n-slate-1 text-n-slate-12"
+                        @change="markAsChanged"
+                      >
+                        <option value="low">{{ $t('TICKETS.PRIORITY.LOW') }}</option>
+                        <option value="medium">{{ $t('TICKETS.PRIORITY.MEDIUM') }}</option>
+                        <option value="high">{{ $t('TICKETS.PRIORITY.HIGH') }}</option>
+                        <option value="urgent">{{ $t('TICKETS.PRIORITY.URGENT') }}</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Assigned Agent -->
+                  <div>
+                    <label class="block text-sm font-medium text-n-slate-12 mb-2">
+                      {{ $t('TICKETS.DETAIL.ASSIGNED_AGENT') }}
+                    </label>
+                    <select
+                      v-model="editForm.assigned_agent_id"
+                      class="w-full px-3 py-2 border border-n-slate-6 rounded-md focus:outline-none focus:ring-2 focus:ring-n-blue-6 bg-n-slate-1 text-n-slate-12"
+                      @change="markAsChanged"
+                    >
+                      <option value="">{{ $t('TICKETS.UNASSIGNED') }}</option>
+                      <option
+                        v-for="agent in agents"
+                        :key="agent.id"
+                        :value="agent.id"
+                      >
+                        {{ agent.name }}
+                      </option>
+                    </select>
+                    <div v-if="assignedAgent" class="mt-3 flex items-center gap-3 p-3 bg-n-slate-2 rounded-lg">
+                      <div class="w-8 h-8 bg-gradient-to-br from-green-500 to-teal-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                        {{ getInitials(assignedAgent.name) }}
+                      </div>
+                      <div>
+                        <p class="font-medium text-n-slate-12">{{ assignedAgent.name }}</p>
+                        <p class="text-sm text-n-slate-10">{{ assignedAgent.email }}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Escalation Section -->
+                  <div v-if="canEscalateToJira" class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <h3 class="text-sm font-medium text-amber-900 dark:text-amber-100 mb-1">
+                          {{ $t('TICKETS.DETAIL.ESCALATE_TO_JIRA') }}
+                        </h3>
+                        <p class="text-xs text-amber-800 dark:text-amber-200">
+                          {{ $t('TICKETS.DETAIL.ESCALATE_DESCRIPTION') }}
+                        </p>
+                      </div>
+                      <Button
+                        amber
+                        size="sm"
+                        :loading="isEscalating"
+                        @click="showEscalateModal"
+                      >
+                        {{ $t('TICKETS.DETAIL.ESCALATE') }}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <!-- Timestamps -->
+                  <div class="p-4 bg-n-slate-2 rounded-lg border border-n-weak">
+                    <h3 class="text-sm font-medium text-n-slate-12 mb-3 flex items-center gap-2">
+                      <Icon icon="i-lucide-clock" class="w-4 h-4" />
+                      {{ $t('TICKETS.DETAIL.TIMESTAMPS') }}
+                    </h3>
+                    <div class="space-y-2 text-sm">
+                      <div class="flex justify-between">
+                        <span class="text-n-slate-10">{{ $t('TICKETS.DETAIL.CREATED_AT') }}:</span>
+                        <span class="text-n-slate-12 font-medium">{{ formatDate(ticket.created_at) }}</span>
+                      </div>
+                      <div v-if="ticket.updated_at !== ticket.created_at" class="flex justify-between">
+                        <span class="text-n-slate-10">{{ $t('TICKETS.DETAIL.UPDATED_AT') }}:</span>
+                        <span class="text-n-slate-12 font-medium">{{ formatDate(ticket.updated_at) }}</span>
+                      </div>
+                      <div v-if="ticket.resolved_at" class="flex justify-between">
+                        <span class="text-n-slate-10">{{ $t('TICKETS.DETAIL.RESOLVED_AT') }}:</span>
+                        <span class="text-n-slate-12 font-medium">{{ formatDate(ticket.resolved_at) }}</span>
+                      </div>
+                      <div v-if="ticket.duration_to_resolve" class="flex justify-between">
+                        <span class="text-n-slate-10">{{ $t('TICKETS.DETAIL.RESOLUTION_TIME') }}:</span>
+                        <span class="text-n-slate-12 font-medium">{{ ticket.duration_to_resolve }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <!-- JIRA Integration Tab -->
+          <div v-show="activeTab === 'jira'" class="h-full overflow-y-auto p-6">
+            <div v-if="ticket.jira_issue_key || canEscalateToJira" class="max-w-2xl">
+              <!-- Existing JIRA Issue -->
+              <div v-if="ticket.jira_issue_key" class="p-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div class="flex items-center justify-between mb-4">
+                  <div class="flex items-center gap-3">
+                    <Icon icon="i-lucide-external-link" class="w-6 h-6 text-blue-600" />
+                    <div>
+                      <h3 class="text-lg font-medium text-blue-900 dark:text-blue-100">
+                        {{ ticket.jira_issue_key }}
+                      </h3>
+                      <p class="text-sm text-blue-700 dark:text-blue-300">
+                        {{ $t('TICKETS.DETAIL.LINKED_JIRA_ISSUE') }}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    blue
                     @click="openJiraIssue"
                   >
                     {{ $t('TICKETS.VIEW_IN_JIRA') }}
-                  </NextButton>
+                  </Button>
                 </div>
                 
                 <!-- JIRA Issue Details -->
-                <div v-if="jiraIssueDetails" class="space-y-3">
+                <div v-if="jiraIssueDetails" class="space-y-4">
                   <div class="grid grid-cols-2 gap-4">
                     <div>
-                      <span class="text-sm font-medium text-blue-700 block">
+                      <span class="text-sm font-medium text-blue-800 dark:text-blue-200 block">
                         {{ $t('TICKETS.DETAIL.JIRA_STATUS') }}
                       </span>
-                      <span class="text-sm text-blue-800 font-medium">
+                      <span class="text-sm text-blue-900 dark:text-blue-100 font-medium">
                         {{ jiraIssueDetails.status }}
                       </span>
                     </div>
                     <div>
-                      <span class="text-sm font-medium text-blue-700 block">
-                        Priority
+                      <span class="text-sm font-medium text-blue-800 dark:text-blue-200 block">
+                        {{ $t('TICKETS.DETAIL.JIRA_PRIORITY') }}
                       </span>
-                      <span class="text-sm text-blue-800 font-medium">
+                      <span class="text-sm text-blue-900 dark:text-blue-100 font-medium">
                         {{ jiraIssueDetails.priority || 'Not set' }}
                       </span>
                     </div>
                   </div>
                   
                   <div>
-                    <span class="text-sm font-medium text-blue-700 block mb-1">
+                    <span class="text-sm font-medium text-blue-800 dark:text-blue-200 block mb-1">
                       {{ $t('TICKETS.DETAIL.JIRA_SUMMARY') }}
                     </span>
-                    <p class="text-sm text-blue-800">
+                    <p class="text-sm text-blue-900 dark:text-blue-100">
                       {{ jiraIssueDetails.summary }}
                     </p>
                   </div>
                   
                   <div v-if="jiraIssueDetails.description">
-                    <span class="text-sm font-medium text-blue-700 block mb-1">
-                      Description
+                    <span class="text-sm font-medium text-blue-800 dark:text-blue-200 block mb-1">
+                      {{ $t('TICKETS.DETAIL.JIRA_DESCRIPTION') }}
                     </span>
-                    <p class="text-sm text-blue-800 line-clamp-3">
+                    <p class="text-sm text-blue-900 dark:text-blue-100 whitespace-pre-wrap">
                       {{ jiraIssueDetails.description }}
                     </p>
                   </div>
                   
                   <div v-if="jiraIssueDetails.assignee">
-                    <span class="text-sm font-medium text-blue-700 block">
-                      Assignee
+                    <span class="text-sm font-medium text-blue-800 dark:text-blue-200 block">
+                      {{ $t('TICKETS.DETAIL.JIRA_ASSIGNEE') }}
                     </span>
-                    <span class="text-sm text-blue-800">
+                    <span class="text-sm text-blue-900 dark:text-blue-100">
                       {{ jiraIssueDetails.assignee.displayName }}
                     </span>
                   </div>
@@ -167,132 +324,168 @@
                 <!-- Loading state for JIRA details -->
                 <div v-else-if="isLoadingJira" class="flex items-center gap-2 text-blue-600">
                   <Icon icon="i-lucide-loader-2" class="w-4 h-4 animate-spin" />
-                  <span class="text-sm">Loading JIRA details...</span>
+                  <span class="text-sm">{{ $t('TICKETS.DETAIL.LOADING_JIRA') }}</span>
                 </div>
               </div>
               
               <!-- Escalate to JIRA -->
-              <div v-else-if="canEscalateToJira" class="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200">
+              <div v-else-if="canEscalateToJira" class="p-6 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
                 <div class="flex items-center justify-between">
                   <div>
-                    <h4 class="font-medium text-yellow-800 dark:text-yellow-200 mb-1">
+                    <h3 class="text-lg font-medium text-amber-900 dark:text-amber-100 mb-2">
                       {{ $t('TICKETS.DETAIL.ESCALATE_TO_JIRA') }}
-                    </h4>
-                    <p class="text-sm text-yellow-700 dark:text-yellow-300">
+                    </h3>
+                    <p class="text-sm text-amber-800 dark:text-amber-200">
                       {{ $t('TICKETS.DETAIL.ESCALATE_DESCRIPTION') }}
                     </p>
                   </div>
-                  <NextButton
-                    variant="solid"
-                    color="yellow"
-                    size="sm"
-                    :is-loading="isEscalating"
-                    @click="escalateToJira"
+                  <Button
+                    amber
+                    :loading="isEscalating"
+                    @click="showEscalateModal"
                   >
                     {{ $t('TICKETS.DETAIL.ESCALATE') }}
-                  </NextButton>
+                  </Button>
                 </div>
               </div>
             </div>
+            
+            <div v-else class="text-center py-12">
+              <Icon icon="i-lucide-external-link" class="w-12 h-12 text-slate-400 mx-auto mb-4" />
+              <p class="text-slate-600 dark:text-slate-400">
+                {{ $t('TICKETS.DETAIL.JIRA_NOT_AVAILABLE') }}
+              </p>
+            </div>
+          </div>
 
-            <!-- Conversation Link -->
-            <div>
-              <h3 class="text-lg font-medium text-n-slate-12 mb-3">
-                {{ $t('TICKETS.DETAIL.LINKED_CONVERSATION') }}
-              </h3>
-              <div class="p-4 bg-n-alpha-2 rounded-lg border border-n-weak">
+          <!-- Conversation Tab -->
+          <div v-show="activeTab === 'conversation'" class="h-full overflow-y-auto p-6">
+            <div class="max-w-2xl">
+              <div class="p-6 bg-n-slate-2 rounded-lg border border-n-weak">
                 <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-3">
-                    <Icon icon="i-lucide-message-circle" class="w-5 h-5 text-n-slate-9" />
+                  <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                      <Icon icon="i-lucide-message-circle" class="w-6 h-6 text-white" />
+                    </div>
                     <div>
-                      <p class="font-medium text-n-slate-12">
-                        {{ $t('TICKETS.DETAIL.CONVERSATION_ID', { id: ticket.conversation?.display_id }) }}
-                      </p>
-                      <p class="text-sm text-n-slate-9">
-                        {{ ticket.conversation?.status }}
+                      <h3 class="text-lg font-medium text-n-slate-12">
+                        {{ $t('TICKETS.DETAIL.CONVERSATION_ID', { id: ticket.conversation?.display_id || 'N/A' }) }}
+                      </h3>
+                      <p class="text-sm text-n-slate-10">
+                        {{ $t('TICKETS.DETAIL.STATUS') }}: {{ ticket.conversation?.status || 'N/A' }}
                       </p>
                     </div>
                   </div>
-                  <NextButton
-                    variant="outline"
-                    size="sm"
+                  <Button
+                    blue
+                    :disabled="!ticket.conversation?.id"
                     @click="openConversation"
                   >
                     {{ $t('TICKETS.DETAIL.OPEN_CONVERSATION') }}
-                  </NextButton>
+                  </Button>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Messages Tab -->
+          <div v-show="activeTab === 'messages'" class="h-full flex flex-col">
+            <div class="p-6 border-b border-slate-200 dark:border-slate-600">
+              <div class="flex items-center justify-between">
+                <h3 class="text-lg font-medium text-n-slate-12">
+                  {{ $t('TICKETS.DETAIL.LINKED_MESSAGES') }}
+                </h3>
+                <span class="text-sm text-n-slate-10">
+                  {{ messages.length }} {{ $t('TICKETS.DETAIL.MESSAGES') }}
+                </span>
+              </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-6">
+              <div
+                v-if="isLoadingMessages"
+                class="space-y-4"
+              >
+                <div
+                  v-for="n in 3"
+                  :key="n"
+                  class="animate-pulse bg-n-slate-3 rounded-lg p-4 h-24"
+                />
+              </div>
+
+              <div v-else-if="messages.length === 0" class="text-center py-12">
+                <Icon icon="i-lucide-message-circle" class="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                <p class="text-n-slate-10">
+                  {{ $t('TICKETS.NO_MESSAGES_IN_TICKET') }}
+                </p>
+              </div>
+
+              <div v-else class="space-y-4">
+                <MessageItem
+                  v-for="message in messages"
+                  :key="message.id"
+                  :message="message"
+                  :compact="false"
+                />
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Right Panel - Messages -->
-        <div class="w-96 pl-6 flex flex-col">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-medium text-n-slate-12">
-              {{ $t('TICKETS.DETAIL.LINKED_MESSAGES') }}
-            </h3>
-            <span class="text-sm text-n-slate-9">
-              {{ messages.length }} {{ $t('TICKETS.DETAIL.MESSAGES') }}
-            </span>
-          </div>
-
-          <!-- Messages List -->
-          <div class="flex-1 overflow-y-auto space-y-3">
-            <div
-              v-if="isLoadingMessages"
-              class="space-y-3"
-            >
-              <div
-                v-for="n in 3"
-                :key="n"
-                class="animate-pulse bg-n-alpha-2 rounded-lg p-3 h-20"
-              />
+        <!-- Footer with Save/Cancel -->
+        <div v-if="hasChanges" class="p-6 border-t border-slate-200 dark:border-slate-600 bg-n-slate-2">
+          <div class="flex items-center justify-between">
+            <p class="text-sm text-n-slate-10">
+              {{ $t('TICKETS.DETAIL.UNSAVED_CHANGES') }}
+            </p>
+            <div class="flex items-center gap-3">
+              <Button
+                ghost
+                slate
+                @click="discardChanges"
+                :disabled="isUpdating"
+              >
+                {{ $t('TICKETS.DETAIL.DISCARD_CHANGES') }}
+              </Button>
+              <Button
+                blue
+                :loading="isUpdating"
+                @click="saveChanges"
+              >
+                {{ $t('TICKETS.DETAIL.SAVE_CHANGES') }}
+              </Button>
             </div>
-
-            <div v-else-if="messages.length === 0" class="text-center py-8">
-              <Icon icon="i-lucide-message-circle" class="w-12 h-12 text-n-slate-7 mx-auto mb-2" />
-              <p class="text-sm text-n-slate-9">
-                {{ $t('TICKETS.NO_MESSAGES_IN_TICKET') }}
-              </p>
-            </div>
-
-            <MessageItem
-              v-for="message in messages"
-              :key="message.id"
-              :message="message"
-              compact
-            />
           </div>
         </div>
-      </div>
 
-      <!-- Footer -->
-      <div class="flex items-center justify-between mt-6 pt-4 border-t border-n-weak">
-        <div class="text-sm text-n-slate-9">
-          {{ $t('TICKETS.DETAIL.CREATED_AT') }}: {{ formatDate(ticket.created_at) }}
-          <span v-if="ticket.resolved_at" class="ml-4">
-            {{ $t('TICKETS.DETAIL.RESOLVED_AT') }}: {{ formatDate(ticket.resolved_at) }}
-          </span>
-        </div>
-        <div class="flex items-center gap-2">
-          <NextButton
-            variant="outline"
-            @click="$emit('close')"
-          >
-            {{ $t('TICKETS.DETAIL.CLOSE') }}
-          </NextButton>
-          <NextButton
-            v-if="ticket.status !== 'resolved' && ticket.status !== 'closed'"
-            color="green"
-            @click="resolveTicket"
-            :is-loading="isUpdating"
-          >
-            {{ $t('TICKETS.DETAIL.RESOLVE') }}
-          </NextButton>
+        <!-- Footer Actions -->
+        <div v-else class="p-6 border-t border-slate-200 dark:border-slate-600">
+          <div class="flex items-center justify-between">
+            <div class="text-sm text-n-slate-10">
+              {{ $t('TICKETS.DETAIL.LAST_UPDATED') }}: {{ formatDate(ticket.updated_at) }}
+            </div>
+            <div class="flex items-center gap-3">
+              <Button
+                v-if="ticket.status !== 'resolved' && ticket.status !== 'closed'"
+                teal
+                @click="resolveTicket"
+                :loading="isUpdating"
+              >
+                {{ $t('TICKETS.DETAIL.RESOLVE') }}
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
+
+    <!-- Escalate Modal -->
+    <EscalateToJiraModal
+      v-if="showEscalateToJiraModal"
+      :ticket="ticket"
+      @close="showEscalateToJiraModal = false"
+      @escalated="handleEscalated"
+    />
   </Modal>
 </template>
 
@@ -304,12 +497,10 @@ import { useRouter } from 'vue-router';
 import { format } from 'date-fns';
 
 import Modal from 'dashboard/components/Modal.vue';
-import NextButton from 'dashboard/components-next/button/Button.vue';
-import NextInput from 'dashboard/components-next/input/Input.vue';
-import NextTextarea from 'v3/components/Form/Textarea.vue';
-import NextSelect from 'v3/components/Form/Select.vue';
+import Button from 'dashboard/components-next/button/Button.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import MessageItem from './MessageItem.vue';
+import EscalateToJiraModal from 'dashboard/components/tickets/EscalateToJiraModal.vue';
 
 import { useAlert } from 'dashboard/composables';
 import TicketsAPI from 'dashboard/api/tickets';
@@ -318,12 +509,10 @@ export default {
   name: 'TicketDetailModal',
   components: {
     Modal,
-    NextButton,
-    NextInput,
-    NextTextarea,
-    NextSelect,
+    Button,
     Icon,
     MessageItem,
+    EscalateToJiraModal,
   },
   props: {
     ticket: {
@@ -340,6 +529,7 @@ export default {
     const store = useStore();
     const { t } = useI18n();
     const router = useRouter();
+    const showAlert = useAlert();
 
     // State
     const isUpdating = ref(false);
@@ -350,9 +540,46 @@ export default {
     const messages = ref([]);
     const jiraIssueDetails = ref(null);
     const showModal = ref(true);
+    const activeTab = ref('basic');
+    const hasChanges = ref(false);
+    const showEscalateToJiraModal = ref(false);
+    const errors = ref({});
 
-    // Form
-    const ticketForm = reactive({
+    // Tabs configuration
+    const tabs = computed(() => [
+      { 
+        id: 'basic', 
+        label: t('TICKETS.DETAIL.BASIC_INFO'), 
+        icon: 'i-lucide-info' 
+      },
+      { 
+        id: 'conversation', 
+        label: t('TICKETS.DETAIL.CONVERSATION'), 
+        icon: 'i-lucide-message-circle' 
+      },
+      { 
+        id: 'messages', 
+        label: t('TICKETS.DETAIL.MESSAGES'), 
+        icon: 'i-lucide-messages-square' 
+      },
+      ...(props.ticket.jira_issue_key || canEscalateToJira.value ? [{
+        id: 'jira', 
+        label: t('TICKETS.DETAIL.JIRA_INTEGRATION'), 
+        icon: 'i-lucide-external-link' 
+      }] : [])
+    ]);
+
+    // Original form data for comparison
+    const originalForm = reactive({
+      title: props.ticket.title || '',
+      description: props.ticket.description || '',
+      status: props.ticket.status || 'open',
+      priority: props.ticket.priority || 'medium',
+      assigned_agent_id: props.ticket.assigned_agent?.id || '',
+    });
+
+    // Edit form
+    const editForm = reactive({
       title: props.ticket.title || '',
       description: props.ticket.description || '',
       status: props.ticket.status || 'open',
@@ -361,30 +588,11 @@ export default {
     });
 
     // Computed
-    const statusOptions = computed(() => [
-      { label: t('TICKETS.STATUS.OPEN'), value: 'open' },
-      { label: t('TICKETS.STATUS.IN_PROGRESS'), value: 'in_progress' },
-      { label: t('TICKETS.STATUS.ESCALATED'), value: 'escalated' },
-      { label: t('TICKETS.STATUS.RESOLVED'), value: 'resolved' },
-      { label: t('TICKETS.STATUS.CLOSED'), value: 'closed' },
-    ]);
-
-    const priorityOptions = computed(() => [
-      { label: t('TICKETS.PRIORITY.LOW'), value: 'low' },
-      { label: t('TICKETS.PRIORITY.MEDIUM'), value: 'medium' },
-      { label: t('TICKETS.PRIORITY.HIGH'), value: 'high' },
-      { label: t('TICKETS.PRIORITY.URGENT'), value: 'urgent' },
-    ]);
-
-    const agentOptions = computed(() => {
-      const agents = store.getters['agents/getAgents'];
-      return [
-        { label: t('TICKETS.UNASSIGNED'), value: '' },
-        ...agents.map(agent => ({
-          label: agent.name,
-          value: agent.id,
-        })),
-      ];
+    const agents = computed(() => store.getters['agents/getAgents'] || []);
+    
+    const assignedAgent = computed(() => {
+      if (!editForm.assigned_agent_id) return null;
+      return agents.value.find(agent => agent.id === editForm.assigned_agent_id);
     });
 
     const canEscalateToJira = computed(() => {
@@ -392,48 +600,105 @@ export default {
              (props.ticket.status === 'open' || props.ticket.status === 'in_progress');
     });
 
+    // Badge color functions
+    const getStatusBadgeColor = (status) => {
+      const colors = {
+        open: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800',
+        in_progress: 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800',
+        escalated: 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800',
+        resolved: 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800',
+        closed: 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800',
+      };
+      return colors[status] || colors.open;
+    };
+
+    const getPriorityBadgeColor = (priority) => {
+      const colors = {
+        low: 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800',
+        medium: 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800',
+        high: 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800',
+        urgent: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800',
+      };
+      return colors[priority] || colors.medium;
+    };
+
+    const getInitials = (name) => {
+      return name
+        ?.split(' ')
+        .map(word => word[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2) || '??';
+    };
+
     // Methods
+    const markAsChanged = () => {
+      hasChanges.value = true;
+    };
+
+    const checkForChanges = () => {
+      hasChanges.value = (
+        editForm.title !== originalForm.title ||
+        editForm.description !== originalForm.description ||
+        editForm.status !== originalForm.status ||
+        editForm.priority !== originalForm.priority ||
+        editForm.assigned_agent_id !== originalForm.assigned_agent_id
+      );
+    };
+
+    const saveChanges = async () => {
+      isUpdating.value = true;
+      errors.value = {};
+      
+      try {
+        const updates = {};
+        
+        if (editForm.title !== originalForm.title) updates.title = editForm.title;
+        if (editForm.description !== originalForm.description) updates.description = editForm.description;
+        if (editForm.status !== originalForm.status) updates.status = editForm.status;
+        if (editForm.priority !== originalForm.priority) updates.priority = editForm.priority;
+        if (editForm.assigned_agent_id !== originalForm.assigned_agent_id) updates.assigned_agent_id = editForm.assigned_agent_id;
+        
+        if (Object.keys(updates).length > 0) {
+          await store.dispatch('tickets/update', {
+            ticketId: props.ticket.id,
+            ...updates
+          });
+          
+          // Update original form with new values
+          Object.assign(originalForm, editForm);
+          hasChanges.value = false;
+          
+          emit('updated');
+          showAlert(t('TICKETS.DETAIL.UPDATE_SUCCESS'));
+        }
+      } catch (error) {
+        console.error('Failed to update ticket:', error);
+        if (error.response?.data?.errors) {
+          errors.value = error.response.data.errors;
+        }
+        showAlert(t('TICKETS.DETAIL.UPDATE_ERROR'));
+      } finally {
+        isUpdating.value = false;
+      }
+    };
+
+    const discardChanges = () => {
+      Object.assign(editForm, originalForm);
+      hasChanges.value = false;
+      errors.value = {};
+    };
+
     const loadMessages = async () => {
       isLoadingMessages.value = true;
       try {
         const response = await TicketsAPI.getMessages(props.ticket.id);
         messages.value = response.data.messages || [];
       } catch (error) {
-        console.error('Failed to load ticket messages:', error);
-        useAlert(t('TICKETS.DETAIL.MESSAGES_LOAD_ERROR'));
+        console.error('Failed to load messages:', error);
+        showAlert(t('TICKETS.DETAIL.MESSAGES_LOAD_ERROR'));
       } finally {
         isLoadingMessages.value = false;
-      }
-    };
-
-    const updateTicket = async () => {
-      isUpdating.value = true;
-      try {
-        await store.dispatch('tickets/updateTicket', {
-          id: props.ticket.id,
-          ...ticketForm,
-        });
-        emit('updated');
-        useAlert(t('TICKETS.UPDATE_SUCCESS'));
-      } catch (error) {
-        console.error('Failed to update ticket:', error);
-        useAlert(t('TICKETS.UPDATE_ERROR'));
-      } finally {
-        isUpdating.value = false;
-      }
-    };
-
-    const resolveTicket = async () => {
-      isUpdating.value = true;
-      try {
-        await store.dispatch('tickets/resolve', props.ticket.id);
-        emit('updated');
-        useAlert(t('TICKETS.RESOLVE_SUCCESS'));
-      } catch (error) {
-        console.error('Failed to resolve ticket:', error);
-        useAlert(t('TICKETS.RESOLVE_ERROR'));
-      } finally {
-        isUpdating.value = false;
       }
     };
 
@@ -442,47 +707,14 @@ export default {
       
       isLoadingJira.value = true;
       try {
-        // Import JIRA API
         const JiraAPI = await import('dashboard/api/integrations/jira');
         const response = await JiraAPI.default.getIssue(props.ticket.jira_issue_key);
         jiraIssueDetails.value = response.data;
       } catch (error) {
         console.error('Failed to load JIRA details:', error);
-        // Don't show error alert as this is optional enhancement
+        showAlert(t('TICKETS.DETAIL.JIRA_LOAD_ERROR'));
       } finally {
         isLoadingJira.value = false;
-      }
-    };
-
-    const escalateToJira = async () => {
-      isEscalating.value = true;
-      try {
-        // Automatically create JIRA issue with ticket details
-        const JiraAPI = await import('dashboard/api/integrations/jira');
-        const response = await JiraAPI.default.createIssue({
-          summary: props.ticket.title || `Ticket #${props.ticket.id}`,
-          description: props.ticket.description || 'No description provided',
-          issueType: 'Task',
-          priority: props.ticket.priority || 'Medium',
-        });
-        
-        // Link the created JIRA issue to the ticket
-        await store.dispatch('tickets/linkJiraIssue', {
-          ticketId: props.ticket.id,
-          jiraIssueKey: response.data.key,
-          jiraUrl: response.data.self,
-        });
-        
-        emit('updated');
-        useAlert(t('TICKETS.ESCALATE_SUCCESS'));
-        
-        // Load the newly created JIRA details
-        await loadJiraDetails();
-      } catch (error) {
-        console.error('Failed to escalate to JIRA:', error);
-        useAlert(t('TICKETS.ESCALATE_ERROR'));
-      } finally {
-        isEscalating.value = false;
       }
     };
 
@@ -491,11 +723,14 @@ export default {
       try {
         await store.dispatch('tickets/fetchTicket', props.ticket.id);
         await loadMessages();
+        if (props.ticket.jira_issue_key) {
+          await loadJiraDetails();
+        }
         emit('refresh');
-        useAlert(t('TICKETS.DETAIL.REFRESHED'));
+        showAlert(t('TICKETS.DETAIL.REFRESH_SUCCESS'));
       } catch (error) {
         console.error('Failed to refresh ticket:', error);
-        useAlert(t('TICKETS.DETAIL.REFRESH_ERROR'));
+        showAlert(t('TICKETS.DETAIL.REFRESH_ERROR'));
       } finally {
         isRefreshing.value = false;
       }
@@ -503,9 +738,8 @@ export default {
 
     const openConversation = () => {
       if (props.ticket.conversation?.id) {
-        const accountId = router.currentRoute.value.params.accountId;
-        const conversationUrl = `/app/accounts/${accountId}/conversations/${props.ticket.conversation.id}`;
-        window.open(conversationUrl, '_blank');
+        router.push(`/app/accounts/${store.getters.getCurrentAccountId}/conversations/${props.ticket.conversation.id}`);
+        emit('close');
       }
     };
 
@@ -513,10 +747,36 @@ export default {
       if (props.ticket.jira_url) {
         window.open(props.ticket.jira_url, '_blank');
       } else if (props.ticket.jira_issue_key) {
-        // Construct JIRA URL from issue key
-        const jiraBaseUrl = window.chatwootConfig?.jiraBaseUrl || 'https://your-domain.atlassian.net';
-        const jiraUrl = `${jiraBaseUrl}/browse/${props.ticket.jira_issue_key}`;
-        window.open(jiraUrl, '_blank');
+        // Fallback to constructed JIRA URL
+        const baseUrl = store.getters['integrations/getJiraBaseUrl'];
+        if (baseUrl) {
+          window.open(`${baseUrl}/browse/${props.ticket.jira_issue_key}`, '_blank');
+        }
+      }
+    };
+
+    const showEscalateModal = () => {
+      showEscalateToJiraModal.value = true;
+    };
+
+    const handleEscalated = (data) => {
+      emit('updated');
+      showAlert(t('TICKETS.DETAIL.ESCALATE_SUCCESS'));
+      // Refresh ticket data to show JIRA info
+      refreshTicket();
+    };
+
+    const resolveTicket = async () => {
+      isUpdating.value = true;
+      try {
+        await store.dispatch('tickets/resolve', props.ticket.id);
+        emit('updated');
+        showAlert(t('TICKETS.DETAIL.RESOLVE_SUCCESS'));
+      } catch (error) {
+        console.error('Failed to resolve ticket:', error);
+        showAlert(t('TICKETS.DETAIL.RESOLVE_ERROR'));
+      } finally {
+        isUpdating.value = false;
       }
     };
 
@@ -529,27 +789,13 @@ export default {
       }
     };
 
-    // Lifecycle
-    onMounted(() => {
-      loadMessages();
-      
-      // Load JIRA details if ticket has JIRA issue
-      if (props.ticket.jira_issue_key) {
-        // This would load JIRA issue details
-        // Implementation depends on JIRA integration setup
-      }
-    });
+    // Watch for changes in edit form
+    watch([() => editForm.title, () => editForm.description, () => editForm.status, () => editForm.priority, () => editForm.assigned_agent_id], 
+      () => checkForChanges(), 
+      { deep: true }
+    );
 
-    // Watch for ticket changes
-    watch(() => props.ticket, (newTicket) => {
-      ticketForm.title = newTicket.title || '';
-      ticketForm.description = newTicket.description || '';
-      ticketForm.status = newTicket.status || 'open';
-      ticketForm.priority = newTicket.priority || 'medium';
-      ticketForm.assigned_agent_id = newTicket.assigned_agent?.id || '';
-    }, { immediate: true });
-
-    // Lifecycle
+    // Load data on mount
     onMounted(() => {
       loadMessages();
       if (props.ticket.jira_issue_key) {
@@ -566,30 +812,39 @@ export default {
       isEscalating,
       messages,
       jiraIssueDetails,
-      ticketForm,
       showModal,
+      activeTab,
+      hasChanges,
+      showEscalateToJiraModal,
+      errors,
+      
+      // Data
+      tabs,
+      editForm,
+      agents,
+      assignedAgent,
       
       // Computed
-      statusOptions,
-      priorityOptions,
-      agentOptions,
       canEscalateToJira,
       
       // Methods
-      loadMessages,
-      loadJiraDetails,
-      updateTicket,
-      resolveTicket,
-      escalateToJira,
+      getStatusBadgeColor,
+      getPriorityBadgeColor,
+      getInitials,
+      markAsChanged,
+      saveChanges,
+      discardChanges,
       refreshTicket,
       openConversation,
       openJiraIssue,
+      showEscalateModal,
+      handleEscalated,
+      resolveTicket,
       formatDate,
     };
   },
 };
 </script>
-
 <style scoped>
 /* Custom scrollbar for messages */
 .overflow-y-auto::-webkit-scrollbar {

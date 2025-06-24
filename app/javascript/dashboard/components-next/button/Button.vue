@@ -58,7 +58,7 @@ const filteredAttrs = computed(() => {
 });
 
 const computedVariant = computed(() => {
-  if (props.variant) return props.variant;
+  if (props.variant && VARIANT_OPTIONS.includes(props.variant)) return props.variant;
   // The useAttrs method returns attributes values an empty string (not boolean value as in props).
   if (attrs.solid || attrs.solid === '') return 'solid';
   if (attrs.outline || attrs.outline === '') return 'outline';
@@ -69,7 +69,7 @@ const computedVariant = computed(() => {
 });
 
 const computedColor = computed(() => {
-  if (props.color) return props.color;
+  if (props.color && COLOR_OPTIONS.includes(props.color)) return props.color;
   if (attrs.blue || attrs.blue === '') return 'blue';
   if (attrs.ruby || attrs.ruby === '') return 'ruby';
   if (attrs.amber || attrs.amber === '') return 'amber';
@@ -79,7 +79,7 @@ const computedColor = computed(() => {
 });
 
 const computedSize = computed(() => {
-  if (props.size) return props.size;
+  if (props.size && SIZE_OPTIONS.includes(props.size)) return props.size;
   if (attrs.xs || attrs.xs === '') return 'xs';
   if (attrs.sm || attrs.sm === '') return 'sm';
   if (attrs.md || attrs.md === '') return 'md';
@@ -188,15 +188,24 @@ const STYLE_CONFIG = {
 };
 
 const variantClasses = computed(() => {
+  const variant = computedVariant.value || 'solid';
+  let color = computedColor.value || 'blue';
+  
+  // Ensure we have valid style config for this color
+  if (!STYLE_CONFIG.colors[color]) {
+    console.warn(`Unknown color "${color}" for button, using blue as fallback`);
+    color = 'blue';
+  }
+  
   const variantMap = {
-    ghost: `${STYLE_CONFIG.colors[computedColor.value].ghost}`,
-    link: `${STYLE_CONFIG.colors[computedColor.value].link} p-0 font-medium underline-offset-2`,
-    outline: STYLE_CONFIG.colors[computedColor.value].outline,
-    faded: STYLE_CONFIG.colors[computedColor.value].faded,
-    solid: STYLE_CONFIG.colors[computedColor.value].solid,
+    ghost: STYLE_CONFIG.colors[color].ghost || '',
+    link: `${STYLE_CONFIG.colors[color].link || ''} p-0 font-medium underline-offset-2`,
+    outline: STYLE_CONFIG.colors[color].outline || '',
+    faded: STYLE_CONFIG.colors[color].faded || '',
+    solid: STYLE_CONFIG.colors[color].solid || '',
   };
 
-  return variantMap[computedVariant.value];
+  return variantMap[variant] || variantMap.solid;
 });
 
 const isIconOnly = computed(() => !props.label && !slots.default);
