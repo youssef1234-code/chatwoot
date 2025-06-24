@@ -1,6 +1,6 @@
 <template>
   <Modal
-    v-model:show="showModal"
+    :show="true"
     :on-close="() => $emit('close')"
     size="medium"
   >
@@ -192,6 +192,8 @@
 <script>
 import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useStore } from 'vuex';
+import { useAlert } from 'dashboard/composables';
 
 import Modal from 'dashboard/components/Modal.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
@@ -200,8 +202,6 @@ import NextTextarea from 'v3/components/Form/Textarea.vue';
 import NextSelect from 'v3/components/Form/Select.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 
-import { useAlert } from 'dashboard/composables';
-import { useStore } from 'vuex';
 import OpenaiAPI from 'dashboard/api/integrations/openapi';
 
 export default {
@@ -230,7 +230,6 @@ export default {
     const isEnhancing = ref(false);
     const selectedOptions = ref(['improve_title', 'improve_description']);
     const enhancementResults = ref(null);
-    const showModal = ref(true);
 
     // Computed
     const enhancementOptions = computed(() => [
@@ -273,70 +272,63 @@ export default {
       isEnhancing.value = true;
       
       try {
-        // Get the OpenAI hook ID (assuming you have this available in the store)
-        let openaiHook;
-        try {
-          const openaiHooks = await $store.getters['integrations/getHooks'];
-          openaiHook = openaiHooks?.find(hook => hook.app_id === 'openai');
-        } catch (error) {
-          console.warn('Could not fetch OpenAI hooks:', error);
-        }
+        // Get the OpenAI hook ID from integrations
+        const integrations = await $store.dispatch('integrations/get');
+        const openaiHook = integrations?.find(hook => hook.app_id === 'openai' && hook.status === 'enabled');
         
         if (!openaiHook) {
-          // Fallback: simulate AI enhancement with basic logic
-          enhancementResults.value = {
-            title: selectedOptions.value.includes('improve_title') ? 
-              `Enhanced: ${props.ticket.title || 'Untitled Ticket'}` : null,
-            description: selectedOptions.value.includes('improve_description') ? 
-              `Enhanced description: ${props.ticket.description || 'No description provided'}` : null,
-            priority: selectedOptions.value.includes('suggest_priority') ? 'medium' : null,
-            labels: selectedOptions.value.includes('suggest_labels') ? 
-              ['customer-support', 'pending-review'] : null,
-            recommendations: selectedOptions.value.includes('action_recommendations') ? 
-              ['Review customer request', 'Assign to appropriate team', 'Follow up within 24 hours'] : null,
-          };
-          useAlert('AI enhancement applied (demo mode)');
-          return;
+          throw new Error(t('TICKETS.AI_ENHANCEMENT.OPENAI_NOT_CONFIGURED'));
         }
 
-        // Get conversation messages for the ticket
-        let messagesContext = '';
-        if (props.ticket.conversation?.id) {
-          try {
-            const messages = await $store.dispatch('conversationMessages/get', {
-              conversationId: props.ticket.conversation.id,
-            });
-            
-            // Format messages for AI context
-            const formattedMessages = messages.slice(-10).map(msg => {
-              const sender = msg.message_type === 'incoming' ? 'Customer' : 'Agent';
-              return `${sender}: ${msg.content}`;
-            }).join('\n');
-            
-            messagesContext = formattedMessages;
-          } catch (error) {
-            console.warn('Could not fetch conversation messages:', error);
+        // Get ONLY linked messages for the ticket (no old title/description sent)
+        let messagesContent = '';
+        try {
+          const TicketsAPI = await import('dashboard/api/tickets');
+          const messagesResponse = await TicketsAPI.default.getMessages(props.ticket.id);
+          const linkedMessages = messagesResponse.data.messages || [];
+          
+          if (linkedMessages.length === 0) {
+            throw new Error(t('TICKETS.AI_ENHANCEMENT.NO_MESSAGES_ERROR'));
           }
+          
+          // Extract ONLY the content of linked messages - no old title/description
+          messagesContent = linkedMessages
+            .filter(msg => msg.content && msg.content.trim())
+            .map(msg => msg.content.trim())
+            .join('\n\n');
+            
+          if (!messagesContent.trim()) {
+            throw new Error('No text content found in linked messages.');
+          }
+        } catch (error) {
+          console.error('Failed to fetch ticket messages:', error);
+          throw error;
         }
 
-        // Call the OpenAI API for ticket enhancement
-        const response = await OpenaiAPI.enhanceTicket({
-          title: props.ticket.title || '',
-          description: props.ticket.description || '',
-          messages: messagesContext,
+        // Call the OpenAI API - send ONLY the linked messages content (no old values)
+        const OpenaiAPI = await import('dashboard/api/integrations/openapi');
+        const response = await OpenaiAPI.default.enhanceTicket({
+          title: '', // Don't send existing title
+          description: '', // Don't send existing description  
+          messages: messagesContent, // Send ONLY the linked messages content
           enhancementOptions: selectedOptions.value,
           hookId: openaiHook.id,
         });
         
-        // Parse the AI response (expecting JSON format from the backend)
+        // Parse the AI response
         let enhancedData;
         try {
-          enhancedData = JSON.parse(response.data.message);
+          enhancedData = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
+          if (enhancedData.message) {
+            enhancedData = typeof enhancedData.message === 'string' ? JSON.parse(enhancedData.message) : enhancedData.message;
+          }
         } catch (parseError) {
-          // If parsing fails, extract title and description from plain text
+          // If parsing fails, treat the entire response as description
+          const responseText = response.data?.message || response.data || 'AI enhancement completed';
           enhancedData = {
-            title: props.ticket.title,
-            description: response.data.message || props.ticket.description,
+            description: responseText,
+            title: selectedOptions.value.includes('improve_title') ? 
+              responseText.split('\n')[0].substring(0, 100) : null,
           };
         }
         
@@ -348,10 +340,10 @@ export default {
           recommendations: selectedOptions.value.includes('action_recommendations') ? enhancedData.recommendations : null,
         };
 
-        useAlert(t('TICKETS.AI_ENHANCEMENT.SUCCESS'));
+        showAlert(t('TICKETS.AI_ENHANCEMENT.SUCCESS'));
       } catch (error) {
         console.error('AI enhancement failed:', error);
-        useAlert(t('TICKETS.AI_ENHANCEMENT.ERROR'));
+        showAlert(error.message || t('TICKETS.AI_ENHANCEMENT.ERROR'));
       } finally {
         isEnhancing.value = false;
       }
@@ -380,7 +372,6 @@ export default {
       isEnhancing,
       selectedOptions,
       enhancementResults,
-      showModal,
       
       // Computed
       enhancementOptions,

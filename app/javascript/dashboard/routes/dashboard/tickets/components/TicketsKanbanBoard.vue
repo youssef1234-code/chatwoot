@@ -1,57 +1,18 @@
 <template>
-  <div class="flex h-full overflow-x-auto gap-6 min-h-96">
-    <!-- Not Done Column -->
+  <div class="flex h-full overflow-x-auto gap-6 min-h-96 p-6">
     <KanbanColumn
-      :title="$t('TICKETS.KANBAN.NOT_DONE')"
-      :tickets="notDoneTickets"
+      v-for="column in visibleColumns"
+      :key="column.key"
+      :title="column.title"
+      :tickets="column.tickets"
       :is-loading="isLoading"
-      status="not_done"
-      color="blue"
+      :status="column.status"
+      :color="column.color"
       class="flex-1 min-w-80"
       @ticket-move="handleTicketMove"
       @ticket-click="handleTicketClick"
       @enhance-with-ai="$emit('enhance-with-ai', $event)"
     />
-
-    <!-- In Progress Column -->
-    <KanbanColumn
-      :title="$t('TICKETS.KANBAN.IN_PROGRESS')"
-      :tickets="inProgressTickets"
-      :is-loading="isLoading"
-      status="in_progress"
-      color="yellow"
-      class="flex-1 min-w-80"
-      @ticket-move="handleTicketMove"
-      @ticket-click="handleTicketClick"
-      @enhance-with-ai="$emit('enhance-with-ai', $event)"
-    />
-
-    <!-- Escalated Column -->
-    <KanbanColumn
-      :title="$t('TICKETS.KANBAN.ESCALATED')"
-      :tickets="escalatedTickets"
-      :is-loading="isLoading"
-      status="escalated"
-      color="orange"
-      class="flex-1 min-w-80"
-      @ticket-move="handleTicketMove"
-      @ticket-click="handleTicketClick"
-      @enhance-with-ai="$emit('enhance-with-ai', $event)"
-    />
-
-    <!-- Done Column -->
-    <KanbanColumn
-      :title="$t('TICKETS.KANBAN.DONE')"
-      :tickets="doneTickets"
-      :is-loading="isLoading"
-      status="done"
-      color="green"
-      class="flex-1 min-w-80"
-      @ticket-move="handleTicketMove"
-      @ticket-click="handleTicketClick"
-      @enhance-with-ai="$emit('enhance-with-ai', $event)"
-    />
-
   </div>
 </template>
 
@@ -85,6 +46,10 @@ export default {
     isAiEnhancementEnabled: {
       type: Boolean,
       default: false,
+    },
+    selectedStatuses: {
+      type: Array,
+      default: () => [],
     },
   },
   emits: ['ticket-updated', 'refresh', 'enhance-with-ai', 'ticket-click'],
@@ -126,6 +91,53 @@ export default {
       );
     });
 
+    // Define all possible columns
+    const allColumns = computed(() => [
+      {
+        key: 'not_done',
+        title: t('TICKETS.KANBAN.NOT_DONE'),
+        status: 'not_done',
+        color: 'blue',
+        tickets: notDoneTickets.value,
+        statusFilters: ['open']
+      },
+      {
+        key: 'in_progress',
+        title: t('TICKETS.KANBAN.IN_PROGRESS'),
+        status: 'in_progress',
+        color: 'yellow',
+        tickets: inProgressTickets.value,
+        statusFilters: ['in_progress']
+      },
+      {
+        key: 'escalated',
+        title: t('TICKETS.KANBAN.ESCALATED'),
+        status: 'escalated',
+        color: 'orange',
+        tickets: escalatedTickets.value,
+        statusFilters: ['escalated']
+      },
+      {
+        key: 'done',
+        title: t('TICKETS.KANBAN.DONE'),
+        status: 'done',
+        color: 'green',
+        tickets: doneTickets.value,
+        statusFilters: ['resolved', 'closed']
+      }
+    ]);
+
+    // Show only columns that match selected statuses, or all if none selected
+    const visibleColumns = computed(() => {
+      if (props.selectedStatuses.length === 0) {
+        return allColumns.value;
+      }
+      
+      return allColumns.value.filter(column => 
+        column.statusFilters.some(status => props.selectedStatuses.includes(status))
+      );
+    });
+
     // Methods
     const handleTicketMove = async (ticket, newStatus) => {
       try {
@@ -143,15 +155,32 @@ export default {
         if (targetStatus === 'resolved') {
           await store.dispatch('tickets/resolve', ticket.id);
         } else if (targetStatus === 'escalated') {
-          // For escalation, prompt for JIRA issue key
-          const jiraIssueKey = prompt(t('TICKETS.KANBAN.ENTER_JIRA_KEY'));
-          if (jiraIssueKey) {
+          // For escalation, automatically create and link JIRA issue
+          try {
+            // Import JIRA API
+            const JiraAPI = await import('dashboard/api/integrations/jira');
+            
+            // Create JIRA issue automatically
+            const jiraResponse = await JiraAPI.default.createIssue({
+              summary: ticket.title || `Ticket #${ticket.id}`,
+              description: ticket.description || 'No description provided',
+              issueType: 'Task',
+              priority: ticket.priority || 'Medium',
+            });
+            
+            // Link the created JIRA issue to the ticket and update status
             await store.dispatch('tickets/escalateToJira', {
               ticketId: ticket.id,
-              jiraIssueKey,
+              jiraIssueKey: jiraResponse.data.key,
+              jiraUrl: jiraResponse.data.self,
             });
-          } else {
-            return; // User cancelled
+          } catch (error) {
+            console.error('Failed to create JIRA issue:', error);
+            // Fallback: just update status to escalated
+            await store.dispatch('tickets/updateTicket', {
+              id: ticket.id,
+              status: targetStatus,
+            });
           }
         } else {
           await store.dispatch('tickets/updateTicket', {
@@ -178,6 +207,8 @@ export default {
       inProgressTickets,
       escalatedTickets,
       doneTickets,
+      allColumns,
+      visibleColumns,
       
       // Methods
       handleTicketMove,

@@ -91,32 +91,140 @@
           </div>
 
           <!-- Advanced Filters -->
-          <NextSelect
-            v-model="selectedStatus"
-            :label="$t('TICKETS.TRACKING.STATUS_FILTER')"
-            name="status"
-            :options="statusOptions"
-            :placeholder="$t('TICKETS.TRACKING.STATUS_FILTER')"
-            class="min-w-40"
-          />
+          <div class="relative min-w-40">
+            <label class="block text-sm font-medium text-n-slate-10 mb-1">
+              {{ $t('TICKETS.TRACKING.STATUS_FILTER') }}
+            </label>
+            <div class="relative">
+              <button
+                type="button"
+                class="w-full px-3 py-2 border border-n-weak rounded-lg bg-white dark:bg-n-slate-1 text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                @click="showStatusDropdown = !showStatusDropdown"
+              >
+                <span v-if="selectedStatuses.length === 0" class="text-n-slate-9">
+                  {{ $t('TICKETS.TRACKING.STATUS_FILTER') }}
+                </span>
+                <span v-else class="text-n-slate-12">
+                  {{ selectedStatuses.length }} selected
+                </span>
+                <Icon icon="i-lucide-chevron-down" class="absolute right-2 top-2.5 w-4 h-4" />
+              </button>
+              
+              <div
+                v-if="showStatusDropdown"
+                v-on-clickaway="() => showStatusDropdown = false"
+                class="absolute z-10 w-full mt-1 bg-white dark:bg-n-slate-1 border border-n-weak rounded-lg shadow-lg py-1 max-h-60 overflow-y-auto"
+              >
+                <label
+                  v-for="option in statusOptions"
+                  :key="option.value"
+                  class="flex items-center px-3 py-2 hover:bg-n-alpha-1 cursor-pointer"
+                >
+                  <input
+                    v-model="selectedStatuses"
+                    type="checkbox"
+                    :value="option.value"
+                    class="mr-2 text-blue-600 focus:ring-blue-500 rounded"
+                  />
+                  <span class="text-sm text-n-slate-12">{{ option.label }}</span>
+                </label>
+              </div>
+            </div>
+          </div>
 
-          <NextSelect
-            v-model="selectedPriority"
-            :label="$t('TICKETS.TRACKING.PRIORITY_FILTER')"
-            name="priority"
-            :options="priorityOptions"
-            :placeholder="$t('TICKETS.TRACKING.PRIORITY_FILTER')"
-            class="min-w-40"
-          />
+          <div class="relative min-w-40">
+            <label class="block text-sm font-medium text-n-slate-10 mb-1">
+              {{ $t('TICKETS.TRACKING.PRIORITY_FILTER') }}
+            </label>
+            <div class="relative">
+              <button
+                type="button"
+                class="w-full px-3 py-2 border border-n-weak rounded-lg bg-white dark:bg-n-slate-1 text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                @click="showPriorityDropdown = !showPriorityDropdown"
+              >
+                <span v-if="selectedPriorities.length === 0" class="text-n-slate-9">
+                  {{ $t('TICKETS.TRACKING.PRIORITY_FILTER') }}
+                </span>
+                <span v-else class="text-n-slate-12">
+                  {{ selectedPriorities.length }} selected
+                </span>
+                <Icon icon="i-lucide-chevron-down" class="absolute right-2 top-2.5 w-4 h-4" />
+              </button>
+              
+              <div
+                v-if="showPriorityDropdown"
+                v-on-clickaway="() => showPriorityDropdown = false"
+                class="absolute z-10 w-full mt-1 bg-white dark:bg-n-slate-1 border border-n-weak rounded-lg shadow-lg py-1 max-h-60 overflow-y-auto"
+              >
+                <label
+                  v-for="option in priorityOptions"
+                  :key="option.value"
+                  class="flex items-center px-3 py-2 hover:bg-n-alpha-1 cursor-pointer"
+                >
+                  <input
+                    v-model="selectedPriorities"
+                    type="checkbox"
+                    :value="option.value"
+                    class="mr-2 text-blue-600 focus:ring-blue-500 rounded"
+                  />
+                  <span class="text-sm text-n-slate-12">{{ option.label }}</span>
+                </label>
+              </div>
+            </div>
+          </div>
 
-          <NextSelect
-            v-model="selectedAgent"
-            :label="$t('TICKETS.TRACKING.AGENT_FILTER')"
-            name="agent"
-            :options="agentOptions"
-            :placeholder="$t('TICKETS.TRACKING.AGENT_FILTER')"
-            class="min-w-40"
-          />
+          <div class="relative min-w-40">
+            <label class="block text-sm font-medium text-n-slate-10 mb-1">
+              {{ $t('TICKETS.TRACKING.AGENT_FILTER') }}
+            </label>
+            <div class="relative">
+              <button
+                type="button"
+                class="w-full px-3 py-2 border border-n-weak rounded-lg bg-white dark:bg-n-slate-1 text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                @click="showAgentDropdown = !showAgentDropdown"
+              >
+                <span v-if="selectedAgents.length === 0" class="text-n-slate-9">
+                  {{ $t('TICKETS.TRACKING.AGENT_FILTER') }}
+                </span>
+                <span v-else class="text-n-slate-12">
+                  {{ selectedAgents.length }} selected
+                </span>
+                <Icon icon="i-lucide-chevron-down" class="absolute right-2 top-2.5 w-4 h-4" />
+              </button>
+              
+              <div
+                v-if="showAgentDropdown"
+                v-on-clickaway="() => showAgentDropdown = false"
+                class="absolute z-10 w-full mt-1 bg-white dark:bg-n-slate-1 border border-n-weak rounded-lg shadow-lg py-1 max-h-60 overflow-y-auto"
+              >
+                <label
+                  class="flex items-center px-3 py-2 hover:bg-n-alpha-1 cursor-pointer"
+                  @click="toggleMyTickets"
+                >
+                  <input
+                    type="checkbox"
+                    :checked="selectedAgents.includes(currentUser.id)"
+                    class="mr-2 text-blue-600 focus:ring-blue-500 rounded"
+                  />
+                  <span class="text-sm text-n-slate-12 font-medium">My Tickets</span>
+                </label>
+                <div class="border-t border-n-weak my-1"></div>
+                <label
+                  v-for="option in agentOptions"
+                  :key="option.value"
+                  class="flex items-center px-3 py-2 hover:bg-n-alpha-1 cursor-pointer"
+                >
+                  <input
+                    v-model="selectedAgents"
+                    type="checkbox"
+                    :value="option.value"
+                    class="mr-2 text-blue-600 focus:ring-blue-500 rounded"
+                  />
+                  <span class="text-sm text-n-slate-12">{{ option.label }}</span>
+                </label>
+              </div>
+            </div>
+          </div>
 
           <!-- Clear Filters -->
           <NextButton
@@ -176,6 +284,7 @@
               :is-loading="isLoading"
               :current-user="currentUser"
               :is-ai-enhancement-enabled="isAiEnhancementEnabled"
+              :selected-statuses="selectedStatuses"
               @ticket-click="handleTicketClick"
               @ticket-updated="handleTicketUpdate"
               @refresh="refreshTickets"
@@ -258,9 +367,12 @@ export default {
     const isLoading = ref(false);
     const isAiLoading = ref(false);
     const searchQuery = ref('');
-    const selectedStatus = ref('');
-    const selectedPriority = ref('');
-    const selectedAgent = ref('');
+    const selectedStatuses = ref([]);
+    const selectedPriorities = ref([]);
+    const selectedAgents = ref([]);
+    const showStatusDropdown = ref(false);
+    const showPriorityDropdown = ref(false);
+    const showAgentDropdown = ref(false);
     const isAiEnhancementEnabled = ref(false);
     const showDetailModal = ref(false);
     const showAiModal = ref(false);
@@ -291,7 +403,6 @@ export default {
     ]);
 
     const statusOptions = computed(() => [
-      { label: t('TICKETS.FILTERS.ALL'), value: '' },
       { label: t('TICKETS.FILTERS.OPEN'), value: 'open' },
       { label: t('TICKETS.FILTERS.IN_PROGRESS'), value: 'in_progress' },
       { label: t('TICKETS.FILTERS.ESCALATED'), value: 'escalated' },
@@ -300,7 +411,6 @@ export default {
     ]);
 
     const priorityOptions = computed(() => [
-      { label: t('TICKETS.FILTERS.ALL'), value: '' },
       { label: t('TICKETS.PRIORITY.LOW'), value: 'low' },
       { label: t('TICKETS.PRIORITY.MEDIUM'), value: 'medium' },
       { label: t('TICKETS.PRIORITY.HIGH'), value: 'high' },
@@ -309,18 +419,18 @@ export default {
 
     const agentOptions = computed(() => {
       const agents = store.getters['agents/getAgents'];
-      return [
-        { label: t('TICKETS.FILTERS.ALL'), value: '' },
-        { label: t('TICKETS.FILTERS.ASSIGNED_TO_ME'), value: currentUser.value.id },
-        ...agents.map(agent => ({
-          label: agent.name,
-          value: agent.id,
-        })),
-      ];
+      return agents.map(agent => ({
+        label: agent.name,
+        value: agent.id,
+      }));
     });
 
     const hasActiveFilters = computed(() => {
-      return selectedStatus.value || selectedPriority.value || selectedAgent.value || searchQuery.value || activeQuickFilter.value !== 'my_tickets';
+      return selectedStatuses.value.length > 0 || 
+             selectedPriorities.value.length > 0 || 
+             selectedAgents.value.length > 0 || 
+             searchQuery.value || 
+             activeQuickFilter.value !== 'my_tickets';
     });
 
     const filteredTickets = computed(() => {
@@ -351,19 +461,23 @@ export default {
         );
       }
 
-      // Apply status filter
-      if (selectedStatus.value) {
-        filtered = filtered.filter(ticket => ticket.status === selectedStatus.value);
+      // Apply status filter (multi-select)
+      if (selectedStatuses.value.length > 0) {
+        filtered = filtered.filter(ticket => selectedStatuses.value.includes(ticket.status));
       }
 
-      // Apply priority filter
-      if (selectedPriority.value) {
-        filtered = filtered.filter(ticket => ticket.priority === selectedPriority.value);
+      // Apply priority filter (multi-select)
+      if (selectedPriorities.value.length > 0) {
+        filtered = filtered.filter(ticket => selectedPriorities.value.includes(ticket.priority));
       }
 
-      // Apply agent filter
-      if (selectedAgent.value) {
-        filtered = filtered.filter(ticket => ticket.assigned_agent?.id === selectedAgent.value);
+      // Apply agent filter (multi-select)
+      if (selectedAgents.value.length > 0) {
+        filtered = filtered.filter(ticket => 
+          selectedAgents.value.includes(ticket.assigned_agent?.id) ||
+          (selectedAgents.value.includes(currentUser.value.id) && 
+           (ticket.assigned_agent?.id === currentUser.value.id || ticket.created_by?.id === currentUser.value.id))
+        );
       }
 
       return filtered;
@@ -401,18 +515,27 @@ export default {
       activeQuickFilter.value = filterKey;
       // Clear other filters when applying quick filter
       if (filterKey !== 'all') {
-        selectedStatus.value = '';
-        selectedPriority.value = '';
-        selectedAgent.value = '';
+        selectedStatuses.value = [];
+        selectedPriorities.value = [];
+        selectedAgents.value = [];
       }
     };
 
     const clearFilters = () => {
       searchQuery.value = '';
-      selectedStatus.value = '';
-      selectedPriority.value = '';
-      selectedAgent.value = '';
+      selectedStatuses.value = [];
+      selectedPriorities.value = [];
+      selectedAgents.value = [];
       activeQuickFilter.value = 'my_tickets';
+    };
+
+    const toggleMyTickets = () => {
+      const myId = currentUser.value.id;
+      if (selectedAgents.value.includes(myId)) {
+        selectedAgents.value = selectedAgents.value.filter(id => id !== myId);
+      } else {
+        selectedAgents.value.push(myId);
+      }
     };
 
     const toggleAiEnhancement = async () => {
@@ -504,9 +627,12 @@ export default {
       isLoading,
       isAiLoading,
       searchQuery,
-      selectedStatus,
-      selectedPriority,
-      selectedAgent,
+      selectedStatuses,
+      selectedPriorities,
+      selectedAgents,
+      showStatusDropdown,
+      showPriorityDropdown,
+      showAgentDropdown,
       isAiEnhancementEnabled,
       showDetailModal,
       showAiModal,
@@ -532,6 +658,7 @@ export default {
       refreshTickets,
       applyQuickFilter,
       clearFilters,
+      toggleMyTickets,
       toggleAiEnhancement,
       handleTicketClick,
       closeDetailModal,

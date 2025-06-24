@@ -2,7 +2,9 @@
   "TICKETS": {
     "TRACKING": {
       "TITLE": "Tickets Tracking",
-      "DESCRIPTION": "Track and manage all your tickets in one place",
+       "ESCALATE_TO_JIRA": "Escalate to JIRA",
+      "ESCALATE_DESCRIPTION": "Create a JIRA issue and link it to this ticket.",
+      "ESCALATE": "Escalate", "DESCRIPTION": "Track and manage all your tickets in one place",
       "AI_ENHANCEMENT": "AI Enhancement",
       "REFRESH": "Refresh",
       "SEARCH_PLACEHOLDER": "Search tickets by title, description, or ID...",
@@ -17,7 +19,9 @@
       "AI_DISABLED": "AI enhancement disabled",
       "AI_ERROR": "Failed to enable AI enhancement",
       "AI_ENHANCED": "Ticket enhanced with AI",
-      "AI_ENHANCEMENT_ERROR": "Failed to apply AI enhancement"
+      "AI_ENHANCEMENT_ERROR": "Failed to apply AI enhancement",
+      "MULTI_SELECT_PLACEHOLDER": "Select multiple options...",
+      "SELECTED_COUNT": "{count} selected"
     },
     "AI_ENHANCEMENT": {
       "TITLE": "AI Ticket Enhancement",
@@ -48,12 +52,14 @@
       "TITLE_PLACEHOLDER": "Enter ticket title...",
       "DESCRIPTION_PLACEHOLDER": "Enter ticket description...",
       "SELECT_PRIORITY": "Select priority level",
-      "PROCESSING": "AI is analyzing your ticket...",
+      "PROCESSING": "AI is analyzing your messages and generating enhancements...",
       "CANCEL": "Cancel",
       "ENHANCE": "Enhance with AI",
       "APPLY": "Apply Changes",
-      "SUCCESS": "Ticket enhanced successfully",
-      "ERROR": "Failed to enhance ticket with AI"
+      "SUCCESS": "Enhancement completed successfully",
+      "ERROR": "AI enhancement failed. Please check your OpenAI integration and try again",
+      "NO_MESSAGES_ERROR": "No linked messages found. Please link some messages to this ticket first",
+      "OPENAI_NOT_CONFIGURED": "OpenAI integration not configured. Please set up OpenAI in integrations settings"
     },
     "DETAIL": {
       "TITLE": "Ticket Details",
@@ -70,7 +76,6 @@
       "ESCALATE_TO_JIRA": "Escalate to JIRA",
       "ESCALATE_DESCRIPTION": "Create a JIRA issue and link it to this ticket",
       "ESCALATE": "Escalate",
-      "ENTER_JIRA_KEY": "Enter JIRA issue key:",
       "JIRA_STATUS": "JIRA Status",
       "JIRA_SUMMARY": "JIRA Summary",
       "LINKED_CONVERSATION": "Linked Conversation",
@@ -84,7 +89,13 @@
       "RESOLVED_AT": "Resolved at",
       "REFRESHED": "Ticket refreshed",
       "REFRESH_ERROR": "Failed to refresh ticket",
-      "MESSAGES_LOAD_ERROR": "Failed to load messages"
+      "MESSAGES_LOAD_ERROR": "Failed to load messages",
+      "ALL_DETAILS": "All Details",
+      "COMPREHENSIVE_VIEW": "Comprehensive View",
+      "JIRA_DETAILS": "JIRA Details",
+      "JIRA_DESCRIPTION": "JIRA Description",
+      "JIRA_ASSIGNEE": "JIRA Assignee",
+      "JIRA_PRIORITY": "JIRA Priority"
     },
     "UNTITLED": "Untitled Ticket",
     "SELECTED_MESSAGES": "Selected {count} messages",
@@ -137,14 +148,10 @@
     "LINK_SUCCESS": "Messages linked to ticket '{title}' successfully",
     "LINK_ERROR": "Failed to link messages to ticket. Please try again.",
     
-    "OR_ENTER_JIRA_ISSUE_KEY": "Or enter JIRA issue key manually",
-    "JIRA_ISSUE_KEY_HELP": "Enter a JIRA issue key to link this ticket (e.g., PROJECT-123)",
     "LOADING_JIRA_ISSUES": "Loading linked JIRA issues...",
     "VIEW_DETAILS": "View Details",
     "ESCALATE_TO_JIRA": "Escalate to JIRA",
     "ESCALATE_DESCRIPTION": "Create a JIRA issue and link it to this ticket.",
-    "JIRA_ISSUE_KEY": "JIRA Issue Key",
-    "JIRA_ISSUE_KEY_PLACEHOLDER": "e.g., PROJECT-123",
     "ESCALATE_SUCCESS": "Ticket escalated to JIRA successfully",
     "ESCALATE_ERROR": "Failed to escalate ticket to JIRA. Please try again.",
     
@@ -201,8 +208,7 @@
       "DONE": "Done",
       "NO_TICKETS": "No tickets in this column",
       "STATUS_UPDATED": "Ticket status updated successfully",
-      "STATUS_UPDATE_ERROR": "Failed to update ticket status",
-      "ENTER_JIRA_KEY": "Enter JIRA issue key for escalation:"
+      "STATUS_UPDATE_ERROR": "Failed to update ticket status"
     },
     
     "FILTERS": {

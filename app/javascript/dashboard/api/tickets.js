@@ -97,6 +97,13 @@ class TicketsAPI extends ApiClient {
   async getStats() {
     return axios.get(`${this.url}/stats`);
   }
+
+  async linkJiraIssue(ticketId, jiraIssueKey, jiraUrl) {
+    return axios.post(`${this.url}/${ticketId}/link_jira_issue`, {
+      jira_issue_key: jiraIssueKey,
+      jira_url: jiraUrl,
+    });
+  }
 }
 
 export default new TicketsAPI();

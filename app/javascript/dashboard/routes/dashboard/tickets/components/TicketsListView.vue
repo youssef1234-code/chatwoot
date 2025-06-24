@@ -265,14 +265,23 @@ export default {
     };
 
     const escalateToJira = async (ticket) => {
-      const jiraIssueKey = prompt(t('TICKETS.DETAIL.ENTER_JIRA_KEY'));
-      if (!jiraIssueKey) return;
-
       try {
-        await store.dispatch('tickets/escalateToJira', {
-          ticketId: ticket.id,
-          jiraIssueKey,
+        // Automatically create JIRA issue with ticket details
+        const JiraAPI = await import('dashboard/api/integrations/jira');
+        const response = await JiraAPI.default.createIssue({
+          summary: ticket.title || `Ticket #${ticket.id}`,
+          description: ticket.description || 'No description provided',
+          issueType: 'Task',
+          priority: ticket.priority || 'Medium',
         });
+        
+        // Link the created JIRA issue to the ticket
+        await store.dispatch('tickets/linkJiraIssue', {
+          ticketId: ticket.id,
+          jiraIssueKey: response.data.key,
+          jiraUrl: response.data.self,
+        });
+        
         emit('ticket-updated');
         useAlert(t('TICKETS.ESCALATE_SUCCESS'));
       } catch (error) {

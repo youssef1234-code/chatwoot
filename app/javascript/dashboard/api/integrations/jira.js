@@ -1,3 +1,4 @@
+/* global axios */
 import ApiClient from '../ApiClient';
 
 class JiraAPI extends ApiClient {

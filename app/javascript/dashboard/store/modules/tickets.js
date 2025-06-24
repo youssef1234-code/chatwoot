@@ -221,6 +221,20 @@ export const actions = {
     }
   },
 
+  async linkJiraIssue({ commit }, { ticketId, jiraIssueKey, jiraUrl }) {
+    commit(types.SET_TICKETS_UI_FLAG, { isUpdating: true });
+    try {
+      const response = await TicketsAPI.linkJiraIssue(ticketId, jiraIssueKey, jiraUrl);
+      commit(types.UPDATE_TICKET, response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error linking JIRA issue to ticket:', error);
+      throw error;
+    } finally {
+      commit(types.SET_TICKETS_UI_FLAG, { isUpdating: false });
+    }
+  },
+
   // WebSocket action for real-time ticket updates
   updateTicketFromWebSocket({ commit, state }, ticketData) {
     console.log('Tickets Store: Updating ticket from WebSocket', ticketData);

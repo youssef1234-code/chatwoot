@@ -116,23 +116,58 @@
                 </div>
                 
                 <!-- JIRA Issue Details -->
-                <div v-if="jiraIssueDetails" class="space-y-2">
-                  <div class="flex items-center gap-2">
-                    <span class="text-sm font-medium text-blue-700">
-                      {{ $t('TICKETS.DETAIL.JIRA_STATUS') }}:
-                    </span>
-                    <span class="text-sm text-blue-800">
-                      {{ jiraIssueDetails.status }}
-                    </span>
+                <div v-if="jiraIssueDetails" class="space-y-3">
+                  <div class="grid grid-cols-2 gap-4">
+                    <div>
+                      <span class="text-sm font-medium text-blue-700 block">
+                        {{ $t('TICKETS.DETAIL.JIRA_STATUS') }}
+                      </span>
+                      <span class="text-sm text-blue-800 font-medium">
+                        {{ jiraIssueDetails.status }}
+                      </span>
+                    </div>
+                    <div>
+                      <span class="text-sm font-medium text-blue-700 block">
+                        Priority
+                      </span>
+                      <span class="text-sm text-blue-800 font-medium">
+                        {{ jiraIssueDetails.priority || 'Not set' }}
+                      </span>
+                    </div>
                   </div>
-                  <div class="flex items-center gap-2">
-                    <span class="text-sm font-medium text-blue-700">
-                      {{ $t('TICKETS.DETAIL.JIRA_SUMMARY') }}:
+                  
+                  <div>
+                    <span class="text-sm font-medium text-blue-700 block mb-1">
+                      {{ $t('TICKETS.DETAIL.JIRA_SUMMARY') }}
                     </span>
-                    <span class="text-sm text-blue-800">
+                    <p class="text-sm text-blue-800">
                       {{ jiraIssueDetails.summary }}
+                    </p>
+                  </div>
+                  
+                  <div v-if="jiraIssueDetails.description">
+                    <span class="text-sm font-medium text-blue-700 block mb-1">
+                      Description
+                    </span>
+                    <p class="text-sm text-blue-800 line-clamp-3">
+                      {{ jiraIssueDetails.description }}
+                    </p>
+                  </div>
+                  
+                  <div v-if="jiraIssueDetails.assignee">
+                    <span class="text-sm font-medium text-blue-700 block">
+                      Assignee
+                    </span>
+                    <span class="text-sm text-blue-800">
+                      {{ jiraIssueDetails.assignee.displayName }}
                     </span>
                   </div>
+                </div>
+                
+                <!-- Loading state for JIRA details -->
+                <div v-else-if="isLoadingJira" class="flex items-center gap-2 text-blue-600">
+                  <Icon icon="i-lucide-loader-2" class="w-4 h-4 animate-spin" />
+                  <span class="text-sm">Loading JIRA details...</span>
                 </div>
               </div>
               
@@ -153,15 +188,6 @@
                     size="sm"
                     :is-loading="isEscalating"
                     @click="escalateToJira"
-                  >
-                    {{ $t('TICKETS.DETAIL.ESCALATE') }}
-                  </NextButton>
-                </div>
-              </div>
-                    color="yellow"
-                    size="sm"
-                    @click="escalateToJira"
-                    :is-loading="isUpdating"
                   >
                     {{ $t('TICKETS.DETAIL.ESCALATE') }}
                   </NextButton>
@@ -319,6 +345,8 @@ export default {
     const isUpdating = ref(false);
     const isRefreshing = ref(false);
     const isLoadingMessages = ref(false);
+    const isLoadingJira = ref(false);
+    const isEscalating = ref(false);
     const messages = ref([]);
     const jiraIssueDetails = ref(null);
     const showModal = ref(true);
@@ -409,23 +437,52 @@ export default {
       }
     };
 
-    const escalateToJira = async () => {
-      const jiraIssueKey = prompt(t('TICKETS.DETAIL.ENTER_JIRA_KEY'));
-      if (!jiraIssueKey) return;
-
-      isUpdating.value = true;
+    const loadJiraDetails = async () => {
+      if (!props.ticket.jira_issue_key) return;
+      
+      isLoadingJira.value = true;
       try {
-        await store.dispatch('tickets/escalateToJira', {
-          ticketId: props.ticket.id,
-          jiraIssueKey,
+        // Import JIRA API
+        const JiraAPI = await import('dashboard/api/integrations/jira');
+        const response = await JiraAPI.default.getIssue(props.ticket.jira_issue_key);
+        jiraIssueDetails.value = response.data;
+      } catch (error) {
+        console.error('Failed to load JIRA details:', error);
+        // Don't show error alert as this is optional enhancement
+      } finally {
+        isLoadingJira.value = false;
+      }
+    };
+
+    const escalateToJira = async () => {
+      isEscalating.value = true;
+      try {
+        // Automatically create JIRA issue with ticket details
+        const JiraAPI = await import('dashboard/api/integrations/jira');
+        const response = await JiraAPI.default.createIssue({
+          summary: props.ticket.title || `Ticket #${props.ticket.id}`,
+          description: props.ticket.description || 'No description provided',
+          issueType: 'Task',
+          priority: props.ticket.priority || 'Medium',
         });
+        
+        // Link the created JIRA issue to the ticket
+        await store.dispatch('tickets/linkJiraIssue', {
+          ticketId: props.ticket.id,
+          jiraIssueKey: response.data.key,
+          jiraUrl: response.data.self,
+        });
+        
         emit('updated');
         useAlert(t('TICKETS.ESCALATE_SUCCESS'));
+        
+        // Load the newly created JIRA details
+        await loadJiraDetails();
       } catch (error) {
-        console.error('Failed to escalate ticket to JIRA:', error);
+        console.error('Failed to escalate to JIRA:', error);
         useAlert(t('TICKETS.ESCALATE_ERROR'));
       } finally {
-        isUpdating.value = false;
+        isEscalating.value = false;
       }
     };
 
@@ -455,6 +512,11 @@ export default {
     const openJiraIssue = () => {
       if (props.ticket.jira_url) {
         window.open(props.ticket.jira_url, '_blank');
+      } else if (props.ticket.jira_issue_key) {
+        // Construct JIRA URL from issue key
+        const jiraBaseUrl = window.chatwootConfig?.jiraBaseUrl || 'https://your-domain.atlassian.net';
+        const jiraUrl = `${jiraBaseUrl}/browse/${props.ticket.jira_issue_key}`;
+        window.open(jiraUrl, '_blank');
       }
     };
 
@@ -487,11 +549,21 @@ export default {
       ticketForm.assigned_agent_id = newTicket.assigned_agent?.id || '';
     }, { immediate: true });
 
+    // Lifecycle
+    onMounted(() => {
+      loadMessages();
+      if (props.ticket.jira_issue_key) {
+        loadJiraDetails();
+      }
+    });
+
     return {
       // State
       isUpdating,
       isRefreshing,
       isLoadingMessages,
+      isLoadingJira,
+      isEscalating,
       messages,
       jiraIssueDetails,
       ticketForm,
@@ -505,6 +577,7 @@ export default {
       
       // Methods
       loadMessages,
+      loadJiraDetails,
       updateTicket,
       resolveTicket,
       escalateToJira,

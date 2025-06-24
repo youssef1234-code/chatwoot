@@ -267,6 +267,11 @@ export default {
     const openJiraIssue = () => {
       if (props.ticket.jira_url) {
         window.open(props.ticket.jira_url, '_blank');
+      } else if (props.ticket.jira_issue_key) {
+        // Construct JIRA URL from issue key (you may need to adjust this based on your JIRA instance)
+        const jiraBaseUrl = window.chatwootConfig?.jiraBaseUrl || 'https://your-domain.atlassian.net';
+        const jiraUrl = `${jiraBaseUrl}/browse/${props.ticket.jira_issue_key}`;
+        window.open(jiraUrl, '_blank');
       }
     };
 
