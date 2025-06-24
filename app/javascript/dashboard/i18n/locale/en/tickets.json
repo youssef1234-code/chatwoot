@@ -7,10 +7,11 @@
       "ESCALATE": "Escalate", "DESCRIPTION": "Track and manage all your tickets in one place",
       "AI_ENHANCEMENT": "AI Enhancement",
       "REFRESH": "Refresh",
-      "SEARCH_PLACEHOLDER": "Search tickets by title, description, or ID...",
+      "SEARCH_PLACEHOLDER": "Search tickets by title, description, ID, or use #123 to find ticket by ID...",
       "STATUS_FILTER": "Filter by Status",
       "PRIORITY_FILTER": "Filter by Priority", 
       "AGENT_FILTER": "Filter by Agent",
+      "JIRA_FILTER": "Filter by JIRA",
       "ORGANIZATION_FILTER": "Filter by Organization",
       "SEARCH_ORGANIZATIONS": "Search organizations...",
       "NO_ORGANIZATIONS_FOUND": "No organizations found",
@@ -69,6 +70,7 @@
     },
     "DETAIL": {
       "TITLE": "Ticket Details",
+      "VIEW_PROFILE": "View Full Profile",
       "CONVERSATION": "Linked Conversation",
       "SUBTITLE": "Ticket #{id}",
       "BASIC_INFO": "Basic Information",
@@ -251,7 +253,9 @@
       "ASSIGNED_TO_ME": "Assigned to me",
       "CREATED_BY_ME": "Created by me",
       "MY_TICKETS": "My Tickets",
-      "URGENT": "Urgent"
+      "URGENT": "Urgent",
+      "LINKED_TO_JIRA": "Linked to JIRA",
+      "NOT_LINKED_TO_JIRA": "Not linked to JIRA"
     },
     
     "EMPTY_STATE": {

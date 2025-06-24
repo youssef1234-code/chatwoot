@@ -103,6 +103,9 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
       # Create activity message in conversation
       create_ticket_activity_message(:created)
 
+      # Broadcast ticket creation to WebSocket
+      broadcast_ticket_created
+
       render :show, status: :created
     else
       render json: { errors: @ticket.errors }, status: :unprocessable_entity
@@ -119,6 +122,9 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
       Rails.logger.info "Updated assigned_agent_id: #{@ticket.assigned_agent_id}"
       # Create activity message for status/priority changes
       create_ticket_activity_message(:updated) if ticket_status_or_priority_changed?
+
+      # Broadcast ticket update to WebSocket
+      broadcast_ticket_updated
 
       render :show
     else
@@ -307,5 +313,61 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
         }
       }
     ).perform
+  end
+
+  def broadcast_ticket_created
+    # Broadcast to the account channel for real-time updates
+    Rails.logger.info "Broadcasting ticket creation: #{@ticket.id}"
+    
+    ActionCable.server.broadcast(
+      "accounts:#{current_account.id}",
+      {
+        event: 'ticket.created',
+        data: {
+          id: @ticket.id,
+          title: @ticket.title,
+          description: @ticket.description,
+          status: @ticket.status,
+          priority: @ticket.priority,
+          conversation_id: @ticket.conversation_id,
+          contact: @ticket.contact,
+          assigned_agent: @ticket.assigned_agent,
+          created_by: @ticket.created_by,
+          created_at: @ticket.created_at,
+          updated_at: @ticket.updated_at,
+          jira_issue_key: @ticket.jira_issue_key,
+          jira_status: @ticket.jira_status,
+          jira_in_progress: @ticket.jira_in_progress?
+        }
+      }
+    )
+  end
+
+  def broadcast_ticket_updated
+    # Broadcast to the account channel for real-time updates
+    Rails.logger.info "Broadcasting ticket update: #{@ticket.id}"
+    
+    ActionCable.server.broadcast(
+      "accounts:#{current_account.id}",
+      {
+        event: 'ticket.updated',
+        data: {
+          id: @ticket.id,
+          title: @ticket.title,
+          description: @ticket.description,
+          status: @ticket.status,
+          priority: @ticket.priority,
+          conversation_id: @ticket.conversation_id,
+          contact: @ticket.contact,
+          assigned_agent: @ticket.assigned_agent,
+          created_by: @ticket.created_by,
+          created_at: @ticket.created_at,
+          updated_at: @ticket.updated_at,
+          jira_issue_key: @ticket.jira_issue_key,
+          jira_status: @ticket.jira_status,
+          jira_in_progress: @ticket.jira_in_progress?
+        }
+      }
+    )
   end
 end

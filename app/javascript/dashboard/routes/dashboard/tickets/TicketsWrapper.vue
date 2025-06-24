@@ -226,31 +226,8 @@
             </div>
           </div>
 
-          <!-- Date Range Filter -->
-          <div class="relative min-w-48">
-            <label class="block text-sm font-medium text-n-slate-10 mb-1">
-              {{ $t('TICKETS.TRACKING.DATE_RANGE') }}
-            </label>
-            <div class="flex gap-1">
-              <NextInput
-                v-model="dateRange.start"
-                type="date"
-                size="sm"
-                :placeholder="$t('TICKETS.TRACKING.START_DATE')"
-                class="flex-1"
-              />
-              <NextInput
-                v-model="dateRange.end"
-                type="date"
-                size="sm"
-                :placeholder="$t('TICKETS.TRACKING.END_DATE')"
-                class="flex-1"
-              />
-            </div>
-          </div>
-
           <!-- Organization Filter -->
-          <div class="relative min-w-40">
+          <div class="relative min-w-52">
             <label class="block text-sm font-medium text-n-slate-10 mb-1">
               {{ $t('TICKETS.TRACKING.ORGANIZATION_FILTER') }}
             </label>
@@ -306,6 +283,71 @@
                   <span class="text-sm text-n-slate-12">{{ option.label }}</span>
                 </label>
               </div>
+            </div>
+          </div>
+
+          <!-- JIRA Filter -->
+          <div class="relative min-w-40">
+            <label class="block text-sm font-medium text-n-slate-10 mb-1">
+              {{ $t('TICKETS.TRACKING.JIRA_FILTER') }}
+            </label>
+            <div class="relative">
+              <button
+                type="button"
+                class="w-full px-3 py-2 border border-n-weak rounded-lg bg-white dark:bg-n-slate-1 text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                @click="showJiraDropdown = !showJiraDropdown"
+              >
+                <span v-if="selectedJiraStatus?.length === 0" class="text-n-slate-9">
+                  {{ $t('TICKETS.TRACKING.JIRA_FILTER') }}
+                </span>
+                <span v-else class="text-n-slate-12">
+                  {{ getJiraFilterLabel() }}
+                </span>
+                <Icon icon="i-lucide-chevron-down" class="absolute right-2 top-2.5 w-4 h-4" />
+              </button>
+              
+              <div
+                v-if="showJiraDropdown"
+                v-on-clickaway="() => showJiraDropdown = false"
+                class="absolute z-10 w-full mt-1 bg-white dark:bg-n-slate-1 border border-n-weak rounded-lg shadow-lg py-1 max-h-60 overflow-y-auto"
+              >
+                <label
+                  v-for="option in jiraOptions"
+                  :key="option.value"
+                  class="flex items-center px-3 py-2 hover:bg-n-alpha-1 cursor-pointer"
+                >
+                  <input
+                    v-model="selectedJiraStatus"
+                    type="radio"
+                    :value="option.value"
+                    name="jira-filter"
+                    class="mr-2 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span class="text-sm text-n-slate-12">{{ option.label }}</span>
+                </label>
+              </div>
+            </div>
+          </div>
+                    <!-- Date Range Filter -->
+          <div class="relative min-w-48">
+            <label class="block text-sm font-medium text-n-slate-10 mb-1">
+              {{ $t('TICKETS.TRACKING.DATE_RANGE') }}
+            </label>
+            <div class="flex gap-1">
+              <NextInput
+                v-model="dateRange.start"
+                type="date"
+                size="sm"
+                :placeholder="$t('TICKETS.TRACKING.START_DATE')"
+                class="flex-1"
+              />
+              <NextInput
+                v-model="dateRange.end"
+                type="date"
+                size="sm"
+                :placeholder="$t('TICKETS.TRACKING.END_DATE')"
+                class="flex-1"
+              />
             </div>
           </div>
 
@@ -455,6 +497,7 @@ export default {
     const selectedPriorities = ref([]);
     const selectedAgents = ref([]);
     const selectedOrganizations = ref([]);
+    const selectedJiraStatus = ref('');
     const dateRange = reactive({
       start: '',
       end: ''
@@ -463,6 +506,7 @@ export default {
     const showPriorityDropdown = ref(false);
     const showAgentDropdown = ref(false);
     const showOrganizationDropdown = ref(false);
+    const showJiraDropdown = ref(false);
     const isAiEnhancementEnabled = ref(false);
     const showDetailModal = ref(false);
     const showAiModal = ref(false);
@@ -515,6 +559,12 @@ export default {
       }));
     });
 
+    const jiraOptions = computed(() => [
+      { label: t('TICKETS.FILTERS.ALL'), value: '' },
+      { label: t('TICKETS.FILTERS.LINKED_TO_JIRA'), value: 'linked' },
+      { label: t('TICKETS.FILTERS.NOT_LINKED_TO_JIRA'), value: 'not_linked' },
+    ]);
+
     const organizationOptions = ref([]);
 
     const filteredOrganizationOptions = computed(() => {
@@ -532,11 +582,17 @@ export default {
              selectedPriorities.value.length > 0 || 
              selectedAgents.value.length > 0 ||
              selectedOrganizations.value.length > 0 ||
+             selectedJiraStatus.value ||
              dateRange.start ||
              dateRange.end ||
              searchQuery.value ||
              activeQuickFilter.value !== 'my_tickets';
     });
+
+    const getJiraFilterLabel = () => {
+      const option = jiraOptions.value.find(opt => opt.value === selectedJiraStatus.value);
+      return option ? option.label : t('TICKETS.TRACKING.JIRA_FILTER');
+    };
 
     const filteredTickets = computed(() => {
       let filtered = [...tickets.value];
@@ -558,17 +614,24 @@ export default {
       // Apply search filter
       if (searchQuery.value) {
         const query = searchQuery.value.toLowerCase();
-        filtered = filtered.filter(ticket => 
-          ticket.title?.toLowerCase().includes(query) ||
-          ticket.description?.toLowerCase().includes(query) ||
-          ticket.id.toString().includes(query) ||
-          ticket.jira_issue_key?.toLowerCase().includes(query)
+        if(query.startsWith('#')) {
+          // If search starts with #, treat it as ID search
+          const idQuery = query.slice(1);
+          filtered = filtered.filter(ticket => ticket.id.toString().includes(idQuery));
+        }else{
+          filtered = filtered.filter(ticket => 
+            ticket.title?.toLowerCase().includes(query) ||
+            ticket.description?.toLowerCase().includes(query) ||
+            ticket.id.toString().includes(query) ||
+            ticket.jira_issue_key?.toLowerCase().includes(query)
         );
+        }
       }
-
-      // Apply status filter (multi-select)
+        console.log('selectedStatuses VALUES:', selectedStatuses.value);
       if (selectedStatuses.value.length > 0) {
-        filtered = filtered.filter(ticket => selectedStatuses.value.includes(ticket.status));
+        filtered = filtered.filter(ticket => ((selectedStatuses.value.includes(ticket.status)) 
+                                                                ||
+                                             (selectedStatuses.value.includes('in_progress') && ticket.jira_in_progress)));
       }
 
       // Apply priority filter (multi-select)
@@ -594,6 +657,15 @@ export default {
                            ticket.contact?.additional_attributes?.company_name;
           return contactOrg && selectedOrganizations.value.includes(contactOrg);
         });
+      }
+
+      // Apply JIRA filter
+      if (selectedJiraStatus.value) {
+        if (selectedJiraStatus.value === 'linked') {
+          filtered = filtered.filter(ticket => ticket.jira_issue_key);
+        } else if (selectedJiraStatus.value === 'not_linked') {
+          filtered = filtered.filter(ticket => !ticket.jira_issue_key);
+        }
       }
 
       // Apply date range filter
@@ -628,7 +700,6 @@ export default {
         await loadOrganizations();
       } catch (error) {
         console.error('Failed to load tickets:', error);
-        useAlert(t('TICKETS.TRACKING.LOAD_ERROR'));
       } finally {
         isLoading.value = false;
       }
@@ -705,6 +776,7 @@ export default {
       selectedPriorities.value = [];
       selectedAgents.value = [];
       selectedOrganizations.value = [];
+      selectedJiraStatus.value = '';
       dateRange.start = '';
       dateRange.end = '';
       organizationSearchQuery.value = '';
@@ -725,16 +797,13 @@ export default {
         isAiLoading.value = true;
         try {
           isAiEnhancementEnabled.value = true;
-          useAlert(t('TICKETS.TRACKING.AI_ENABLED'));
         } catch (error) {
           console.error('Failed to enable AI enhancement:', error);
-          useAlert(t('TICKETS.TRACKING.AI_ERROR'));
         } finally {
           isAiLoading.value = false;
         }
       } else {
         isAiEnhancementEnabled.value = false;
-        useAlert(t('TICKETS.TRACKING.AI_DISABLED'));
       }
     };
 
@@ -764,11 +833,9 @@ export default {
           id: selectedTicketForAi.value.id,
           ...enhancedData,
         });
-        useAlert(t('TICKETS.TRACKING.AI_ENHANCED'));
         closeAiModal();
       } catch (error) {
         console.error('Failed to apply AI enhancement:', error);
-        useAlert(t('TICKETS.TRACKING.AI_ENHANCEMENT_ERROR'));
       }
     };
 
@@ -829,11 +896,13 @@ export default {
       selectedPriorities,
       selectedAgents,
       selectedOrganizations,
+      selectedJiraStatus,
       dateRange,
       showStatusDropdown,
       showPriorityDropdown,
       showAgentDropdown,
       showOrganizationDropdown,
+      showJiraDropdown,
       isAiEnhancementEnabled,
       showDetailModal,
       showAiModal,
@@ -851,6 +920,7 @@ export default {
       statusOptions,
       priorityOptions,
       agentOptions,
+      jiraOptions,
       organizationOptions,
       filteredOrganizationOptions,
       hasActiveFilters,
@@ -864,6 +934,7 @@ export default {
       clearFilters,
       toggleMyTickets,
       toggleAiEnhancement,
+      getJiraFilterLabel,
       handleTicketClick,
       closeDetailModal,
       enhanceTicketWithAi,

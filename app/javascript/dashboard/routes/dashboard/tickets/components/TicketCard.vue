@@ -69,9 +69,9 @@
     <div class="flex flex-wrap gap-2 mb-3">
       <span
         class="px-2 py-1 text-xs font-medium rounded-full border"
-        :class="getStatusColor(ticket.status)"
+        :class="getStatusColor(effectiveStatus)"
       >
-        {{ $t(`TICKETS.STATUS.${ticket.status?.toUpperCase()}`) }}
+        {{ $t(`TICKETS.STATUS.${effectiveStatus?.toUpperCase()}`) }}
       </span>
       
       <span
@@ -128,9 +128,9 @@
         <Icon icon="i-lucide-user" class="w-4 h-4" />
         <span class="font-medium">{{ customerInfo.name }}</span>
       </div>
-      <div v-if="customerInfo.organization" class="flex items-center gap-2 text-xs text-n-slate-8 ml-6">
+      <div v-if="customerInfo.organization" class="flex items-center gap-2 text-xs text-purple-700 dark:text-purple-400 ml-6 bg-purple-50 dark:bg-purple-900/20 px-2 py-1 rounded">
         <Icon icon="i-lucide-building" class="w-3 h-3" />
-        <span>{{ customerInfo.organization }}</span>
+        <span class="font-medium">{{ customerInfo.organization }}</span>
       </div>
     </div>
 
@@ -203,9 +203,34 @@ export default {
     const showActionsMenu = ref(false);
 
     // Computed
+    const customerInfo = computed(() => {
+      if (!props.ticket.contact) return null;
+      
+      return {
+        name: props.ticket.contact.name || props.ticket.created_by?.name || 'Unknown Customer',
+        organization: props.ticket.contact.company || props.ticket.contact.organization,
+      };
+    });
+
     const jiraStatus = computed(() => {
       // This would come from JIRA integration data
       return props.ticket.jira_status || null;
+    });
+
+    // Compute the effective status - prioritize in_progress
+    const effectiveStatus = computed(() => {
+      // If ticket status is in_progress, show it
+      if (props.ticket.status === 'in_progress') {
+        return 'in_progress';
+      }
+      
+      // If ticket is actively being worked on in JIRA, show in_progress
+      if (props.ticket.jira_in_progress && props.ticket.status !== 'resolved' && props.ticket.status !== 'closed') {
+        return 'in_progress';
+      }
+      
+      // Otherwise, show the actual status
+      return props.ticket.status;
     });
 
     // Methods
@@ -293,7 +318,9 @@ export default {
       showActionsMenu,
       
       // Computed
+      customerInfo,
       jiraStatus,
+      effectiveStatus,
       
       // Methods
       getStatusColor,

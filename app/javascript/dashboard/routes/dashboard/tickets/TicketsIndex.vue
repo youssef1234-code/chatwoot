@@ -86,6 +86,16 @@
           class="min-w-40"
         />
 
+        <!-- JIRA Filter -->
+        <NextSelect
+          v-model="selectedJiraStatus"
+          :label="$t('TICKETS.TRACKING.JIRA_FILTER')"
+          name="jira"
+          :options="jiraOptions"
+          :placeholder="$t('TICKETS.TRACKING.JIRA_FILTER')"
+          class="min-w-40"
+        />
+
         <!-- Date Range Filter -->
         <NextButton
           variant="outline"
@@ -172,6 +182,7 @@ export default {
     const selectedStatus = ref('');
     const selectedPriority = ref('');
     const selectedAgent = ref('');
+    const selectedJiraStatus = ref('');
     const showDatePicker = ref(false);
     const isAiEnhancementEnabled = ref(false);
     const showAiModal = ref(false);
@@ -211,8 +222,14 @@ export default {
       ];
     });
 
+    const jiraOptions = computed(() => [
+      { label: t('TICKETS.FILTERS.ALL'), value: '' },
+      { label: t('TICKETS.FILTERS.LINKED_TO_JIRA'), value: 'linked' },
+      { label: t('TICKETS.FILTERS.NOT_LINKED_TO_JIRA'), value: 'not_linked' },
+    ]);
+
     const hasActiveFilters = computed(() => {
-      return selectedStatus.value || selectedPriority.value || selectedAgent.value || searchQuery.value;
+      return selectedStatus.value || selectedPriority.value || selectedAgent.value || selectedJiraStatus.value || searchQuery.value;
     });
 
     const filteredTickets = computed(() => {
@@ -220,12 +237,36 @@ export default {
 
       // Apply search filter
       if (searchQuery.value) {
-        const query = searchQuery.value.toLowerCase();
-        filtered = filtered.filter(ticket => 
-          ticket.title?.toLowerCase().includes(query) ||
-          ticket.description?.toLowerCase().includes(query) ||
-          ticket.id.toString().includes(query)
-        );
+        let query = searchQuery.value.trim();
+        
+        console.log('Search query:', query); // Debug log
+        console.log('Query length:', query.length); // Debug log
+        console.log('Query starts with #:', query.startsWith('#')); // Debug log
+        
+        // Check if search starts with # for ticket ID search
+        if (query.startsWith('#')) {
+          const ticketId = query.substring(1).trim();
+          console.log('Searching for ticket ID:', ticketId); // Debug log
+          console.log('Tickets available:', filtered.map(t => t.id)); // Debug log
+          if (ticketId) {
+            // Filter by ticket ID (exact or partial match)
+            const matchingTickets = filtered.filter(ticket => 
+              ticket.id.toString().includes(ticketId)
+            );
+            console.log('Matching tickets:', matchingTickets.map(t => t.id)); // Debug log
+            filtered = matchingTickets;
+          }
+        } else {
+          // Regular text search
+          const searchTerm = query.toLowerCase();
+          filtered = filtered.filter(ticket => 
+            ticket.title?.toLowerCase().includes(searchTerm) ||
+            ticket.description?.toLowerCase().includes(searchTerm) ||
+            ticket.id.toString().includes(searchTerm) ||
+            ticket.assigned_agent?.name?.toLowerCase().includes(searchTerm) ||
+            ticket.created_by?.name?.toLowerCase().includes(searchTerm)
+          );
+        }
       }
 
       // Apply status filter
@@ -254,6 +295,15 @@ export default {
           ticket.assigned_agent?.id === currentUser.value.id ||
           ticket.created_by?.id === currentUser.value.id
         );
+      }
+
+      // Apply JIRA filter
+      if (selectedJiraStatus.value) {
+        if (selectedJiraStatus.value === 'linked') {
+          filtered = filtered.filter(ticket => ticket.jira_issue_key);
+        } else if (selectedJiraStatus.value === 'not_linked') {
+          filtered = filtered.filter(ticket => !ticket.jira_issue_key);
+        }
       }
 
       return filtered;
@@ -285,6 +335,7 @@ export default {
       selectedStatus.value = '';
       selectedPriority.value = '';
       selectedAgent.value = '';
+      selectedJiraStatus.value = '';
     };
 
     const toggleAiEnhancement = async () => {
@@ -336,6 +387,11 @@ export default {
     };
 
     // WebSocket event handlers
+    const handleTicketCreated = (data) => {
+      console.log('New ticket created via WebSocket:', data);
+      store.dispatch('tickets/addTicket', data);
+    };
+
     const handleTicketUpdated = (data) => {
       store.dispatch('tickets/updateTicketFromWebSocket', data);
     };
@@ -353,12 +409,14 @@ export default {
       store.dispatch('agents/get');
       
       // Set up WebSocket listeners
+      emitter.on('tickets:ticket-created', handleTicketCreated);
       emitter.on('tickets:ticket-updated', handleTicketUpdated);
       emitter.on('jira:issue-status-updated', handleJiraIssueUpdated);
     });
 
     onUnmounted(() => {
       // Clean up WebSocket listeners
+      emitter.off('tickets:ticket-created', handleTicketCreated);
       emitter.off('tickets:ticket-updated', handleTicketUpdated);
       emitter.off('jira:issue-status-updated', handleJiraIssueUpdated);
     });
@@ -380,6 +438,7 @@ export default {
       selectedStatus,
       selectedPriority,
       selectedAgent,
+      selectedJiraStatus,
       showDatePicker,
       isAiEnhancementEnabled,
       showAiModal,
@@ -392,6 +451,7 @@ export default {
       statusOptions,
       priorityOptions,
       agentOptions,
+      jiraOptions,
       hasActiveFilters,
       filteredTickets,
       
@@ -404,6 +464,7 @@ export default {
       closeAiModal,
       handleAiEnhancement,
       handleTicketUpdate,
+      handleTicketCreated,
     };
   },
 };

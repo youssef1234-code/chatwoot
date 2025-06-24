@@ -10,6 +10,8 @@ json.array! @tickets do |ticket|
   json.updated_at ticket.updated_at
   json.jira_issue_key ticket.jira_issue_key
   json.jira_url ticket.jira_url
+  json.jira_status ticket.jira_status
+  json.jira_in_progress ticket.jira_in_progress?
   json.escalated_to_jira ticket.escalated_to_jira?
   json.duration_to_resolve ticket.duration_to_resolve
 

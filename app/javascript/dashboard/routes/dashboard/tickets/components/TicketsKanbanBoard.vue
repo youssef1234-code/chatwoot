@@ -64,17 +64,15 @@ export default {
 
     const inProgressTickets = computed(() => {
       return props.tickets.filter(ticket => {
-        // Explicitly in progress status
+        // Explicitly in progress status takes priority - even if escalated
         if (ticket.status === 'in_progress') {
           return true;
         }
         
         // JIRA linked tickets that are actively being worked on
-        if (ticket.jira_issue_key && ticket.jira_status) {
-          const inProgressStatuses = ['In Progress', 'In Development', 'In Review', 'Testing'];
-          return inProgressStatuses.includes(ticket.jira_status) && 
-                 ticket.status !== 'resolved' && 
-                 ticket.status !== 'closed';
+        // Higher priority: if jira_in_progress is true, show here regardless of escalation
+        if (ticket.jira_in_progress && ticket.status !== 'resolved' && ticket.status !== 'closed') {
+          return true;
         }
         
         return false;
@@ -82,12 +80,15 @@ export default {
     });
 
     const escalatedTickets = computed(() => {
-      return props.tickets.filter(ticket => ticket.status === 'escalated');
+      return props.tickets.filter(ticket => {
+        // Only show escalated status tickets that are NOT in progress or actively worked on in JIRA
+        return ticket.status === 'escalated' && ticket.status !== 'in_progress' && !ticket.jira_in_progress;
+      });
     });
 
     const doneTickets = computed(() => {
       return props.tickets.filter(ticket => 
-        ticket.status === 'resolved' || ticket.status === 'closed'
+        ticket.status === 'resolved' || ticket.status === 'closed' || ticket.status === 'done'
       );
     });
 
@@ -102,20 +103,20 @@ export default {
         statusFilters: ['open']
       },
       {
-        key: 'in_progress',
-        title: t('TICKETS.KANBAN.IN_PROGRESS'),
-        status: 'in_progress',
-        color: 'yellow',
-        tickets: inProgressTickets.value,
-        statusFilters: ['in_progress']
-      },
-      {
         key: 'escalated',
         title: t('TICKETS.KANBAN.ESCALATED'),
         status: 'escalated',
         color: 'orange',
         tickets: escalatedTickets.value,
         statusFilters: ['escalated']
+      },
+      {
+        key: 'in_progress',
+        title: t('TICKETS.KANBAN.IN_PROGRESS'),
+        status: 'in_progress',
+        color: 'yellow',
+        tickets: inProgressTickets.value,
+        statusFilters: ['in_progress']
       },
       {
         key: 'done',

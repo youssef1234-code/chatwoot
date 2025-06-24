@@ -44,7 +44,7 @@ class Ticket < ApplicationRecord
   belongs_to :contact, optional: true
   belongs_to :created_by, class_name: 'User'
   belongs_to :assigned_agent, class_name: 'User', optional: true
-  
+
   has_many :ticket_messages, dependent: :destroy
   has_one :jira_issue_link, foreign_key: :conversation_id, primary_key: :conversation_id
 
@@ -52,7 +52,7 @@ class Ticket < ApplicationRecord
   validates :description, length: { maximum: 5000 }
   validates :status, presence: true
   validates :priority, presence: true
-  
+
   enum status: {
     open: 0,
     in_progress: 1,
@@ -60,7 +60,7 @@ class Ticket < ApplicationRecord
     resolved: 3,
     closed: 4
   }
-  
+
   enum priority: {
     low: 0,
     medium: 1,
@@ -105,11 +105,27 @@ class Ticket < ApplicationRecord
 
   def jira_url
     return nil unless jira_issue_key.present?
-    
+
     jira_hook = account.hooks.find_by(app_id: 'jira')
     return nil unless jira_hook&.settings&.dig('site_url')
-    
+
     "#{jira_hook.settings['site_url']}/browse/#{jira_issue_key}"
+  end
+
+  def jira_in_progress?
+    Rails.logger.warn("Jira STATUS FOR  #{jira_issue_key} IS #{jira_status}")
+    return false unless jira_status.present?
+
+    # Common JIRA status values that indicate work in progress
+    in_progress_statuses = [
+      'in progress'
+    ]
+
+    in_progress_statuses.any? { |status| jira_status.downcase.include?(status) }
+  end
+
+  def jira_status
+    jira_issue_link&.last_known_status
   end
 
   def can_be_escalated?
@@ -118,7 +134,7 @@ class Ticket < ApplicationRecord
 
   def duration_to_resolve
     return nil unless resolved_at.present?
-    
+
     resolved_at - created_at
   end
 

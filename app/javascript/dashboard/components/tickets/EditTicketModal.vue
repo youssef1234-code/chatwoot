@@ -210,11 +210,6 @@ const updateTicket = async () => {
   errors.value = {};
   
   try {
-    console.log('=== TICKET UPDATE DEBUG (Frontend) ===');
-    console.log('Ticket form data:', ticketForm);
-    console.log('Original ticket data:', props.ticket);
-    console.log('Assigned agent ID being sent:', ticketForm.assigned_agent_id);
-    
     await store.dispatch('tickets/updateTicket', {
       id: props.ticket.id,
       ...ticketForm,
