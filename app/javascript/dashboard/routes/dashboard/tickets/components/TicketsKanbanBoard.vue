@@ -102,11 +102,13 @@ export default {
 
     // Computed - Organize tickets by status
     const notDoneTickets = computed(() => {
-      return props.tickets.filter((ticket) => ticket.status === "open");
+      const tickets = props.tickets.filter((ticket) => ticket.status === "open");
+      // Sort by ID in descending order (newest first)
+      return tickets.sort((a, b) => b.id - a.id);
     });
 
     const inProgressTickets = computed(() => {
-      return props.tickets.filter((ticket) => {
+      const tickets = props.tickets.filter((ticket) => {
         // Explicitly in progress status takes priority - even if escalated
         if (ticket.status === "in_progress") {
           return true;
@@ -124,12 +126,14 @@ export default {
 
         return false;
       });
+      // Sort by ID in descending order (newest first)
+      return tickets.sort((a, b) => b.id - a.id);
     });
 
     console.log("PROPS TICKETS:", props.tickets);
 
     const escalatedTickets = computed(() => {
-      return props.tickets.filter((ticket) => {
+      const tickets = props.tickets.filter((ticket) => {
         // Only show escalated status tickets that are NOT in progress or actively worked on in JIRA
         return (
           ticket.status === "escalated" &&
@@ -137,15 +141,19 @@ export default {
           !ticket.jira_in_progress
         );
       });
+      // Sort by ID in descending order (newest first)
+      return tickets.sort((a, b) => b.id - a.id);
     });
 
     const doneTickets = computed(() => {
-      return props.tickets.filter(
+      const tickets = props.tickets.filter(
         (ticket) =>
           ticket.status === "resolved" ||
           ticket.status === "closed" ||
           ticket.status === "done"
       );
+      // Sort by ID in descending order (newest first)
+      return tickets.sort((a, b) => b.id - a.id);
     });
 
     // Define all possible columns

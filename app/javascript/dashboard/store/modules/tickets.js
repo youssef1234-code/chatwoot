@@ -18,7 +18,7 @@ export const state = {
 };
 
 export const getters = {
-  getTickets: $state => Object.values($state.records),
+  getTickets: $state => Object.values($state.records).sort((a, b) => b.id - a.id),
   getTicket: $state => ticketId => $state.records[ticketId],
   getTicketsForConversation: $state => conversationId => 
     $state.conversationTickets[conversationId] || [],
@@ -382,10 +382,12 @@ export const mutations = {
   },
 
   [types.SET_CONVERSATION_TICKETS]($state, { conversationId, tickets }) {
-    $state.conversationTickets[conversationId] = tickets;
+    // Sort tickets by ID in descending order (newest first)
+    const sortedTickets = [...tickets].sort((a, b) => b.id - a.id);
+    $state.conversationTickets[conversationId] = sortedTickets;
     
     // Also add to main records
-    tickets.forEach(ticket => {
+    sortedTickets.forEach(ticket => {
       $state.records[ticket.id] = ticket;
     });
   },
@@ -404,6 +406,9 @@ export const mutations = {
     } else {
       $state.conversationTickets[conversationId].push(ticket);
     }
+    
+    // Sort tickets by ID in descending order (newest first)
+    $state.conversationTickets[conversationId].sort((a, b) => b.id - a.id);
   },
 
   [types.SET_TICKETS_META]($state, meta) {

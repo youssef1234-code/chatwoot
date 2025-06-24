@@ -19,7 +19,9 @@ const store = useStore();
 const isLoading = ref(false);
 
 const linkedTickets = computed(() => {
-  return store.getters['tickets/getTicketsForConversation'](props.conversationId) || [];
+  const tickets = store.getters['tickets/getTicketsForConversation'](props.conversationId) || [];
+  // Sort tickets by ID in descending order (newest first)
+  return tickets.sort((a, b) => b.id - a.id);
 });
 
 const hasTickets = computed(() => linkedTickets.value.length > 0);

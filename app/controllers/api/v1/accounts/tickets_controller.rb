@@ -5,6 +5,7 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
   def index
     @tickets = current_account.tickets
                               .includes(:conversation, :contact, :created_by, :assigned_agent, :ticket_messages)
+                              .order(id: :desc)  # Sort by ID in descending order (newest first)
 
     @tickets = @tickets.for_conversation(params[:conversation_id]) if params[:conversation_id].present?
     @tickets = @tickets.by_status(params[:status]) if params[:status].present?

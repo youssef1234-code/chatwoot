@@ -306,7 +306,8 @@ export default {
         }
       }
 
-      return filtered;
+      // Sort by ID in descending order (newest first)
+      return filtered.sort((a, b) => b.id - a.id);
     });
 
     // Methods

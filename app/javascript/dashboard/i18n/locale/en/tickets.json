@@ -2,14 +2,15 @@
   "TICKETS": {
     "TRACKING": {
       "TITLE": "Tickets Tracking",
-       "ESCALATE_TO_JIRA": "Escalate to JIRA",
+      "ESCALATE_TO_JIRA": "Escalate to JIRA",
       "ESCALATE_DESCRIPTION": "Create a JIRA issue and link it to this ticket.",
-      "ESCALATE": "Escalate", "DESCRIPTION": "Track and manage all your tickets in one place",
+      "ESCALATE": "Escalate",
+      "DESCRIPTION": "Track and manage all your tickets in one place",
       "AI_ENHANCEMENT": "AI Enhancement",
       "REFRESH": "Refresh",
       "SEARCH_PLACEHOLDER": "Search tickets by title, description, ID, or use #123 to find ticket by ID...",
       "STATUS_FILTER": "Filter by Status",
-      "PRIORITY_FILTER": "Filter by Priority", 
+      "PRIORITY_FILTER": "Filter by Priority",
       "AGENT_FILTER": "Filter by Agent",
       "JIRA_FILTER": "Filter by JIRA",
       "ORGANIZATION_FILTER": "Filter by Organization",
@@ -37,12 +38,12 @@
       "CURRENT_DESCRIPTION": "Current Description",
       "NO_DESCRIPTION": "No description provided",
       "ENHANCEMENT_OPTIONS": "Enhancement Options",
-      "CANCEL" : "Cancel",
+      "CANCEL": "Cancel",
       "ENHANCE": "Enhance With AI",
       "OPTIONS": {
         "IMPROVE_TITLE": "Improve Title",
         "IMPROVE_TITLE_DESC": "Make the title more clear and descriptive",
-        "IMPROVE_DESCRIPTION": "Improve Description", 
+        "IMPROVE_DESCRIPTION": "Improve Description",
         "IMPROVE_DESCRIPTION_DESC": "Enhance description clarity and detail",
         "SUGGEST_PRIORITY": "Suggest Priority",
         "SUGGEST_PRIORITY_DESC": "Recommend appropriate priority level",
@@ -53,7 +54,7 @@
       },
       "RESULTS": "AI Enhancement Results",
       "ENHANCED_TITLE": "Enhanced Title",
-      "ENHANCED_DESCRIPTION": "Enhanced Description", 
+      "ENHANCED_DESCRIPTION": "Enhanced Description",
       "SUGGESTED_PRIORITY": "Suggested Priority",
       "SUGGESTED_LABELS": "Suggested Labels",
       "RECOMMENDATIONS": "Action Recommendations",
@@ -65,7 +66,7 @@
       "NO_MESSAGES_ERROR": "No messages found for this ticket. Please link messages to the ticket first.",
       "NO_TEXT_CONTENT": "No text content found in linked messages",
       "NO_OPTIONS_SELECTED": "Please select at least one enhancement option",
-      "INTEGRATION_ERROR": "Failed to load integrations", 
+      "INTEGRATION_ERROR": "Failed to load integrations",
       "MESSAGES_FETCH_ERROR": "Failed to fetch ticket messages",
       "API_ERROR": "Failed to communicate with AI service",
       "LINKED_MESSAGES": "Linked Messages"
@@ -80,7 +81,7 @@
       "CUSTOMER_INFO": "Customer Information",
       "REFRESH": "Refresh",
       "STATUS": "Status",
-      "PRIORITY": "Priority", 
+      "PRIORITY": "Priority",
       "ASSIGNED_AGENT": "Assigned Agent",
       "SELECT_AGENT": "Select an agent",
       "TITLE_PLACEHOLDER": "Enter ticket title",
@@ -102,7 +103,7 @@
       "ATTACHMENTS": "attachments",
       "MESSAGE_TYPE": {
         "INCOMING": "Incoming",
-        "OUTGOING": "Outgoing", 
+        "OUTGOING": "Outgoing",
         "ACTIVITY": "Activity",
         "TEMPLATE": "Template",
         "UNKNOWN": "Unknown"
@@ -127,7 +128,7 @@
       "LAST_UPDATED": "Last updated",
       "TICKETS.DETAIL.SAVE_CHANGES": "Save Changes",
       "TICKETS.DETAIL.DISCARD_CHANGES": "Discard Changes",
-      "TICKETS.DETAIL.UNSAVED_CHANGES" : "You have unsaved changes"
+      "TICKETS.DETAIL.UNSAVED_CHANGES": "You have unsaved changes"
     },
     "UNTITLED": "Untitled Ticket",
     "SELECTED_MESSAGES": "Selected {count} messages",
@@ -138,29 +139,31 @@
     "DESCRIPTION": "Description",
     "ISSUE_TYPE": "Issue Type",
     "ASSIGNED_AGENT": "Assigned Agent",
+    "GENERATE_WITH_AI": "Generate with AI",
+    "GENERATE_WITH_AI_HELP": "Let AI create title and description from selected messages",
     "STATUS": {
-        "LABEL": "Status",
-        "OPEN": "Open",
-        "IN_PROGRESS": "In Progress",
-        "ESCALATED": "Escalated",
-        "RESOLVED": "Resolved",
-        "CLOSED": "Closed"
+      "LABEL": "Status",
+      "OPEN": "Open",
+      "IN_PROGRESS": "In Progress",
+      "ESCALATED": "Escalated",
+      "RESOLVED": "Resolved",
+      "CLOSED": "Closed"
     },
     "UNASSIGNED": "Unassigned",
     "CUSTOMER": "Customer",
     "AGENT": "Agent",
     "NO_CONTENT": "No content",
-    "NO_LINKED_TICKETS" : "No Linked Tickets",
+    "NO_LINKED_TICKETS": "No Linked Tickets",
     "TITLE_PLACEHOLDER": "Enter a descriptive title for this ticket",
     "DESCRIPTION_PLACEHOLDER": "Describe the issue in detail",
     "ISSUE_TYPE_PLACEHOLDER": "e.g., Bug, Feature Request, Support",
-    "MESSAGES":"Messages",
-    "PRIORITY":{
-        "LABEL": "Priority",
-        "LOW": "Low",
-        "MEDIUM": "Medium", 
-        "HIGH": "High",
-        "URGENT": "Urgent"
+    "MESSAGES": "Messages",
+    "PRIORITY": {
+      "LABEL": "Priority",
+      "LOW": "Low",
+      "MEDIUM": "Medium",
+      "HIGH": "High",
+      "URGENT": "Urgent"
     },
     "LINK_JIRA_ISSUE": "Link a JIRA issue",
     "SELECT_JIRA_ISSUE": "Select a JIRA issue",
@@ -168,26 +171,26 @@
 
     "CREATE_TICKET_DESCRIPTION": "Create a new ticket from the selected messages to track and manage this issue.",
     "LINK_TO_EXISTING_DESCRIPTION": "Link the selected messages to an existing ticket.",
-    
+
     "SELECTED_MESSAGES_PREVIEW": "Selected Messages ({count})",
     "SELECT_TICKET": "Select Ticket",
     "SELECT_TICKET_PLACEHOLDER": "Choose an existing ticket",
     "SELECTED_TICKET_PREVIEW": "Selected Ticket Details",
     "LINK_MESSAGES_INFO": "You are about to link {count} messages to this ticket.",
     "LINK_MESSAGES": "Link Messages",
-    
+
     "CREATE_SUCCESS": "Ticket created successfully",
     "CREATE_ERROR": "Failed to create ticket. Please try again.",
     "LINK_SUCCESS": "Messages linked to ticket '{title}' successfully",
     "LINK_ERROR": "Failed to link messages to ticket. Please try again.",
-    
+
     "LOADING_JIRA_ISSUES": "Loading linked JIRA issues...",
     "VIEW_DETAILS": "View Details",
     "ESCALATE_TO_JIRA": "Escalate to JIRA",
     "ESCALATE_DESCRIPTION": "Create a JIRA issue and link it to this ticket.",
     "ESCALATE_SUCCESS": "Ticket escalated to JIRA successfully",
     "ESCALATE_ERROR": "Failed to escalate ticket to JIRA. Please try again.",
-    
+
     "RESOLVE": "Resolve",
     "CLOSE": "Close",
     "REOPEN": "Reopen",
@@ -210,7 +213,7 @@
     "NO_TICKETS_FOUND": "No tickets found matching your search",
     "NO_AVAILABLE_TICKETS": "No available tickets found",
     "TICKETS_FOUND": "{count} tickets found",
-    "MARK_AS_DONE":" Mark as Done",
+    "MARK_AS_DONE": " Mark as Done",
     "VIEW_TICKET": "View Ticket",
     "VIEW_MESSAGES": "View Messages",
     "EDIT_TICKET": "Edit Ticket",
@@ -218,27 +221,27 @@
     "DELETE_CONFIRMATION": "Are you sure you want to delete this ticket? This action cannot be undone.",
     "DELETE_SUCCESS": "Ticket deleted successfully",
     "DELETE_ERROR": "Failed to delete ticket. Please try again.",
-    
+
     "MANAGE_MESSAGES": "Manage Messages",
     "ADD_MESSAGES": "Add Messages",
     "REMOVE_MESSAGES": "Remove Messages",
     "MESSAGES_IN_TICKET": "Messages in this ticket",
     "NO_MESSAGES_IN_TICKET": "No messages linked to this ticket yet.",
-    
+
     "LINKED_JIRA_ISSUE": "Linked JIRA Issue",
     "VIEW_IN_JIRA": "View in JIRA",
     "JIRA_STATUS": "JIRA Status",
-    
+
     "CREATED_BY": "Created by",
     "CREATED_AT": "Created at",
     "UPDATED_AT": "Last updated",
     "RESOLVED_AT": "Resolved at",
     "TIME_TO_RESOLVE": "Time to resolve",
-    
+
     "KANBAN": {
       "NOT_DONE": "Not Done",
       "IN_PROGRESS": "In Progress",
-      "ESCALATED": "Escalated", 
+      "ESCALATED": "Escalated",
       "DONE": "Done",
       "NO_TICKETS": "No tickets in this column",
       "STATUS_UPDATED": "Ticket status updated successfully",
@@ -261,11 +264,11 @@
       "DRAG_HELP": "Hover over tickets to see drag handle",
       "DRAG_INSTRUCTION": "Use the blue handle on the left to drag tickets between columns"
     },
-    
+
     "FILTERS": {
       "ALL": "All Tickets",
       "OPEN": "Open",
-      "IN_PROGRESS": "In Progress", 
+      "IN_PROGRESS": "In Progress",
       "ESCALATED": "Escalated",
       "RESOLVED": "Resolved",
       "CLOSED": "Closed",
@@ -276,13 +279,13 @@
       "LINKED_TO_JIRA": "Linked to JIRA",
       "NOT_LINKED_TO_JIRA": "Not linked to JIRA"
     },
-    
+
     "EMPTY_STATE": {
       "TITLE": "No tickets found",
       "DESCRIPTION": "Start by selecting messages in a conversation and creating your first ticket.",
       "CREATE_FIRST_TICKET": "Create your first ticket"
     },
-    
+
     "LINKED_MESSAGES": {
       "TITLE": "Linked Messages",
       "SUBTITLE": "Messages linked to ticket {ticket}",
@@ -297,12 +300,12 @@
       "NON_TEXT_MESSAGE": "Non-text message ({type})",
       "TYPE": {
         "INCOMING": "Incoming",
-        "OUTGOING": "Outgoing", 
+        "OUTGOING": "Outgoing",
         "ACTIVITY": "Activity",
         "TEMPLATE": "Template"
       }
     },
-    
+
     "ANALYTICS": {
       "TOTAL_TICKETS": "Total Tickets",
       "OPEN_TICKETS": "Open Tickets",
@@ -313,12 +316,12 @@
       "BY_STATUS": "Tickets by Status",
       "BY_AGENT": "Tickets by Agent"
     },
-    
+
     "VIEW": {
       "KANBAN": "Kanban Board",
       "LIST": "List View"
     },
-    
+
     "ACTIONS": {
       "ENHANCE_WITH_AI": "Enhance with AI",
       "OPEN_CONVERSATION": "Open in Chat",
@@ -329,7 +332,7 @@
       "RESOLVE": "Resolve",
       "ESCALATE": "Escalate to JIRA"
     },
-    
+
     "CONVERSATION": "Conversation",
     "CONVERSATION_ID": "Conversation #{id}",
     "TIMESTAMPS": "Timestamps",
@@ -340,12 +343,12 @@
     "SAVE_CHANGES": "Save Changes",
     "MESSAGES_LOAD_ERROR": "Failed to load messages",
     "JIRA_LOAD_ERROR": "Failed to load JIRA details",
-    "REFRESH_SUCCESS": "Ticket refreshed successfully", 
+    "REFRESH_SUCCESS": "Ticket refreshed successfully",
     "REFRESH_ERROR": "Failed to refresh ticket",
     "RESOLVE_ERROR": "Failed to resolve ticket",
     "JIRA_NOT_AVAILABLE": "JIRA integration is not available for this ticket",
     "JIRA_PRIORITY": "Priority",
-    "JIRA_DESCRIPTION": "Description", 
+    "JIRA_DESCRIPTION": "Description",
     "JIRA_ASSIGNEE": "Assignee",
     "LOADING_JIRA": "Loading JIRA details..."
   },

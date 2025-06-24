@@ -136,36 +136,31 @@ class Integrations::Jira::ProcessorService
 
   def linked_issues(conversation_id)
     begin
-      # Get linked issue keys from our database
-      linked_issue_keys = JiraIssueLink.linked_issues_for_conversation(conversation_id)
+      # Get conversation to build the URL
+      conversation = Conversation.find(conversation_id)
+      conversation_url = conversation_url_for(conversation)
       
-      if linked_issue_keys.empty?
-        return { data: [] }
+      # Use comment-based search from jira_client to get issues sorted by link date
+      response = jira_client.linked_issues(conversation_url)
+      
+      if response.is_a?(Hash) && (response[:error] || response['error'])
+        return { error: response[:error] || response['error'] }
       end
-
-      # Fetch issue details from JIRA for each linked issue
-      issues = []
-      linked_issue_keys.each do |issue_key|
-        begin
-          issue_response = jira_client.get_issue(issue_key)
-          next if issue_response.is_a?(Hash) && (issue_response[:error] || issue_response['error'])
-
-          issue = issue_response
-          issues << {
-            key: issue['key'],
-            summary: issue['fields']['summary'],
-            status: issue['fields']['status']['name'],
-            assignee: issue['fields']['assignee']&.dig('displayName'),
-            priority: issue['fields']['priority']&.dig('name'),
-            issueType: issue['fields']['issuetype']['name'],
-            url: "#{jira_site_url}/browse/#{issue['key']}",
-            id: issue['key'], # Use key as ID for frontend compatibility
-            commentId: issue_key # Use issue_key as commentId for backward compatibility
-          }
-        rescue StandardError => e
-          Rails.logger.error("JIRA: Error fetching issue #{issue_key}: #{e.message}")
-          # Continue with other issues
-        end
+      
+      # Transform the response to match the expected frontend format
+      issues = response.map do |issue|
+        {
+          key: issue['key'],
+          summary: issue['fields']['summary'],
+          status: issue['fields']['status']['name'],
+          assignee: issue['fields']['assignee']&.dig('displayName'),
+          priority: issue['fields']['priority']&.dig('name'),
+          issueType: issue['fields']['issuetype']['name'],
+          url: "#{jira_site_url}/browse/#{issue['key']}",
+          id: issue['key'], # Use key as ID for frontend compatibility
+          commentId: issue['comment_id'], # Use actual comment ID
+          linked_at: issue['linked_at'] # Include the link date for sorting
+        }
       end
 
       { data: issues }
@@ -332,5 +327,9 @@ class Integrations::Jira::ProcessorService
 
       content_block['content']&.map { |text_node| text_node['text'] }&.join(' ')
     end.compact.join("\n\n")
+  end
+
+  def conversation_url_for(conversation)
+    "#{ENV.fetch('FRONTEND_URL', nil)}/app/accounts/#{conversation.account_id}/conversations/#{conversation.display_id}"
   end
 end

@@ -264,6 +264,16 @@ class Jira
         }
       end
       
+      # Sort by numeric ID from JIRA key in descending order (newest first)
+      result.sort! do |a, b|
+        # Extract numeric ID from JIRA key (e.g., "PROJ-123" -> 123)
+        get_numeric_id = ->(key) { 
+          match = key.match(/-(\d+)$/)
+          match ? match[1].to_i : 0
+        }
+        get_numeric_id.call(b['key']) <=> get_numeric_id.call(a['key'])
+      end
+      
       Rails.logger.info("JIRA search found #{result.length} issues")
       result
     rescue StandardError => e
@@ -290,20 +300,29 @@ class Jira
       Rails.logger.info("JIRA: Found #{issues.length} issues")
       
       result = issues.map do |issue|
-        # Find the comment ID that contains the URL
-        comment_id = find_comment_with_url(issue, url)
+        # Find the comment ID and creation date that contains the URL
+        comment_info = find_comment_with_url(issue, url)
         
-        Rails.logger.info("JIRA: Issue #{issue.key} has comment_id: #{comment_id || 'nil'}")
+        Rails.logger.info("JIRA: Issue #{issue.key} has comment_id: #{comment_info[:comment_id] || 'nil'} created at: #{comment_info[:created_at] || 'nil'}")
         
         {
           'id' => issue.id,
           'key' => issue.key,
           'fields' => issue.fields,
-          'comment_id' => comment_id
+          'comment_id' => comment_info[:comment_id],
+          'linked_at' => comment_info[:created_at]
         }
       end
       
-      Rails.logger.info("JIRA: Returning #{result.length} linked issues")
+      # Sort by comment creation date in descending order (most recently linked first)
+      result.sort! do |a, b|
+        # Handle cases where linked_at might be nil
+        date_a = a['linked_at'] ? Time.parse(a['linked_at']) : Time.new(0)
+        date_b = b['linked_at'] ? Time.parse(b['linked_at']) : Time.new(0)
+        date_b <=> date_a
+      end
+      
+      Rails.logger.info("JIRA: Returning #{result.length} linked issues sorted by link date")
       result
     rescue StandardError => e
       Rails.logger.error("JIRA linked_issues error: #{e.message}")
@@ -702,28 +721,31 @@ class Jira
     end
   end
 
-  # Find comment ID that contains a specific URL
+  # Find comment ID and creation date that contains a specific URL
   def find_comment_with_url(issue, url)
     begin
       Rails.logger.info("JIRA: Looking for comment with URL '#{url}' in issue #{issue.key}")
       
       if issue.comments.nil? || issue.comments.empty?
         Rails.logger.warn("JIRA: No comments found for issue #{issue.key}")
-        return nil
+        return { comment_id: nil, created_at: nil }
       end
       
       issue.comments.each do |comment|
         if comment.body&.include?(url)
           Rails.logger.info("JIRA: Found matching comment #{comment.id} in issue #{issue.key}")
-          return comment.id
+          return {
+            comment_id: comment.id,
+            created_at: comment.created
+          }
         end
       end
       
       Rails.logger.warn("JIRA: No comment containing URL found in issue #{issue.key}")
-      nil
+      { comment_id: nil, created_at: nil }
     rescue StandardError => e
       Rails.logger.error("JIRA find_comment_with_url error for issue #{issue.key}: #{e.message}")
-      nil
+      { comment_id: nil, created_at: nil }
     end
   end
 end

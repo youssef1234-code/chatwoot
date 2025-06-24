@@ -23,6 +23,8 @@ const loadLinkedIssues = async () => {
   isLoading.value = true;
   try {
     const response = await JiraAPI.getLinkedIssues(props.conversationId);
+    // Backend already sorts JIRA issues by link date (linked_at) in descending order
+    // No need to re-sort on the frontend as the backend provides the correct order
     linkedIssues.value = response.data || [];
   } catch (error) {
     console.error('Failed to load linked JIRA issues:', error);
