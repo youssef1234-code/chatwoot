@@ -284,6 +284,13 @@ const menuItems = computed(() => {
       ],
     },
     {
+      name: 'Tickets',
+      label: t('SIDEBAR.TICKETS'),
+      icon: 'i-lucide-clipboard-list',
+      to: accountScopedRoute('tickets_index'),
+      activeOn: ['tickets_index', 'tickets_show'],
+    },
+    {
       name: 'Reports',
       label: t('SIDEBAR.REPORTS'),
       icon: 'i-lucide-chart-spline',

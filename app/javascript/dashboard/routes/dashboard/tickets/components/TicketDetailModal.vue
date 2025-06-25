@@ -85,13 +85,13 @@
               <!-- Title -->
               <div>
                 <label class="block text-sm font-medium text-n-slate-12 mb-2">
-                  {{ $t("TICKETS.TITLE") }} *
+                  {{ $t("TICKETS.TRACKING.TITLE") }} *
                 </label>
                 <input
                   v-model="editForm.title"
                   type="text"
                   class="w-full px-3 py-2 border border-n-slate-6 rounded-md focus:outline-none focus:ring-2 focus:ring-n-blue-6 bg-n-slate-1 text-n-slate-12"
-                  :placeholder="$t('TICKETS.TITLE_PLACEHOLDER')"
+                  :placeholder="$t('TICKETS.TRACKING.SEARCH_PLACEHOLDER')"
                   required
                   @input="markAsChanged"
                 />

@@ -5,7 +5,7 @@ const ticketsRoutes = accountId => ({
   routes: ['tickets_index'],
   menuItems: [
     {
-      icon: 'clipboard-list',
+      icon: 'clipboard',
       label: 'TICKETS.MENU.ALL_TICKETS',
       hasSubMenu: false,
       toState: frontendURL(`accounts/${accountId}/tickets`),
