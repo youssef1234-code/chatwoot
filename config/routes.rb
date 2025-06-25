@@ -186,6 +186,12 @@ Rails.application.routes.draw do
               get :download
             end
           end
+          resources :nps_survey_responses, only: [:index] do
+            collection do
+              get :metrics
+              get :download
+            end
+          end
           resources :applied_slas, only: [:index] do
             collection do
               get :metrics
@@ -475,6 +481,7 @@ Rails.application.routes.draw do
         end
 
         resources :csat_survey, only: [:show, :update]
+        resources :nps_survey, only: [:show, :update]
       end
     end
   end

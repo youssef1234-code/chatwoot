@@ -4,13 +4,20 @@ class CsatSurveyListener < BaseListener
 
     return unless conversation.resolved?
 
+    # Send CSAT survey when conversation is resolved
     CsatSurveyService.new(conversation: conversation).perform
+    
+    # Also consider sending NPS survey (with monthly limit)
+    NpsSurveyService.new(conversation: conversation).perform
   end
 
   def message_updated(event)
     message = extract_message_and_account(event)[0]
-    return unless message.input_csat?
-
-    CsatSurveys::ResponseBuilder.new(message: message).perform
+    
+    if message.input_csat?
+      CsatSurveys::ResponseBuilder.new(message: message).perform
+    elsif message.input_nps?
+      NpsSurveys::ResponseBuilder.new(message: message).perform
+    end
   end
 end

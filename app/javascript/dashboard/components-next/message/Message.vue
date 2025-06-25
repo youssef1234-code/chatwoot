@@ -35,6 +35,7 @@ import ContactBubble from "./bubbles/Contact.vue";
 import DyteBubble from "./bubbles/Dyte.vue";
 import LocationBubble from "./bubbles/Location.vue";
 import CSATBubble from "./bubbles/CSAT.vue";
+import NPSBubble from "./bubbles/NPS.vue";
 import FormBubble from "./bubbles/Form.vue";
 
 import MessageError from "./MessageError.vue";
@@ -279,6 +280,10 @@ const componentToRender = computed(() => {
 
   if (props.contentType === CONTENT_TYPES.INPUT_CSAT) {
     return CSATBubble;
+  }
+
+  if (props.contentType === CONTENT_TYPES.INPUT_NPS) {
+    return NPSBubble;
   }
 
   if (

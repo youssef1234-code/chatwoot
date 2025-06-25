@@ -59,7 +59,10 @@ class Api::V1::Widget::MessagesController < Api::V1::Widget::BaseController
   end
 
   def message_update_params
-    params.permit(message: [{ submitted_values: [:name, :title, :value, { csat_survey_response: [:feedback_message, :rating] }] }])
+    params.permit(message: [{ submitted_values: [:name, :title, :value, { 
+      csat_survey_response: [:feedback_message, :rating],
+      nps_survey_response: [:feedback_message, :rating]
+    }] }])
   end
 
   def permitted_params

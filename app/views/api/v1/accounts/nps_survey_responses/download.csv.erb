@@ -1,0 +1,38 @@
+<%=
+  CSV.generate_line([
+    I18n.t('reports.nps.headers.agent_name'),
+    I18n.t('reports.nps.headers.score'),
+    I18n.t('reports.nps.headers.feedback'),
+    I18n.t('reports.nps.headers.contact_name'),
+    I18n.t('reports.nps.headers.contact_email_address'),
+    I18n.t('reports.nps.headers.contact_phone_number'),
+    I18n.t('reports.nps.headers.link_to_the_conversation'),
+    I18n.t('reports.nps.headers.recorded_at')
+  ])
+-%>
+<% @nps_survey_responses.each do |nps_response| %>
+<% assigned_agent = nps_response.assigned_agent %>
+<% contact = nps_response.contact %>
+<% conversation = nps_response.conversation %>
+<%=
+  CSV.generate_line([
+    assigned_agent ? "#{assigned_agent.name} (#{assigned_agent.email})" : nil,
+    nps_response.rating,
+    nps_response.feedback_message.present? ? nps_response.feedback_message : nil,
+    contact&.name.present? ? contact&.name: nil,
+    contact&.email.present? ? contact&.email: nil,
+    contact&.phone_number.present? ? contact&.phone_number: nil,
+    conversation ? app_account_conversation_url(account_id: Current.account.id, id: conversation.display_id): nil,
+    nps_response.created_at,
+]).html_safe
+-%>
+<% end %>
+<%=
+  CSV.generate_line([
+    I18n.t(
+      'reports.period',
+      since: Date.strptime(params[:since], '%s'),
+      until: Date.strptime(params[:until], '%s')
+    )
+  ])
+-%>

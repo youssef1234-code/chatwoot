@@ -172,6 +172,10 @@ export default {
         return this.$t('CONVERSATION.CSAT_REPLY_MESSAGE') + botMessageContent;
       }
 
+      if (this.contentType === 'input_nps') {
+        return this.$t('CONVERSATION.NPS_REPLY_MESSAGE') + botMessageContent;
+      }
+
       return (
         this.formatMessage(
           this.data.content,

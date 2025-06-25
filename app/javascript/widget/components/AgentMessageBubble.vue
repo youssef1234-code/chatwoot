@@ -6,6 +6,7 @@ import ChatOptions from 'shared/components/ChatOptions.vue';
 import ChatArticle from './template/Article.vue';
 import EmailInput from './template/EmailInput.vue';
 import CustomerSatisfaction from 'shared/components/CustomerSatisfaction.vue';
+import NetPromoterScore from 'shared/components/NetPromoterScore.vue';
 import IntegrationCard from './template/IntegrationCard.vue';
 
 export default {
@@ -17,6 +18,7 @@ export default {
     ChatOptions,
     EmailInput,
     CustomerSatisfaction,
+    NetPromoterScore,
     IntegrationCard,
   },
   props: {
@@ -61,6 +63,9 @@ export default {
     isCSAT() {
       return this.contentType === 'input_csat';
     },
+    isNPS() {
+      return this.contentType === 'input_nps';
+    },
     isIntegrations() {
       return this.contentType === 'integrations';
     },
@@ -93,7 +98,7 @@ export default {
   <div class="chat-bubble-wrap">
     <div
       v-if="
-        !isCards && !isOptions && !isForm && !isArticle && !isCards && !isCSAT
+        !isCards && !isOptions && !isForm && !isArticle && !isCards && !isCSAT && !isNPS
       "
       class="chat-bubble agent bg-n-background dark:bg-n-solid-3 text-n-slate-12"
     >
@@ -145,6 +150,12 @@ export default {
       v-if="isCSAT"
       :message-content-attributes="messageContentAttributes.submitted_values"
       :display-type="messageContentAttributes.display_type"
+      :message="message"
+      :message-id="messageId"
+    />
+    <NetPromoterScore
+      v-if="isNPS"
+      :message-content-attributes="messageContentAttributes.submitted_values"
       :message="message"
       :message-id="messageId"
     />

@@ -924,6 +924,25 @@ ActiveRecord::Schema[7.1].define(version: 2025_06_24_213145) do
     t.index ["user_id"], name: "index_notifications_on_user_id"
   end
 
+  create_table "nps_survey_responses", force: :cascade do |t|
+    t.integer "rating", null: false
+    t.text "feedback_message"
+    t.bigint "account_id", null: false
+    t.bigint "contact_id", null: false
+    t.bigint "conversation_id", null: false
+    t.bigint "message_id", null: false
+    t.bigint "assigned_agent_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "created_at"], name: "index_nps_survey_responses_on_account_id_and_created_at"
+    t.index ["account_id"], name: "index_nps_survey_responses_on_account_id"
+    t.index ["assigned_agent_id"], name: "index_nps_survey_responses_on_assigned_agent_id"
+    t.index ["contact_id", "created_at"], name: "index_nps_survey_responses_on_contact_id_and_created_at"
+    t.index ["contact_id"], name: "index_nps_survey_responses_on_contact_id"
+    t.index ["conversation_id"], name: "index_nps_survey_responses_on_conversation_id"
+    t.index ["message_id"], name: "index_nps_survey_responses_on_message_id", unique: true
+  end
+
   create_table "platform_app_permissibles", force: :cascade do |t|
     t.bigint "platform_app_id", null: false
     t.string "permissible_type", null: false
@@ -1193,6 +1212,11 @@ ActiveRecord::Schema[7.1].define(version: 2025_06_24_213145) do
   add_foreign_key "jira_issue_links", "users"
   add_foreign_key "messages", "users", column: "pinned_by"
   add_foreign_key "messages", "users", column: "starred_by"
+  add_foreign_key "nps_survey_responses", "accounts"
+  add_foreign_key "nps_survey_responses", "contacts"
+  add_foreign_key "nps_survey_responses", "conversations"
+  add_foreign_key "nps_survey_responses", "messages"
+  add_foreign_key "nps_survey_responses", "users", column: "assigned_agent_id"
   add_foreign_key "ticket_messages", "messages"
   add_foreign_key "ticket_messages", "tickets"
   add_foreign_key "tickets", "accounts"
