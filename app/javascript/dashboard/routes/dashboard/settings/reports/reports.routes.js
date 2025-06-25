@@ -20,6 +20,7 @@ import LabelReports from './LabelReports.vue';
 import TeamReports from './TeamReports.vue';
 
 import CsatResponses from './CsatResponses.vue';
+import NpsResponses from './NpsResponses.vue';
 import BotReports from './BotReports.vue';
 import LiveReports from './LiveReports.vue';
 import SLAReports from './SLAReports.vue';
@@ -161,6 +162,12 @@ export default {
           name: 'csat_reports',
           meta,
           component: CsatResponses,
+        },
+        {
+          path: 'nps',
+          name: 'nps_reports',
+          meta,
+          component: NpsResponses,
         },
         {
           path: 'bot',

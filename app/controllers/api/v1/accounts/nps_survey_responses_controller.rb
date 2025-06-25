@@ -28,6 +28,10 @@ class Api::V1::Accounts::NpsSurveyResponsesController < Api::V1::Accounts::BaseC
 
   private
 
+  def check_authorization
+    authorize :nps_survey_response, :index?
+  end
+
   def calculate_nps_score
     return 0 if @total_count.zero?
 

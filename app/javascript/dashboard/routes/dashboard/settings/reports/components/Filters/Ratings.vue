@@ -1,18 +1,34 @@
 <script>
-import { CSAT_RATINGS } from 'shared/constants/messages';
+import { CSAT_RATINGS, NPS_RATINGS } from 'shared/constants/messages';
 
 export default {
   name: 'ReportFiltersRatings',
+  props: {
+    ratingType: {
+      type: String,
+      default: 'csat', // 'csat' or 'nps'
+    },
+  },
   emits: ['ratingFilterSelection'],
   data() {
-    const translatedOptions = CSAT_RATINGS.reverse().map(option => ({
-      ...option,
-      label: this.$t(option.translationKey),
-    }));
+    let ratings = CSAT_RATINGS;
+    
+    if (this.ratingType === 'nps') {
+      ratings = NPS_RATINGS.map(rating => ({
+        ...rating,
+        label: rating.value.toString(),
+        translationKey: `NPS.RATINGS.${rating.value}`,
+      }));
+    } else {
+      ratings = CSAT_RATINGS.map(option => ({
+        ...option,
+        label: this.$t(option.translationKey),
+      }));
+    }
 
     return {
       selectedOption: null,
-      options: translatedOptions,
+      options: ratings.reverse(),
     };
   },
   methods: {

@@ -312,6 +312,11 @@ const menuItems = computed(() => {
           to: accountScopedRoute('csat_reports'),
         },
         {
+          name: 'Reports NPS',
+          label: t('SIDEBAR.NPS'),
+          to: accountScopedRoute('nps_reports'),
+        },
+        {
           name: 'Reports SLA',
           label: t('SIDEBAR.REPORTS_SLA'),
           to: accountScopedRoute('sla_reports'),

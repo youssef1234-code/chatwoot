@@ -25,6 +25,7 @@ import conversationStats from './modules/conversationStats';
 import conversationTypingStatus from './modules/conversationTypingStatus';
 import conversationWatchers from './modules/conversationWatchers';
 import csat from './modules/csat';
+import nps from './modules/nps';
 import customRole from './modules/customRole';
 import customViews from './modules/customViews';
 import dashboardApps from './modules/dashboardApps';
@@ -84,6 +85,7 @@ export default createStore({
     conversationTypingStatus,
     conversationWatchers,
     csat,
+    nps,
     customRole,
     customViews,
     dashboardApps,

@@ -51,6 +51,10 @@ export default {
       type: Boolean,
       default: true,
     },
+    ratingType: {
+      type: String,
+      default: 'csat', // 'csat' or 'nps'
+    },
   },
   emits: ['filterChange'],
   data() {
@@ -216,6 +220,7 @@ export default {
       />
       <ReportsFiltersRatings
         v-if="showRatingFilter"
+        :rating-type="ratingType"
         @rating-filter-selection="handleRatingFilterSelection"
       />
     </div>

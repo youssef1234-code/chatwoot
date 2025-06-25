@@ -400,6 +400,7 @@
     "NO_RECORDS": "There are no CSAT survey responses available.",
     "DOWNLOAD": "Download CSAT Reports",
     "DOWNLOAD_FAILED": "Failed to download CSAT Reports",
+    "DESCRIPTION": "Here are the Customer Satisfaction (CSAT) survey responses from your customers.",
     "FILTERS": {
       "AGENTS": {
         "PLACEHOLDER": "Choose Agents"
@@ -410,7 +411,9 @@
         "CONTACT_NAME": "Contact",
         "AGENT_NAME": "Assigned agent",
         "RATING": "Rating",
-        "FEEDBACK_TEXT": "Feedback comment"
+        "FEEDBACK_TEXT": "Feedback comment",
+        "CONVERSATION_ID": "Conversation ID",
+        "CREATED_AT": "Created at"
       }
     },
     "METRIC": {
@@ -428,25 +431,45 @@
       }
     }
   },
-  "BOT_REPORTS": {
-    "HEADER": "Bot Reports",
-    "METRIC": {
-      "TOTAL_CONVERSATIONS": {
-        "LABEL": "No. of Conversations",
-        "TOOLTIP": "Total number of conversations handled by the bot"
-      },
-      "TOTAL_RESPONSES": {
-        "LABEL": "Total Responses",
-        "TOOLTIP": "Total number of responses sent by the bot"
-      },
-      "RESOLUTION_RATE": {
-        "LABEL": "Resolution Rate",
-        "TOOLTIP": "Total number of conversations resolved by the bot / Total number of conversations handled by the bot * 100"
-      },
-      "HANDOFF_RATE": {
-        "LABEL": "Handoff Rate",
-        "TOOLTIP": "Total number of conversations handed off to agents / Total number of conversations handled by the bot * 100"
+  "NPS_REPORTS": {
+    "HEADER": "NPS Reports",
+    "NO_RECORDS": "There are no NPS survey responses available.",
+    "DOWNLOAD": "Download NPS Reports",
+    "DOWNLOAD_FAILED": "Failed to download NPS Reports",
+    "DESCRIPTION": "Here are the Net Promoter Score (NPS) survey responses from your customers.",
+    "FILTERS": {
+      "AGENTS": {
+        "PLACEHOLDER": "Choose Agents"
       }
+    },
+    "TABLE": {
+      "HEADER": {
+        "CONTACT_NAME": "Contact",
+        "AGENT_NAME": "Assigned agent",
+        "RATING": "Rating",
+        "FEEDBACK_TEXT": "Feedback comment",
+        "CONVERSATION_ID": "Conversation ID",
+        "CREATED_AT": "Created at"
+      }
+    },
+    "METRIC": {
+      "TOTAL_RESPONSES": {
+        "LABEL": "Total responses",
+        "TOOLTIP": "Total number of responses collected"
+      },
+      "NET_PROMOTER_SCORE": {
+        "LABEL": "Net Promoter Score",
+        "TOOLTIP": "Percentage of promoters (9-10) minus percentage of detractors (0-6)"
+      },
+      "RESPONSE_RATE": {
+        "LABEL": "Response rate",
+        "TOOLTIP": "Total number of responses / Total number of NPS survey messages sent * 100"
+      }
+    },
+    "CHART": {
+      "DETRACTORS": "Detractors (0-6)",
+      "PASSIVES": "Passives (7-8)",
+      "PROMOTERS": "Promoters (9-10)"
     }
   },
   "OVERVIEW_REPORTS": {

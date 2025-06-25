@@ -7,6 +7,7 @@ const reports = accountId => ({
     'account_overview_reports',
     'conversation_reports',
     'csat_reports',
+    'nps_reports',
     'bot_reports',
     'agent_reports',
     'label_reports',
@@ -36,6 +37,13 @@ const reports = accountId => ({
       hasSubMenu: false,
       toState: frontendURL(`accounts/${accountId}/reports/csat`),
       toStateName: 'csat_reports',
+    },
+    {
+      icon: 'thumb-up',
+      label: 'NPS',
+      hasSubMenu: false,
+      toState: frontendURL(`accounts/${accountId}/reports/nps`),
+      toStateName: 'nps_reports',
     },
     {
       icon: 'bot',
