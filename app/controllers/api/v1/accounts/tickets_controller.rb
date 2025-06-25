@@ -330,7 +330,7 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
 
   def ticket_params
     params.require(:ticket).permit(
-      :title, :description, :status, :priority, :issue_type,
+      :title, :description, :status, :priority, :category,
       :conversation_id, :assigned_agent_id, :jira_issue_key
     )
   end

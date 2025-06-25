@@ -4,7 +4,7 @@ json.array! @tickets do |ticket|
   json.description ticket.description
   json.status ticket.status
   json.priority ticket.priority
-  json.issue_type ticket.issue_type
+  json.category ticket.category
   json.resolved_at ticket.resolved_at
   json.created_at ticket.created_at
   json.updated_at ticket.updated_at

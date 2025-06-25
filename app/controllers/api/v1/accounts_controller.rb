@@ -92,7 +92,14 @@ class Api::V1::AccountsController < Api::BaseController
   end
 
   def settings_params
-    params.permit(:auto_resolve_after, :auto_resolve_message, :auto_resolve_ignore_waiting, :audio_transcriptions, :auto_resolve_label)
+    settings = params.permit(:auto_resolve_after, :auto_resolve_message, :auto_resolve_ignore_waiting, :audio_transcriptions, :auto_resolve_label)
+    
+    # Handle ticket_categories array parameter
+    if params[:ticket_categories].present?
+      settings[:ticket_categories] = params[:ticket_categories]
+    end
+    
+    settings
   end
 
   def check_signup_enabled

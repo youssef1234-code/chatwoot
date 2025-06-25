@@ -86,6 +86,16 @@
           class="min-w-40"
         />
 
+        <!-- Category Filter -->
+        <NextSelect
+          v-model="selectedCategory"
+          :label="$t('TICKETS.TRACKING.CATEGORY_FILTER')"
+          name="category"
+          :options="categoryOptions"
+          :placeholder="$t('TICKETS.TRACKING.CATEGORY_FILTER')"
+          class="min-w-40"
+        />
+
         <!-- JIRA Filter -->
         <NextSelect
           v-model="selectedJiraStatus"
@@ -182,6 +192,7 @@ export default {
     const selectedStatus = ref('');
     const selectedPriority = ref('');
     const selectedAgent = ref('');
+    const selectedCategory = ref('');
     const selectedJiraStatus = ref('');
     const showDatePicker = ref(false);
     const isAiEnhancementEnabled = ref(false);
@@ -221,6 +232,27 @@ export default {
         })),
       ];
     });
+  
+    const currentAccount = computed(() => {
+      const accountId = store.getters.getCurrentAccountId;
+      const accountFromAccountsStore =
+      store.getters["accounts/getAccount"](accountId);
+      if (accountFromAccountsStore && Object.keys(accountFromAccountsStore).length > 0) {
+        return accountFromAccountsStore;
+      }
+    });
+
+
+    const categoryOptions = computed(() => {
+      const categories = currentAccount.value?.settings?.ticket_categories || [];
+      return [
+        { label: t('TICKETS.FILTERS.ALL'), value: '' },
+        ...categories.map(category => ({
+          label: category,
+          value: category,
+        })),
+      ];
+    });
 
     const jiraOptions = computed(() => [
       { label: t('TICKETS.FILTERS.ALL'), value: '' },
@@ -229,7 +261,7 @@ export default {
     ]);
 
     const hasActiveFilters = computed(() => {
-      return selectedStatus.value || selectedPriority.value || selectedAgent.value || selectedJiraStatus.value || searchQuery.value;
+      return selectedStatus.value || selectedPriority.value || selectedAgent.value || selectedCategory.value || selectedJiraStatus.value || searchQuery.value;
     });
 
     const filteredTickets = computed(() => {
@@ -297,6 +329,11 @@ export default {
         );
       }
 
+      // Apply category filter
+      if (selectedCategory.value && selectedCategory.value !== 'all') {
+        filtered = filtered.filter(ticket => ticket.category === selectedCategory.value);
+      }
+
       // Apply JIRA filter
       if (selectedJiraStatus.value) {
         if (selectedJiraStatus.value === 'linked') {
@@ -336,6 +373,7 @@ export default {
       selectedStatus.value = '';
       selectedPriority.value = '';
       selectedAgent.value = '';
+      selectedCategory.value = '';
       selectedJiraStatus.value = '';
     };
 
@@ -439,6 +477,7 @@ export default {
       selectedStatus,
       selectedPriority,
       selectedAgent,
+      selectedCategory,
       selectedJiraStatus,
       showDatePicker,
       isAiEnhancementEnabled,
@@ -452,6 +491,7 @@ export default {
       statusOptions,
       priorityOptions,
       agentOptions,
+      categoryOptions,
       jiraOptions,
       hasActiveFilters,
       filteredTickets,

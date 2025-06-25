@@ -270,7 +270,9 @@
   "SETTINGS": {
     "INBOXES": {
       "NEW_INBOX": "Add Inbox"
-    }
+    },
+    "SAVE_CHANGES": "Save Changes",
+    "DISCARD_CHANGES": "Discard Changes"
   },
   "SIDEBAR": {
     "NO_ITEMS": "No items",

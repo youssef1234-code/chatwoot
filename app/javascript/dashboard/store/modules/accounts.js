@@ -63,7 +63,7 @@ export const actions = {
       });
     }
   },
-  update: async ({ commit }, { options, ...updateObj }) => {
+  update: async ({ commit, rootCommit }, { options, ...updateObj }) => {
     if (options?.silent !== true) {
       commit(types.default.SET_ACCOUNT_UI_FLAG, { isUpdating: true });
     }
@@ -71,6 +71,8 @@ export const actions = {
     try {
       const response = await AccountAPI.update('', updateObj);
       commit(types.default.EDIT_ACCOUNT, response.data);
+      // Also update the account in the auth store to keep currentUser.accounts in sync
+      commit('auth/UPDATE_CURRENT_USER_ACCOUNT', response.data, { root: true });
       commit(types.default.SET_ACCOUNT_UI_FLAG, { isUpdating: false });
     } catch (error) {
       commit(types.default.SET_ACCOUNT_UI_FLAG, { isUpdating: false });

@@ -36,8 +36,8 @@ const generateJiraDescription = () => {
   description += `- Priority: ${props.ticket.priority || 'Medium'}\n`;
   description += `- Status: ${props.ticket.status || 'Open'}\n`;
   
-  if (props.ticket.issue_type) {
-    description += `- Issue Type: ${props.ticket.issue_type}\n`;
+  if (props.ticket.category) {
+    description += `- Category: ${props.ticket.category}\n`;
   }
   
   if (props.ticket.created_by) {

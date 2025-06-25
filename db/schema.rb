@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_06_24_110906) do
+ActiveRecord::Schema[7.1].define(version: 2025_06_24_213145) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1110,8 +1110,10 @@ ActiveRecord::Schema[7.1].define(version: 2025_06_24_110906) do
     t.datetime "updated_at", null: false
     t.string "jira_status"
     t.boolean "jira_in_progress"
+    t.string "category"
     t.index ["account_id"], name: "index_tickets_on_account_id"
     t.index ["assigned_agent_id"], name: "index_tickets_on_assigned_agent_id"
+    t.index ["category"], name: "index_tickets_on_category"
     t.index ["contact_id"], name: "index_tickets_on_contact_id"
     t.index ["conversation_id"], name: "index_tickets_on_conversation_id"
     t.index ["created_by_id"], name: "index_tickets_on_created_by_id"

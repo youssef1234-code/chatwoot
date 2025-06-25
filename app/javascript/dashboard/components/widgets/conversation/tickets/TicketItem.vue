@@ -209,6 +209,14 @@ onUnmounted(() => {
             {{ $t(`TICKETS.PRIORITY.${ticketPriority.toUpperCase()}`) }}
           </span>
           
+          <!-- Category Badge -->
+          <span
+            v-if="ticket.category"
+            class="px-3 py-1.5 rounded-full text-xs font-medium border shadow-sm bg-purple-50 text-purple-700 border-purple-200"
+          >
+            {{ ticket.category }}
+          </span>
+          
           <!-- JIRA Issue Badge -->
           <button
             v-if="ticket.jira_issue_key"

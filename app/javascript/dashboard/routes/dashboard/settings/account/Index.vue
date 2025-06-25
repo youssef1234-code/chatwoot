@@ -18,6 +18,7 @@ import AccountDelete from './components/AccountDelete.vue';
 import AutoResolve from './components/AutoResolve.vue';
 import AudioTranscription from './components/AudioTranscription.vue';
 import SectionLayout from './components/SectionLayout.vue';
+import TicketCategories from './TicketCategories.vue';
 
 export default {
   components: {
@@ -29,6 +30,7 @@ export default {
     AutoResolve,
     AudioTranscription,
     SectionLayout,
+    TicketCategories,
     WithLabel,
     NextInput,
   },
@@ -242,6 +244,15 @@ export default {
 
       <woot-loading-state v-if="uiFlags.isFetchingItem" />
     </div>
+    
+    <!-- Ticket Categories Section -->
+    <SectionLayout
+      :title="$t('TICKETS.TICKET_CATEGORIES.TITLE')"
+      :description="$t('TICKETS.TICKET_CATEGORIES.DESCRIPTION')"
+    >
+      <TicketCategories />
+    </SectionLayout>
+    
     <AutoResolve v-if="showAutoResolutionConfig" />
     <AudioTranscription v-if="showAudioTranscriptionConfig" />
     <AccountId />

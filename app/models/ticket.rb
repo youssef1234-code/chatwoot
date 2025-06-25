@@ -3,6 +3,7 @@
 # Table name: tickets
 #
 #  id                :bigint           not null, primary key
+#  category          :string
 #  description       :text
 #  issue_type        :string
 #  jira_in_progress  :boolean
@@ -24,6 +25,7 @@
 #
 #  index_tickets_on_account_id         (account_id)
 #  index_tickets_on_assigned_agent_id  (assigned_agent_id)
+#  index_tickets_on_category           (category)
 #  index_tickets_on_contact_id         (contact_id)
 #  index_tickets_on_conversation_id    (conversation_id)
 #  index_tickets_on_created_by_id      (created_by_id)
@@ -54,6 +56,7 @@ class Ticket < ApplicationRecord
   validates :description, length: { maximum: 5000 }
   validates :status, presence: true
   validates :priority, presence: true
+  validate :category_must_be_valid
 
   enum status: {
     open: 0,
@@ -74,6 +77,7 @@ class Ticket < ApplicationRecord
   scope :for_conversation, ->(conversation_id) { where(conversation_id: conversation_id) }
   scope :by_status, ->(status) { where(status: status) }
   scope :by_priority, ->(priority) { where(priority: priority) }
+  scope :by_category, ->(category) { where(category: category) }
   scope :created_by, ->(user_id) { where(created_by_id: user_id) }
   scope :assigned_to, ->(user_id) { where(assigned_agent_id: user_id) }
   scope :with_jira_link, -> { joins(:jira_issue_link) }
@@ -160,5 +164,14 @@ class Ticket < ApplicationRecord
     elsif status_changed? && !resolved?
       self.resolved_at = nil
     end
+  end
+
+  def category_must_be_valid
+    return if category.blank? # Category is optional
+    
+    available_categories = account&.settings&.dig('ticket_categories') || []
+    return if available_categories.include?(category)
+    
+    errors.add(:category, 'is not a valid category for this account')
   end
 end

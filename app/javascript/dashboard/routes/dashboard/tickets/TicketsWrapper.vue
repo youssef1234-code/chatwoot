@@ -286,6 +286,48 @@
             </div>
           </div>
 
+          <!-- Category Filter -->
+          <div class="relative min-w-40">
+            <label class="block text-sm font-medium text-n-slate-10 mb-1">
+              {{ $t('TICKETS.TRACKING.CATEGORY_FILTER') }}
+            </label>
+            <div class="relative">
+              <button
+                type="button"
+                class="w-full px-3 py-2 border border-n-weak rounded-lg bg-white dark:bg-n-slate-1 text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                @click="showCategoryDropdown = !showCategoryDropdown"
+              >
+                <span v-if="selectedCategories.length === 0" class="text-n-slate-9">
+                  {{ $t('TICKETS.TRACKING.CATEGORY_FILTER') }}
+                </span>
+                <span v-else class="text-n-slate-12">
+                  {{ selectedCategories.length }} selected
+                </span>
+                <Icon icon="i-lucide-chevron-down" class="absolute right-2 top-2.5 w-4 h-4" />
+              </button>
+              
+              <div
+                v-if="showCategoryDropdown"
+                v-on-clickaway="() => showCategoryDropdown = false"
+                class="absolute z-10 w-full mt-1 bg-white dark:bg-n-slate-1 border border-n-weak rounded-lg shadow-lg py-1 max-h-60 overflow-y-auto"
+              >
+                <label
+                  v-for="option in categoryOptions"
+                  :key="option.value"
+                  class="flex items-center px-3 py-2 hover:bg-n-alpha-1 cursor-pointer"
+                >
+                  <input
+                    v-model="selectedCategories"
+                    type="checkbox"
+                    :value="option.value"
+                    class="mr-2 text-blue-600 focus:ring-blue-500 rounded"
+                  />
+                  <span class="text-sm text-n-slate-12">{{ option.label }}</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
           <!-- JIRA Filter -->
           <div class="relative min-w-40">
             <label class="block text-sm font-medium text-n-slate-10 mb-1">
@@ -498,6 +540,7 @@ export default {
     const selectedAgents = ref([]);
     const selectedOrganizations = ref([]);
     const selectedJiraStatus = ref('');
+    const selectedCategories = ref([]);
     const dateRange = reactive({
       start: '',
       end: ''
@@ -507,6 +550,7 @@ export default {
     const showAgentDropdown = ref(false);
     const showOrganizationDropdown = ref(false);
     const showJiraDropdown = ref(false);
+    const showCategoryDropdown = ref(false);
     const isAiEnhancementEnabled = ref(false);
     const showDetailModal = ref(false);
     const showAiModal = ref(false);
@@ -565,6 +609,27 @@ export default {
       { label: t('TICKETS.FILTERS.NOT_LINKED_TO_JIRA'), value: 'not_linked' },
     ]);
 
+    const currentAccount = computed(() => {
+      const accountId = store.getters.getCurrentAccountId;
+      const accountFromAccountsStore =
+      store.getters["accounts/getAccount"](accountId);
+      if (accountFromAccountsStore && Object.keys(accountFromAccountsStore).length > 0) {
+        return accountFromAccountsStore;
+      }
+    });
+
+
+    const categoryOptions = computed(() => {
+      const categories = currentAccount.value?.settings?.ticket_categories || [];
+      return [
+        { label: t('TICKETS.FILTERS.ALL'), value: '' },
+        ...categories.map(category => ({
+          label: category,
+          value: category,
+        })),
+      ];
+    });
+
     const organizationOptions = ref([]);
 
     const filteredOrganizationOptions = computed(() => {
@@ -583,6 +648,7 @@ export default {
              selectedAgents.value.length > 0 ||
              selectedOrganizations.value.length > 0 ||
              selectedJiraStatus.value ||
+             selectedCategories.value.length > 0 ||
              dateRange.start ||
              dateRange.end ||
              searchQuery.value ||
@@ -656,6 +722,11 @@ export default {
                            ticket.contact?.additional_attributes?.company_name;
           return contactOrg && selectedOrganizations.value.includes(contactOrg);
         });
+      }
+
+      // Apply category filter (multi-select)
+      if (selectedCategories.value.length > 0) {
+        filtered = filtered.filter(ticket => selectedCategories.value.includes(ticket.category));
       }
 
       // Apply JIRA filter
@@ -775,6 +846,7 @@ export default {
       selectedAgents.value = [];
       selectedOrganizations.value = [];
       selectedJiraStatus.value = '';
+      selectedCategories.value = [];
       dateRange.start = '';
       dateRange.end = '';
       organizationSearchQuery.value = '';
@@ -900,12 +972,14 @@ export default {
       selectedAgents,
       selectedOrganizations,
       selectedJiraStatus,
+      selectedCategories,
       dateRange,
       showStatusDropdown,
       showPriorityDropdown,
       showAgentDropdown,
       showOrganizationDropdown,
       showJiraDropdown,
+      showCategoryDropdown,
       isAiEnhancementEnabled,
       showDetailModal,
       showAiModal,
@@ -924,6 +998,7 @@ export default {
       priorityOptions,
       agentOptions,
       jiraOptions,
+      categoryOptions,
       organizationOptions,
       filteredOrganizationOptions,
       hasActiveFilters,

@@ -67,17 +67,27 @@
               </select>
             </div>
 
-            <!-- Issue Type -->
+            <!-- Category -->
             <div>
               <label class="block text-sm font-medium text-n-slate-12 mb-2">
-                {{ $t("TICKETS.ISSUE_TYPE") }}
+                {{ $t("TICKETS.CATEGORY.LABEL") }}
               </label>
-              <input
-                v-model="ticketForm.issue_type"
-                type="text"
+              <select
+                v-model="ticketForm.category"
                 class="w-full px-3 py-2 border border-n-slate-6 rounded-md focus:outline-none focus:ring-2 focus:ring-n-blue-6 bg-n-slate-1 text-n-slate-12"
-                :placeholder="$t('TICKETS.ISSUE_TYPE_PLACEHOLDER')"
-              />
+              >
+                <option value="">{{ $t("TICKETS.CATEGORY.SELECT") }}</option>
+                <option
+                  v-for="category in availableCategories"
+                  :key="category"
+                  :value="category"
+                >
+                  {{ category }}
+                </option>
+              </select>
+              <p v-if="errors.category" class="mt-1 text-sm text-red-600">
+                {{ errors.category[0] }}
+              </p>
             </div>
 
             <!-- Link to JIRA Issue -->
@@ -229,7 +239,7 @@ const ticketForm = ref({
   title: "",
   description: "",
   priority: "medium",
-  issue_type: "",
+  category: "",
   jira_issue_key: "",
   assigned_agent_id: currentUser.value?.id || "",
   conversation_id: props.conversationId,
@@ -242,6 +252,23 @@ const errors = ref({});
 // JIRA issues loaded from API
 const availableJiraIssues = ref([]);
 const isLoadingJiraIssues = ref(false);
+
+const currentAccount = computed(() => {
+  const accountId = store.getters.getCurrentAccountId;
+  const accountFromAccountsStore =
+    store.getters["accounts/getAccount"](accountId);
+  if (
+    accountFromAccountsStore &&
+    Object.keys(accountFromAccountsStore).length > 0
+  ) {
+    return accountFromAccountsStore;
+  }
+});
+
+// Get available categories from account settings
+const availableCategories = computed(() => {
+  return currentAccount.value?.settings?.ticket_categories || [];
+});
 
 // Load JIRA issues for the conversation
 const loadJiraIssues = async () => {

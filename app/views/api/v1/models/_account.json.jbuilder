@@ -1,4 +1,6 @@
-json.settings resource.settings
+json.settings do
+  json.merge! resource.settings
+end
 json.created_at resource.created_at
 if resource.custom_attributes.present?
   json.custom_attributes do

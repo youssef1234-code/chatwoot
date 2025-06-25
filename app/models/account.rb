@@ -160,6 +160,22 @@ class Account < ApplicationRecord
     ISO_639.find(account_locale)&.english_name&.downcase || 'english'
   end
 
+  def ticket_categories
+    settings&.dig('ticket_categories') || default_ticket_categories
+  end
+
+  def default_ticket_categories
+    [
+      'General Support',
+      'Technical Issue',
+      'Billing',
+      'Feature Request',
+      'Bug Report',
+      'Account Management',
+      'Sales Inquiry'
+    ]
+  end
+
   private
 
   def notify_creation
