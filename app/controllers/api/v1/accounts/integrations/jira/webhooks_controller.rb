@@ -211,10 +211,7 @@ class Api::V1::Accounts::Integrations::Jira::WebhooksController < Api::V1::Accou
 
       begin
         # Use the ticket's resolve! method to ensure proper status handling
-        ticket.update!(
-          status: 'resolved',
-          resolved_at: Time.current
-        )
+        ticket.resolve!
 
         # Create activity message in the conversation
         create_jira_completion_activity_message(ticket, issue_key)

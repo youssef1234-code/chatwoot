@@ -24,6 +24,7 @@ import NpsResponses from './NpsResponses.vue';
 import BotReports from './BotReports.vue';
 import LiveReports from './LiveReports.vue';
 import SLAReports from './SLAReports.vue';
+import TicketsReports from './TicketsReports.vue';
 
 const meta = {
   featureFlag: FEATURE_FLAGS.REPORTS,
@@ -151,6 +152,12 @@ export default {
         },
         ...oldReportRoutes,
         ...revisedReportRoutes,
+        {
+          path: 'tickets',
+          name: 'tickets_reports',
+          meta,
+          component: TicketsReports,
+        },
         {
           path: 'sla',
           name: 'sla_reports',

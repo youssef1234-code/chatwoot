@@ -105,7 +105,8 @@ class Ticket < ApplicationRecord
 
   def close!
     update!(
-      status: :closed
+      status: :closed,
+      resolved_at: resolved_at || Time.current
     )
   end
 
@@ -159,9 +160,9 @@ class Ticket < ApplicationRecord
   private
 
   def set_resolved_at
-    if status_changed? && resolved?
+    if status_changed? && (resolved? || closed?)
       self.resolved_at = Time.current if resolved_at.nil?
-    elsif status_changed? && !resolved?
+    elsif status_changed? && !resolved? && !closed?
       self.resolved_at = nil
     end
   end

@@ -589,5 +589,85 @@
     "AVG_REPLY_TIME": "Avg. Customer Waiting Time",
     "RESOLUTION_COUNT": "Resolution Count",
     "CONVERSATIONS": "No. of conversations"
+  },
+  "TICKETS_REPORTS": {
+    "HEADER": "Tickets Analytics",
+    "DESCRIPTION": "Track and analyze your ticket management performance with comprehensive metrics including resolution times, escalation rates, and JIRA integration insights.",
+    "NO_DATA": "No data available for the selected filters",
+    "NO_TICKETS": "No tickets found for the selected criteria",
+    "NO_TICKETS_DESCRIPTION": "Try adjusting your filters or date range to see ticket data.",
+    "UNASSIGNED": "Unassigned",
+    "EXPORT": "Export Report",
+    "DOWNLOAD_TICKETS_REPORTS": "Download Tickets Report",
+    "DOWNLOAD_FAILED": "Failed to download tickets report",
+    "FILTERS": {
+      "TITLE": "Filters & Date Range",
+      "STATUS": "Status",
+      "PRIORITY": "Priority", 
+      "CATEGORY": "Category",
+      "AGENT": "Agent",
+      "JIRA_STATUS": "JIRA Status",
+      "ALL_STATUSES": "All Statuses",
+      "ALL_PRIORITIES": "All Priorities",
+      "ALL_CATEGORIES": "All Categories",
+      "ALL_AGENTS": "All Agents",
+      "ALL_JIRA_STATUSES": "All JIRA Statuses"
+    },
+    "STATUS": {
+      "OPEN": "Open",
+      "IN_PROGRESS": "In Progress",
+      "ESCALATED": "Escalated",
+      "RESOLVED": "Resolved",
+      "CLOSED": "Closed"
+    },
+    "PRIORITY": {
+      "LOW": "Low",
+      "MEDIUM": "Medium",
+      "HIGH": "High",
+      "URGENT": "Urgent"
+    },
+    "CATEGORY": {
+      "BUG": "Bug",
+      "FEATURE_REQUEST": "Feature Request",
+      "SUPPORT": "Support",
+      "TECHNICAL_ISSUE": "Technical Issue",
+      "BILLING": "Billing",
+      "INTEGRATION": "Integration"
+    },
+    "JIRA_STATUS": {
+      "NOT_ESCALATED": "Not Escalated",
+      "ESCALATED": "Escalated",
+      "IN_PROGRESS": "In Progress"
+    },
+    "METRICS": {
+      "TOTAL_TICKETS": "Total Tickets",
+      "TOTAL_TICKETS_TOOLTIP": "Total number of tickets in the selected time period",
+      "AVG_RESOLUTION_TIME": "Avg Resolution Time",
+      "AVG_RESOLUTION_TIME_TOOLTIP": "Average time taken to resolve tickets from creation to completion",
+      "ESCALATION_PERCENTAGE": "Escalation Rate",
+      "ESCALATION_PERCENTAGE_TOOLTIP": "Percentage of tickets that were escalated to JIRA",
+      "RESOLVED_AFTER_ESCALATION": "Resolved After Escalation",
+      "RESOLVED_AFTER_ESCALATION_TOOLTIP": "Percentage of escalated tickets that were successfully resolved"
+    },
+    "CHARTS": {
+      "TICKETS_BY_STATUS": "Tickets by Status",
+      "RESOLUTION_TIME_TREND": "Resolution Time Trend",
+      "ESCALATION_BY_PRIORITY": "Escalation Rate by Priority",
+      "AGENT_PERFORMANCE": "Agent Performance",
+      "AVG_RESOLUTION_TIME": "Average Resolution Time",
+      "AVG_RESOLUTION_TIME_HOURS": "Avg Resolution Time (Hours)",
+      "ESCALATION_RATE": "Escalation Rate (%)",
+      "HOURS": "Hours"
+    },
+    "TABLE": {
+      "TITLE": "Tickets Details",
+      "TICKET_ID": "Ticket ID",
+      "STATUS": "Status",
+      "PRIORITY": "Priority",
+      "AGENT": "Agent",
+      "JIRA_STATUS": "JIRA Status",
+      "RESOLUTION_TIME": "Resolution Time",
+      "CREATED_AT": "Created At"
+    }
   }
 }
