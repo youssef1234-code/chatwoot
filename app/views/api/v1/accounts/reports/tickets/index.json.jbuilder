@@ -7,6 +7,7 @@ json.tickets @tickets do |ticket|
   json.category ticket.category
   json.escalated_to_jira ticket.escalated_to_jira?
   json.jira_issue_key ticket.jira_issue_key
+  json.jira_url ticket.jira_url
   json.jira_in_progress ticket.jira_in_progress?
   json.duration_to_resolve do
     if ticket.resolved_at && ticket.created_at

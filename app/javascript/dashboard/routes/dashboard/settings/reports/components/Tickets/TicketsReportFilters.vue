@@ -32,6 +32,7 @@ export default {
         status: null,
         priority: null,
         assigned_agent_id: null,
+        linked_with_jira: null,
         jira_status: null,
         category: null,
       },
@@ -47,6 +48,20 @@ export default {
         { id: 4, name: this.$t('REPORT.DATE_RANGE_OPTIONS.LAST_YEAR') },
         { id: 5, name: this.$t('REPORT.DATE_RANGE_OPTIONS.CUSTOM_DATE_RANGE') },
       ];
+    },
+    currentAccount(){
+      const accountId = this.$store.getters.getCurrentAccountId;
+      const accountFromAccountsStore =
+        this.$store.getters["accounts/getAccount"](accountId);
+      if (
+        accountFromAccountsStore &&
+        Object.keys(accountFromAccountsStore).length > 0
+      ) {
+        return accountFromAccountsStore;
+      }
+    },
+    loadCategories() {
+      return  this.currentAccount?.settings?.ticket_categories;
     },
     isDateRangeSelected() {
       return this.currentDateRangeSelection.id === CUSTOM_DATE_RANGE_ID;
@@ -93,10 +108,15 @@ export default {
       ];
     },
     categoryOptions() {
-      // Use categories passed as prop or fall back to account settings
-      const categories = this.ticketCategories.length > 0 
-        ? this.ticketCategories 
-        : this.$store.getters['accounts/getAccount']?.settings?.ticket_categories || [];
+      // Use categories from account settings (loadCategories is a computed property, not a function)
+      let categories = this.loadCategories || [];
+      console.log('CATEGORIES: ' , categories);
+      
+      // If no categories from account settings, try to get from current account getter
+      if (!categories || categories.length === 0) {
+        const currentAccount = this.$store.getters.getCurrentAccount;
+        categories = currentAccount?.settings?.ticket_categories || [];
+      }
       
       if (categories.length > 0) {
         return categories.map(category => ({ 
@@ -115,12 +135,21 @@ export default {
         { id: 'Integration', name: this.$t('TICKETS_REPORTS.CATEGORY.INTEGRATION') },
       ];
     },
+    jiraLinkOptions() {
+      return [
+        { id: 'true', name: this.$t('TICKETS_REPORTS.JIRA_LINK.LINKED') },
+        { id: 'false', name: this.$t('TICKETS_REPORTS.JIRA_LINK.NOT_LINKED') },
+      ];
+    },
     jiraStatusOptions() {
       return [
-        { id: 'not_escalated', name: this.$t('TICKETS_REPORTS.JIRA_STATUS.NOT_ESCALATED') },
         { id: 'escalated', name: this.$t('TICKETS_REPORTS.JIRA_STATUS.ESCALATED') },
         { id: 'in_progress', name: this.$t('TICKETS_REPORTS.JIRA_STATUS.IN_PROGRESS') },
+        { id: 'done', name: this.$t('TICKETS_REPORTS.JIRA_STATUS.DONE') },
       ];
+    },
+    showJiraStatusFilter() {
+      return this.selectedFilters.linked_with_jira === 'true';
     },
   },
   mounted() {
@@ -139,6 +168,10 @@ export default {
       this.emitFilterChange();
     },
     onFilterOptionChange() {
+      // Reset JIRA status if linked_with_jira is changed to false or null
+      if (this.selectedFilters.linked_with_jira !== 'true') {
+        this.selectedFilters.jira_status = null;
+      }
       this.emitFilterChange();
     },
     emitFilterChange() {
@@ -279,8 +312,25 @@ export default {
         </select>
       </div>
 
-      <!-- JIRA Status Filter -->
+      <!-- Linked with JIRA Filter -->
       <div>
+        <label class="block text-sm font-medium text-n-slate-11 mb-2">
+          {{ $t('TICKETS_REPORTS.FILTERS.LINKED_WITH_JIRA') }}
+        </label>
+        <select
+          v-model="selectedFilters.linked_with_jira"
+          class="w-full px-3 py-2 border border-n-weak rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-woot-500 focus:border-woot-500 bg-n-solid-3 text-n-slate-12"
+          @change="onFilterOptionChange"
+        >
+          <option :value="null">{{ $t('TICKETS_REPORTS.FILTERS.ALL') }}</option>
+          <option v-for="option in jiraLinkOptions" :key="option.id" :value="option.id">
+            {{ option.name }}
+          </option>
+        </select>
+      </div>
+
+      <!-- JIRA Status Filter (only show if linked with JIRA is true) -->
+      <div v-if="showJiraStatusFilter">
         <label class="block text-sm font-medium text-n-slate-11 mb-2">
           {{ $t('TICKETS_REPORTS.FILTERS.JIRA_STATUS') }}
         </label>

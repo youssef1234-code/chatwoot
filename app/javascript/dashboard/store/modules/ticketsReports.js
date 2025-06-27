@@ -11,9 +11,18 @@ export const state = {
     escalationPercentage: 0,
     resolvedAfterEscalation: 0,
   },
+  summary: {
+    status_distribution: {},
+    priority_distribution: {},
+    category_distribution: {},
+    escalation_data: { escalated: 0, not_escalated: 0 },
+    resolution_time_trend: {},
+    escalation_by_priority: {},
+  },
   uiFlags: {
     isFetching: false,
     isFetchingMetrics: false,
+    isFetchingSummary: false,
   },
   meta: {
     count: 0,
@@ -33,6 +42,9 @@ export const getters = {
   },
   getMetrics(_state) {
     return _state.metrics;
+  },
+  getSummary(_state) {
+    return _state.summary;
   },
   getUIFlags(_state) {
     return _state.uiFlags;
@@ -101,6 +113,18 @@ export const actions = {
       commit(types.SET_TICKETS_REPORTS_UI_FLAG, { isFetchingMetrics: false });
     }
   },
+
+  getSummary: async function getTicketsSummary({ commit }, params) {
+    commit(types.SET_TICKETS_REPORTS_UI_FLAG, { isFetchingSummary: true });
+    try {
+      const response = await TicketsReportsAPI.getSummary(params);
+      commit(types.SET_TICKETS_REPORTS_SUMMARY, response.data);
+    } catch (error) {
+      console.error('Error fetching tickets summary:', error);
+    } finally {
+      commit(types.SET_TICKETS_REPORTS_UI_FLAG, { isFetchingSummary: false });
+    }
+  },
   
   download(_, params) {
     return TicketsReportsAPI.download(params).then(response => {
@@ -143,6 +167,28 @@ export const mutations = {
       per_page: meta.per_page || 25,
       total_pages: meta.total_pages || 0,
       total_count: meta.total_count || 0,
+    };
+  },
+
+  [types.SET_TICKETS_REPORTS_SUMMARY](_state, summary) {
+    _state.summary = {
+      status_distribution: summary.status_distribution || {},
+      priority_distribution: summary.priority_distribution || {},
+      category_distribution: summary.category_distribution || {},
+      escalation_data: summary.escalation_data || { escalated: 0, not_escalated: 0 },
+      resolution_time_trend: summary.resolution_time_trend || {},
+      escalation_by_priority: summary.escalation_by_priority || {},
+    };
+  },
+
+  [types.SET_TICKETS_REPORTS_SUMMARY](_state, summary) {
+    _state.summary = {
+      status_distribution: summary.status_distribution || {},
+      priority_distribution: summary.priority_distribution || {},
+      category_distribution: summary.category_distribution || {},
+      escalation_data: summary.escalation_data || { escalated: 0, not_escalated: 0 },
+      resolution_time_trend: summary.resolution_time_trend || {},
+      escalation_by_priority: summary.escalation_by_priority || {},
     };
   },
 };

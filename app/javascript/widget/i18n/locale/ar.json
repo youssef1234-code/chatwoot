@@ -100,6 +100,19 @@
     "SUBMITTED_TITLE": "شكرا لك على تقييم المحادثة",
     "PLACEHOLDER": "أخبرنا المزيد..."
   },
+  "NPS": {
+    "TITLE": "ما مدى احتمالية أن توصي بنا لصديق أو زميل؟",
+    "SUBMITTED_TITLE": "شكرًا لملاحظاتك",
+    "PLACEHOLDER": "حدثنا أكثر عن تقييمك...",
+    "NOT_LIKELY": "غير محتمل",
+    "EXTREMELY_LIKELY": "محتمل جدًا",
+    "FEEDBACK_LABEL": "ما السبب الرئيسي لتقييمك؟",
+    "FEEDBACK_PLACEHOLDER": "حدثنا أكثر عن تقييمك...",
+    "SUBMIT": "إرسال",
+    "YOUR_RATING": "تقييمك",
+    "YOUR_FEEDBACK": "ملاحظاتك",
+    "THANK_YOU": "شكرًا لملاحظاتك!"
+  },
   "EMAIL_TRANSCRIPT": {
     "BUTTON_TEXT": "طلب نسخة محادثة النص",
     "SEND_EMAIL_SUCCESS": "تم إرسال نص المحادثة بنجاح",

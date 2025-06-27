@@ -136,6 +136,10 @@
       "ENTER_TO_REMOVE": "Press enter to remove",
       "SELECT_ONE": "Select one",
       "SELECT": "Select"
+    },
+    "BUTTONS":{
+      "NEXT": "Next",
+      "PREVIOUS": "Previous"
     }
   },
   "NOTIFICATIONS_PAGE": {

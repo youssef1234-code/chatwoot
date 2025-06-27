@@ -606,7 +606,9 @@
       "PRIORITY": "Priority", 
       "CATEGORY": "Category",
       "AGENT": "Agent",
+      "LINKED_WITH_JIRA": "Linked with JIRA",
       "JIRA_STATUS": "JIRA Status",
+      "ALL": "All",
       "ALL_STATUSES": "All Statuses",
       "ALL_PRIORITIES": "All Priorities",
       "ALL_CATEGORIES": "All Categories",
@@ -634,10 +636,15 @@
       "BILLING": "Billing",
       "INTEGRATION": "Integration"
     },
+    "JIRA_LINK": {
+      "LINKED": "Linked",
+      "NOT_LINKED": "Not Linked"
+    },
     "JIRA_STATUS": {
       "NOT_ESCALATED": "Not Escalated",
-      "ESCALATED": "Escalated",
-      "IN_PROGRESS": "In Progress"
+      "ESCALATED": "Escalated (TODO)",
+      "IN_PROGRESS": "In Progress", 
+      "DONE": "Done"
     },
     "METRICS": {
       "TOTAL_TICKETS": "Total Tickets",

@@ -54,18 +54,36 @@ export default {
       if (!ticket.escalated_to_jira) {
         return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
       }
+      
+      // Check if ticket is resolved/closed (done)
+      if (ticket.status === 'resolved' || ticket.status === 'closed') {
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+      }
+      
+      // Check if JIRA issue is in progress
       if (ticket.jira_in_progress) {
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
       }
+      
+      // Otherwise it's escalated but not yet in progress
       return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300';
     },
     getJiraStatusText(ticket) {
       if (!ticket.escalated_to_jira) {
         return this.$t('TICKETS_REPORTS.JIRA_STATUS.NOT_ESCALATED');
       }
+      
+      // Check if ticket is resolved/closed (done)
+      if (ticket.status === 'resolved' || ticket.status === 'closed') {
+        return this.$t('TICKETS_REPORTS.JIRA_STATUS.DONE');
+      }
+      
+      // Check if JIRA issue is in progress
       if (ticket.jira_in_progress) {
         return this.$t('TICKETS_REPORTS.JIRA_STATUS.IN_PROGRESS');
       }
+      
+      // Otherwise it's escalated but not yet in progress
       return this.$t('TICKETS_REPORTS.JIRA_STATUS.ESCALATED');
     },
     formatDuration(seconds) {
@@ -169,12 +187,28 @@ export default {
               {{ ticket.assigned_agent?.name || $t('TICKETS_REPORTS.UNASSIGNED') }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
-              <span 
-                :class="getJiraStatusBadgeClass(ticket)" 
-                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-              >
-                {{ getJiraStatusText(ticket) }}
-              </span>
+              <div class="flex flex-col space-y-1">
+                <span 
+                  :class="getJiraStatusBadgeClass(ticket)" 
+                  class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                >
+                  {{ getJiraStatusText(ticket) }}
+                </span>
+                <div v-if="ticket.jira_issue_key" class="text-xs">
+                  <a 
+                    v-if="ticket.jira_url"
+                    :href="ticket.jira_url" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    class="text-woot-500 hover:text-woot-600 underline"
+                  >
+                    {{ ticket.jira_issue_key }}
+                  </a>
+                  <span v-else class="text-n-slate-10">
+                    {{ ticket.jira_issue_key }}
+                  </span>
+                </div>
+              </div>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-n-slate-12">
               {{ formatDuration(ticket.duration_to_resolve) }}

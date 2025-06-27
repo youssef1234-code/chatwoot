@@ -20,11 +20,16 @@ export default {
     TicketsCharts,
   },
   data() {
+    // Set default date range to last 30 days
+    const now = new Date();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(now.getDate() - 30);
+    
     return {
       pageNumber: 1,
       activeFilter: {
-        from: null,
-        to: null,
+        from: Math.floor(thirtyDaysAgo.getTime() / 1000), // Unix timestamp
+        to: Math.floor(now.getTime() / 1000), // Unix timestamp
         status: null,
         priority: null,
         category: null,
@@ -40,6 +45,7 @@ export default {
       currentAccount: 'getCurrentAccount',
       tickets: 'ticketsReports/getAll',
       metrics: 'ticketsReports/getMetrics',
+      summary: 'ticketsReports/getSummary',
       uiFlags: 'ticketsReports/getUIFlags',
       meta: 'ticketsReports/getMeta',
     }),
@@ -59,6 +65,7 @@ export default {
     this.$store.dispatch('agents/get');
     this.fetchTicketsReports();
     this.fetchTicketsMetrics();
+    this.fetchTicketsSummary();
   },
   methods: {
     fetchTicketsReports({ pageNumber } = {}) {
@@ -76,6 +83,13 @@ export default {
       };
       this.$store.dispatch('ticketsReports/getMetrics', params);
     },
+
+    fetchTicketsSummary() {
+      const params = {
+        ...this.activeFilter,
+      };
+      this.$store.dispatch('ticketsReports/getSummary', params);
+    },
     
     onPageChange(pageNumber) {
       this.fetchTicketsReports({ pageNumber });
@@ -86,6 +100,7 @@ export default {
       this.pageNumber = 1; // Reset to first page when filters change
       this.fetchTicketsReports();
       this.fetchTicketsMetrics();
+      this.fetchTicketsSummary();
     },
     
     async downloadReports() {
@@ -133,7 +148,10 @@ export default {
   </ReportHeader>
   
   <div class="flex flex-col flex-1 gap-6">
-    <TicketsReportFilters @filter-change="onFilterChange" />
+    <TicketsReportFilters 
+      :ticket-categories="ticketCategories"
+      @filter-change="onFilterChange" 
+    />
     
     <TicketsMetrics
       :total-tickets="metrics.totalTickets"
@@ -144,8 +162,8 @@ export default {
     />
     
     <TicketsCharts
-      :tickets-data="tickets"
-      :is-loading="uiFlags.isFetching"
+      :summary-data="summary"
+      :is-loading="uiFlags.isFetchingSummary"
     />
     
     <TicketsTable

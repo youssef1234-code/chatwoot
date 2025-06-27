@@ -11,9 +11,9 @@ export default {
     LineChart,
   },
   props: {
-    ticketsData: {
-      type: Array,
-      default: () => [],
+    summaryData: {
+      type: Object,
+      default: () => ({}),
     },
     isLoading: {
       type: Boolean,
@@ -22,12 +22,11 @@ export default {
   },
   computed: {
     statusChartData() {
-      if (!this.ticketsData.length) return { labels: [], datasets: [] };
+      if (!this.summaryData.status_distribution || Object.keys(this.summaryData.status_distribution).length === 0) {
+        return { labels: [], datasets: [] };
+      }
       
-      const statusCounts = this.ticketsData.reduce((acc, ticket) => {
-        acc[ticket.status] = (acc[ticket.status] || 0) + 1;
-        return acc;
-      }, {});
+      const statusCounts = this.summaryData.status_distribution;
 
       return {
         labels: Object.keys(statusCounts).map(status => 
@@ -47,28 +46,18 @@ export default {
       };
     },
     resolutionTrendData() {
-      if (!this.ticketsData.length) return { labels: [], datasets: [] };
+      if (!this.summaryData.resolution_time_trend || Object.keys(this.summaryData.resolution_time_trend).length === 0) {
+        return { labels: [], datasets: [] };
+      }
       
-      // Group tickets by date and calculate average resolution time
-      const ticketsByDate = this.ticketsData
-        .filter(t => t.duration_to_resolve && t.resolved_at)
-        .reduce((acc, ticket) => {
-          const date = new Date(ticket.resolved_at).toDateString();
-          if (!acc[date]) {
-            acc[date] = { total: 0, count: 0 };
-          }
-          acc[date].total += ticket.duration_to_resolve;
-          acc[date].count += 1;
-          return acc;
-        }, {});
-
-      const sortedDates = Object.keys(ticketsByDate).sort((a, b) => new Date(a) - new Date(b));
+      const trendData = this.summaryData.resolution_time_trend;
+      const sortedDates = Object.keys(trendData).sort((a, b) => new Date(a) - new Date(b));
       
       return {
         labels: sortedDates.map(date => new Date(date).toLocaleDateString()),
         datasets: [{
           label: this.$t('TICKETS_REPORTS.CHARTS.AVG_RESOLUTION_TIME'),
-          data: sortedDates.map(date => Math.round(ticketsByDate[date].total / ticketsByDate[date].count / 3600)), // Convert to hours
+          data: sortedDates.map(date => Math.round(trendData[date] / 3600)), // Convert to hours
           borderColor: '#3B82F6',
           backgroundColor: 'rgba(59, 130, 246, 0.1)',
           tension: 0.4,
@@ -77,26 +66,18 @@ export default {
       };
     },
     escalationByPriorityData() {
-      if (!this.ticketsData.length) return { labels: [], datasets: [] };
+      if (!this.summaryData.escalation_by_priority || Object.keys(this.summaryData.escalation_by_priority).length === 0) {
+        return { labels: [], datasets: [] };
+      }
       
-      const priorityData = this.ticketsData.reduce((acc, ticket) => {
-        if (!acc[ticket.priority]) {
-          acc[ticket.priority] = { total: 0, escalated: 0 };
-        }
-        acc[ticket.priority].total += 1;
-        if (ticket.escalated_to_jira) {
-          acc[ticket.priority].escalated += 1;
-        }
-        return acc;
-      }, {});
-
+      const priorityData = this.summaryData.escalation_by_priority;
       const priorities = Object.keys(priorityData);
       
       return {
         labels: priorities.map(p => this.$t(`TICKETS_REPORTS.PRIORITY.${p.toUpperCase()}`)),
         datasets: [{
           label: this.$t('TICKETS_REPORTS.CHARTS.ESCALATION_RATE'),
-          data: priorities.map(p => Math.round((priorityData[p].escalated / priorityData[p].total) * 100)),
+          data: priorities.map(p => priorityData[p].escalation_rate),
           backgroundColor: '#F59E0B',
           borderColor: '#D97706',
           borderWidth: 1,
