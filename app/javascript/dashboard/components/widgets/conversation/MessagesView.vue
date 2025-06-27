@@ -662,6 +662,10 @@ export default {
     },
     // Modal handlers
     openCreateTicketModal() {
+      console.log('=== OPENING CREATE TICKET MODAL ===');
+      console.log('Current chat ID:', this.currentChat?.id);
+      console.log('Current chat display_id:', this.currentChat?.display_id);
+      console.log('Selected messages:', this.selectedMessages);
       this.showCreateTicketModal = true;
     },
     openLinkToExistingModal() {

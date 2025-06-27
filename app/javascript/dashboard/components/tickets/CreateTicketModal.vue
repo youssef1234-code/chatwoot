@@ -90,39 +90,6 @@
               </p>
             </div>
 
-            <!-- Link to JIRA Issue -->
-            <div v-if="isLoadingJiraIssues">
-              <label class="block text-sm font-medium text-n-slate-12 mb-2">
-                {{ $t("TICKETS.LINK_JIRA_ISSUE") }}
-              </label>
-              <div
-                class="w-full px-3 py-2 border border-n-slate-6 rounded-md bg-n-slate-1 text-n-slate-10 text-sm"
-              >
-                {{ $t("TICKETS.LOADING_JIRA_ISSUES") }}
-              </div>
-            </div>
-            <div v-else-if="availableJiraIssues.length > 0">
-              <label class="block text-sm font-medium text-n-slate-12 mb-2">
-                {{ $t("TICKETS.LINK_JIRA_ISSUE") }}
-              </label>
-              <select
-                v-model="ticketForm.jira_issue_key"
-                class="w-full px-3 py-2 border border-n-slate-6 rounded-md focus:outline-none focus:ring-2 focus:ring-n-blue-6 bg-n-slate-1 text-n-slate-12"
-              >
-                <option value="">{{ $t("TICKETS.SELECT_JIRA_ISSUE") }}</option>
-                <option
-                  v-for="issue in availableJiraIssues"
-                  :key="issue.key"
-                  :value="issue.key"
-                >
-                  {{ `${issue.key} - ${issue.summary}` }} ({{ issue.status }})
-                </option>
-              </select>
-              <p class="mt-1 text-xs text-n-slate-10">
-                {{ $t("TICKETS.JIRA_LINK_HELP") }}
-              </p>
-            </div>
-
             <!-- Selected Messages Preview -->
             <div v-if="selectedMessageIds.length > 0">
               <label class="block text-sm font-medium text-n-slate-12 mb-2">
@@ -193,7 +160,7 @@
             blue
             :label="$t('TICKETS.CREATE_TICKET')"
             :loading="isLoading"
-            :disabled="!ticketForm.title.trim()"
+            :disabled="!ticketForm.title.trim() || !ticketForm.description.trim() || !ticketForm.category.trim()"
             @click="createTicket"
           />
         </div>
@@ -209,7 +176,6 @@ import { useAlert } from "dashboard/composables";
 import Modal from "dashboard/components/Modal.vue";
 import Button from "dashboard/components-next/button/Button.vue";
 import Icon from "dashboard/components-next/icon/Icon.vue";
-import JiraAPI from "dashboard/api/integrations/jira";
 import OpenaiAPI from "dashboard/api/integrations/openapi";
 import { useStoreGetters, useStore } from "dashboard/composables/store";
 
@@ -249,10 +215,6 @@ const isLoading = ref(false);
 const isGeneratingWithAI = ref(false);
 const errors = ref({});
 
-// JIRA issues loaded from API
-const availableJiraIssues = ref([]);
-const isLoadingJiraIssues = ref(false);
-
 const currentAccount = computed(() => {
   const accountId = store.getters.getCurrentAccountId;
   const accountFromAccountsStore =
@@ -269,27 +231,6 @@ const currentAccount = computed(() => {
 const availableCategories = computed(() => {
   return currentAccount.value?.settings?.ticket_categories || [];
 });
-
-// Load JIRA issues for the conversation
-const loadJiraIssues = async () => {
-  if (!props.conversationId) return;
-
-  isLoadingJiraIssues.value = true;
-  try {
-    const response = await JiraAPI.getLinkedIssues(props.conversationId);
-    availableJiraIssues.value = (response.data || []).map((issue) => ({
-      key: issue.key,
-      summary: issue.summary || issue.title,
-      status: issue.status,
-      url: issue.url,
-    }));
-  } catch (error) {
-    console.error("Failed to load JIRA issues:", error);
-    availableJiraIssues.value = [];
-  } finally {
-    isLoadingJiraIssues.value = false;
-  }
-};
 
 const selectedMessagesPreview = computed(() => {
   const conversation = currentChat.value;
@@ -326,6 +267,11 @@ const createTicket = async () => {
       ...ticketForm.value,
       message_ids: props.selectedMessageIds,
     };
+
+    console.log('=== CREATE TICKET DEBUG ===');
+    console.log('Props conversationId:', props.conversationId);
+    console.log('Ticket form conversation_id:', ticketForm.value.conversation_id);
+    console.log('Final ticketData:', ticketData);
 
     await store.dispatch("tickets/create", ticketData);
 
@@ -443,11 +389,6 @@ const generateTitleAndDescriptionWithAI = async () => {
     isGeneratingWithAI.value = false;
   }
 };
-
-// Load JIRA issues when component mounts
-onMounted(() => {
-  loadJiraIssues();
-});
 
 const onClose = () => {
   emit("close");

@@ -1,6 +1,6 @@
 class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
   before_action :fetch_ticket, except: %i[index create]
-  before_action :fetch_conversation, only: [:create]
+  before_action :fetch_conversation_from_params, only: [:create]
 
   def index
     @tickets = current_account.tickets
@@ -84,8 +84,34 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
     Rails.logger.info '=== TICKET CREATE DEBUG ==='
     Rails.logger.info "Received params: #{params.inspect}"
     Rails.logger.info "message_ids param: #{params[:message_ids].inspect}"
+    Rails.logger.info "Conversation ID from params: #{params.dig(:ticket, :conversation_id)}"
+    
+    # If we have messages, get the conversation ID from the first message instead of params
+    if params[:message_ids].present? && params[:message_ids].any?
+      first_message_id = params[:message_ids].first
+      begin
+        first_message = Message.find(first_message_id)
+        if first_message.account_id == current_account.id
+          @conversation = current_account.conversations.find(first_message.conversation_id)
+          Rails.logger.info "Using conversation from first message: #{@conversation.id} (display_id: #{@conversation.display_id})"
+        else
+          Rails.logger.error "Security violation: First message belongs to different account"
+          return render json: { error: 'Invalid message' }, status: :bad_request
+        end
+      rescue ActiveRecord::RecordNotFound
+        Rails.logger.error "First message not found: #{first_message_id}"
+        return render json: { error: 'Message not found' }, status: :not_found
+      end
+    else
+      # Fallback to the conversation from params if no messages
+      Rails.logger.info "No messages provided, using conversation from params"
+    end
+    
+    Rails.logger.info "Final fetched conversation ID: #{@conversation&.id}"
+    Rails.logger.info "Final fetched conversation display_id: #{@conversation&.display_id}"
 
     @ticket = current_account.tickets.build(ticket_params)
+    @ticket.conversation = @conversation  # Explicitly set the conversation
     @ticket.created_by = Current.user
     @ticket.contact = @conversation.contact
 
@@ -308,8 +334,12 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
     @ticket = current_account.tickets.find(params[:id])
   end
 
-  def fetch_conversation
+  def fetch_conversation_from_params
+    # This will be called as a before_action, but we might override @conversation 
+    # in the create method if messages are present
     conversation_id = params.dig(:ticket, :conversation_id)
+    Rails.logger.info "=== FETCH CONVERSATION FROM PARAMS DEBUG ==="
+    Rails.logger.info "Conversation ID from params: #{conversation_id}"
 
     return render json: { error: 'Conversation ID is required' }, status: :bad_request if conversation_id.blank?
 
@@ -324,6 +354,7 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
     ).perform
 
     @conversation = filtered_conversations.find(conversation_id)
+    Rails.logger.info "Found conversation from params: #{@conversation&.id} (display_id: #{@conversation&.display_id})"
   rescue ActiveRecord::RecordNotFound
     render json: { error: "Conversation not found or you don't have access to it" }, status: :not_found
   end
