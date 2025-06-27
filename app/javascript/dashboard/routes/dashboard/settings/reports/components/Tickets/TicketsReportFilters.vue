@@ -329,7 +329,7 @@ export default {
         </select>
       </div>
 
-      <!-- JIRA Status Filter (only show if linked with JIRA is true) -->
+      <!-- JIRA Status Filter (only show when linked with JIRA) -->
       <div v-if="showJiraStatusFilter">
         <label class="block text-sm font-medium text-n-slate-11 mb-2">
           {{ $t('TICKETS_REPORTS.FILTERS.JIRA_STATUS') }}

@@ -641,8 +641,7 @@
       "NOT_LINKED": "Not Linked"
     },
     "JIRA_STATUS": {
-      "NOT_ESCALATED": "Not Escalated",
-      "ESCALATED": "Escalated (TODO)",
+      "ESCALATED": "Escalated",
       "IN_PROGRESS": "In Progress", 
       "DONE": "Done"
     },

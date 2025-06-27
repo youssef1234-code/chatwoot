@@ -26,7 +26,7 @@ class Api::V1::Accounts::Reports::TicketsController < Api::V1::Accounts::BaseCon
     base_query = base_query.where(category: params[:category]) if params[:category].present?
     base_query = base_query.where(assigned_agent_id: params[:assigned_agent_id]) if params[:assigned_agent_id].present?
 
-    # JIRA filtering logic
+    # JIRA linking filter (simple linked vs unlinked)
     if params[:linked_with_jira].present?
       case params[:linked_with_jira]
       when 'true'
@@ -38,21 +38,20 @@ class Api::V1::Accounts::Reports::TicketsController < Api::V1::Accounts::BaseCon
       end
     end
 
-    # Apply JIRA status filter (works on all tickets, not just linked ones)
+    # JIRA status filter (only applies to linked tickets)
     if params[:jira_status].present?
       case params[:jira_status]
       when 'escalated'
-        # Match Kanban: status='escalated' AND !jira_in_progress
-        base_query = base_query.where(status: 'escalated', jira_in_progress: [false, nil])
+        # Escalated tickets: status='escalated' AND jira_in_progress=false
+        base_query = base_query.where(status: 'escalated')
+                               .where(jira_in_progress: [false, nil])
       when 'in_progress'
-        # Match Kanban: status='in_progress' OR (jira_in_progress=true AND status NOT IN ('resolved','closed'))
-        base_query = base_query.where(
-          "(status = ? OR (jira_in_progress = ? AND status NOT IN (?)))", 
-          'in_progress', true, ['resolved', 'closed']
-        )
+        # In progress tickets: status='escalated' AND jira_in_progress=true
+        base_query = base_query.where(status: 'escalated')
+                               .where(jira_in_progress: true)
       when 'done'
         # Tickets that are resolved/closed
-        base_query = base_query.where(status: [:resolved, :closed])
+        base_query = base_query.where(status: ['resolved', 'closed'])
       end
     end
 
@@ -96,7 +95,7 @@ class Api::V1::Accounts::Reports::TicketsController < Api::V1::Accounts::BaseCon
     @tickets = @tickets.where(category: params[:category]) if params[:category].present?
     @tickets = @tickets.where(assigned_agent_id: params[:assigned_agent_id]) if params[:assigned_agent_id].present?
 
-    # JIRA filtering logic
+    # JIRA linking filter (simple linked vs unlinked)
     if params[:linked_with_jira].present?
       case params[:linked_with_jira]
       when 'true'
@@ -108,21 +107,20 @@ class Api::V1::Accounts::Reports::TicketsController < Api::V1::Accounts::BaseCon
       end
     end
 
-    # Apply JIRA status filter (works on all tickets, not just linked ones)
+    # JIRA status filter (only applies to linked tickets)
     if params[:jira_status].present?
       case params[:jira_status]
       when 'escalated'
-        # Match Kanban: status='escalated' AND !jira_in_progress
-        @tickets = @tickets.where(status: 'escalated', jira_in_progress: [false, nil])
+        # Escalated tickets: status='escalated' AND jira_in_progress=false
+        @tickets = @tickets.where(status: 'escalated')
+                           .where(jira_in_progress: [false, nil])
       when 'in_progress'
-        # Match Kanban: status='in_progress' OR (jira_in_progress=true AND status NOT IN ('resolved','closed'))
-        @tickets = @tickets.where(
-          "(status = ? OR (jira_in_progress = ? AND status NOT IN (?)))", 
-          'in_progress', true, ['resolved', 'closed']
-        )
+        # In progress tickets: status='escalated' AND jira_in_progress=true
+        @tickets = @tickets.where(status: 'escalated')
+                           .where(jira_in_progress: true)
       when 'done'
         # Tickets that are resolved/closed
-        @tickets = @tickets.where(status: [:resolved, :closed])
+        @tickets = @tickets.where(status: ['resolved', 'closed'])
       end
     end
 
@@ -155,7 +153,7 @@ class Api::V1::Accounts::Reports::TicketsController < Api::V1::Accounts::BaseCon
     @tickets = @tickets.where(category: params[:category]) if params[:category].present?
     @tickets = @tickets.where(assigned_agent_id: params[:assigned_agent_id]) if params[:assigned_agent_id].present?
 
-    # JIRA filtering logic
+    # JIRA linking filter (simple linked vs unlinked)
     if params[:linked_with_jira].present?
       case params[:linked_with_jira]
       when 'true'
@@ -167,21 +165,20 @@ class Api::V1::Accounts::Reports::TicketsController < Api::V1::Accounts::BaseCon
       end
     end
 
-    # Apply JIRA status filter (works on all tickets, not just linked ones)
+    # JIRA status filter (only applies to linked tickets)
     if params[:jira_status].present?
       case params[:jira_status]
       when 'escalated'
-        # Match Kanban: status='escalated' AND !jira_in_progress
-        @tickets = @tickets.where(status: 'escalated', jira_in_progress: [false, nil])
+        # Escalated tickets: status='escalated' AND jira_in_progress=false
+        @tickets = @tickets.where(status: 'escalated')
+                           .where(jira_in_progress: [false, nil])
       when 'in_progress'
-        # Match Kanban: status='in_progress' OR (jira_in_progress=true AND status NOT IN ('resolved','closed'))
-        @tickets = @tickets.where(
-          "(status = ? OR (jira_in_progress = ? AND status NOT IN (?)))", 
-          'in_progress', true, ['resolved', 'closed']
-        )
+        # In progress tickets: status='escalated' AND jira_in_progress=true
+        @tickets = @tickets.where(status: 'escalated')
+                           .where(jira_in_progress: true)
       when 'done'
         # Tickets that are resolved/closed
-        @tickets = @tickets.where(status: [:resolved, :closed])
+        @tickets = @tickets.where(status: ['resolved', 'closed'])
       end
     end
 
