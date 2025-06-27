@@ -643,7 +643,8 @@
     "JIRA_STATUS": {
       "ESCALATED": "Escalated",
       "IN_PROGRESS": "In Progress", 
-      "DONE": "Done"
+      "DONE": "Done",
+      "NOT_ESCALATED" : "NOT ESCALATED"
     },
     "METRICS": {
       "TOTAL_TICKETS": "Total Tickets",
@@ -668,6 +669,7 @@
     "TABLE": {
       "TITLE": "Tickets Details",
       "TICKET_ID": "Ticket ID",
+      "TICKET_TITLE": "Title",
       "STATUS": "Status",
       "PRIORITY": "Priority",
       "AGENT": "Agent",

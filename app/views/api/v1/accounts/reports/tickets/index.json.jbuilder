@@ -9,13 +9,7 @@ json.tickets @tickets do |ticket|
   json.jira_issue_key ticket.jira_issue_key
   json.jira_url ticket.jira_url
   json.jira_in_progress ticket.jira_in_progress?
-  json.duration_to_resolve do
-    if ticket.resolved_at && ticket.created_at
-      (ticket.resolved_at - ticket.created_at).to_i
-    else
-      nil
-    end
-  end
+  json.duration_to_resolve ticket.duration_to_resolve&.to_i
   json.assigned_agent do
     if ticket.assigned_agent
       json.id ticket.assigned_agent.id

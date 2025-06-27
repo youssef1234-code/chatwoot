@@ -87,7 +87,11 @@ export default {
       return this.$t('TICKETS_REPORTS.JIRA_STATUS.ESCALATED');
     },
     formatDuration(seconds) {
-      if (!seconds) return '-';
+      // Handle null, undefined, or non-numeric values
+      if (!seconds || !Number.isFinite(seconds)) return '-';
+      
+      // Handle negative values (shouldn't happen but just in case)
+      if (seconds < 0) return '-';
       
       const hours = Math.floor(seconds / 3600);
       const minutes = Math.floor((seconds % 3600) / 60);
@@ -120,7 +124,7 @@ export default {
               {{ $t('TICKETS_REPORTS.TABLE.TICKET_ID') }}
             </th>
             <th class="px-6 py-3 text-left text-xs font-medium text-n-slate-11 uppercase tracking-wider">
-              {{ $t('TICKETS_REPORTS.TABLE.TITLE') }}
+              {{ $t('TICKETS_REPORTS.TABLE.TICKET_TITLE') }}
             </th>
             <th class="px-6 py-3 text-left text-xs font-medium text-n-slate-11 uppercase tracking-wider">
               {{ $t('TICKETS_REPORTS.TABLE.STATUS') }}
