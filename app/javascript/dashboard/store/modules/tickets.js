@@ -4,11 +4,13 @@ import types from '../mutation-types';
 export const state = {
   records: {},
   conversationTickets: {}, // tickets grouped by conversation_id
+  conversationTicketsMeta: {}, // pagination meta for conversation tickets
   uiFlags: {
     isFetching: false,
     isCreating: false,
     isUpdating: false,
     isDeleting: false,
+    isFetchingConversationTickets: false,
   },
   meta: {
     total: 0,
@@ -22,6 +24,8 @@ export const getters = {
   getTicket: $state => ticketId => $state.records[ticketId],
   getTicketsForConversation: $state => conversationId => 
     $state.conversationTickets[conversationId] || [],
+  getConversationTicketsMeta: $state => conversationId =>
+    $state.conversationTicketsMeta[conversationId] || { total: 0, currentPage: 1, perPage: 10, hasMore: false },
   getUIFlags: $state => $state.uiFlags,
   getMeta: $state => $state.meta,
   getTotalCount: $state => $state.meta.total,
@@ -128,20 +132,51 @@ export const actions = {
     }
   },
 
-  async fetchTicketsForConversation({ commit }, conversationId) {
-    commit(types.SET_TICKETS_UI_FLAG, { isFetching: true });
+  async fetchTicketsForConversation({ commit }, { conversationId, page = 1, per_page = 10, append = false }) {
+    commit(types.SET_TICKETS_UI_FLAG, { isFetchingConversationTickets: true });
     try {
-      const response = await TicketsAPI.getForConversation(conversationId);
+      const response = await TicketsAPI.getForConversation(conversationId, { page, per_page });
+      
+      const totalCount = parseInt(response.headers['X-Total-Count'] || response.headers['x-total-count'] || response.data.length, 10);
+      const currentPage = parseInt(response.headers['X-Current-Page'] || response.headers['x-current-page'] || page, 10);
+      const totalPages = parseInt(response.headers['X-Total-Pages'] || response.headers['x-total-pages'] || 1, 10);
+      
       commit(types.SET_CONVERSATION_TICKETS, { 
         conversationId, 
-        tickets: response.data 
+        tickets: response.data,
+        append,
       });
+      
+      commit(types.SET_CONVERSATION_TICKETS_META, {
+        conversationId,
+        meta: {
+          total: totalCount,
+          currentPage,
+          perPage: per_page,
+          hasMore: currentPage < totalPages,
+        },
+      });
+      
       return response.data;
     } catch (error) {
       console.error('Error fetching tickets for conversation:', error);
+      throw error;
     } finally {
-      commit(types.SET_TICKETS_UI_FLAG, { isFetching: false });
+      commit(types.SET_TICKETS_UI_FLAG, { isFetchingConversationTickets: false });
     }
+  },
+
+  async loadMoreTicketsForConversation({ commit, getters }, conversationId) {
+    const meta = getters.getConversationTicketsMeta(conversationId);
+    if (!meta.hasMore) return [];
+    
+    const nextPage = meta.currentPage + 1;
+    return this.dispatch('tickets/fetchTicketsForConversation', {
+      conversationId,
+      page: nextPage,
+      per_page: meta.perPage,
+      append: true,
+    });
   },
 
   async create({ commit }, ticketData) {
@@ -381,13 +416,22 @@ export const mutations = {
     });
   },
 
-  [types.SET_CONVERSATION_TICKETS]($state, { conversationId, tickets }) {
+  [types.SET_CONVERSATION_TICKETS]($state, { conversationId, tickets, append = false }) {
+    if (append && $state.conversationTickets[conversationId]) {
+      // Append new tickets, avoiding duplicates
+      const existingIds = new Set($state.conversationTickets[conversationId].map(t => t.id));
+      const newTickets = tickets.filter(ticket => !existingIds.has(ticket.id));
+      $state.conversationTickets[conversationId].push(...newTickets);
+    } else {
+      // Replace all tickets
+      $state.conversationTickets[conversationId] = [...tickets];
+    }
+    
     // Sort tickets by ID in descending order (newest first)
-    const sortedTickets = [...tickets].sort((a, b) => b.id - a.id);
-    $state.conversationTickets[conversationId] = sortedTickets;
+    $state.conversationTickets[conversationId].sort((a, b) => b.id - a.id);
     
     // Also add to main records
-    sortedTickets.forEach(ticket => {
+    tickets.forEach(ticket => {
       $state.records[ticket.id] = ticket;
     });
   },
@@ -413,6 +457,10 @@ export const mutations = {
 
   [types.SET_TICKETS_META]($state, meta) {
     Object.assign($state.meta, meta);
+  },
+
+  [types.SET_CONVERSATION_TICKETS_META]($state, { conversationId, meta }) {
+    $state.conversationTicketsMeta[conversationId] = meta;
   },
 };
 
