@@ -181,7 +181,7 @@
         <Icon icon="i-lucide-message-circle" class="w-4 h-4" />
         <span>{{ $t("TICKETS.CONVERSATION") }}</span>
         <span class="font-mono text-xs"
-          >#{{ ticket.conversation?.display_id }}</span
+          >#{{ ticket.conversation?.id }}</span
         >
       </div>
     </div>

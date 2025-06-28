@@ -268,11 +268,6 @@ const createTicket = async () => {
       message_ids: props.selectedMessageIds,
     };
 
-    console.log('=== CREATE TICKET DEBUG ===');
-    console.log('Props conversationId:', props.conversationId);
-    console.log('Ticket form conversation_id:', ticketForm.value.conversation_id);
-    console.log('Final ticketData:', ticketData);
-
     await store.dispatch("tickets/create", ticketData);
 
     useAlert(t("TICKETS.CREATE_SUCCESS"));

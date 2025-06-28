@@ -728,7 +728,7 @@
                       <h3 class="text-lg font-medium text-n-slate-12">
                         {{
                           $t("TICKETS.DETAIL.CONVERSATION_ID", {
-                            id: ticket.conversation?.display_id || "N/A",
+                            id: ticket.conversation?.id || "N/A",
                           })
                         }}
                       </h3>

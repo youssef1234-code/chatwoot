@@ -1,13 +1,33 @@
 class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
   before_action :fetch_ticket, except: %i[index create]
-  before_action :fetch_conversation_from_params, only: [:create]
+  before_action :fetch_conversation, only: [:create]
 
   def index
     @tickets = current_account.tickets
                               .includes(:conversation, :contact, :created_by, :assigned_agent, :ticket_messages)
-                              .order(id: :desc)  # Sort by ID in descending order (newest first)
+                              .order(id: :desc) # Sort by ID in descending order (newest first)
 
-    @tickets = @tickets.for_conversation(params[:conversation_id]) if params[:conversation_id].present?
+    # Enhanced conversation filtering for sidebar
+    if params[:conversation_id].present?
+      conversation_id = params[:conversation_id]
+      
+      # Find tickets that either:
+      # 1. Have the conversation_id directly (primary conversation), OR
+      # 2. Have messages linked from this conversation
+      tickets_with_messages_from_conversation = current_account.tickets
+        .joins(:ticket_messages)
+        .joins('INNER JOIN messages ON ticket_messages.message_id = messages.id')
+        .where('messages.conversation_id = ?', conversation_id)
+        .distinct
+        .pluck(:id)
+
+      @tickets = @tickets.where(
+        'tickets.conversation_id = ? OR tickets.id IN (?)',
+        conversation_id,
+        tickets_with_messages_from_conversation.presence || [0] # Use [0] to avoid empty IN clause
+      )
+    end
+    
     @tickets = @tickets.by_status(params[:status]) if params[:status].present?
     @tickets = @tickets.by_priority(params[:priority]) if params[:priority].present?
     @tickets = @tickets.created_by(params[:created_by_id]) if params[:created_by_id].present?
@@ -17,7 +37,7 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
     @total_count = @tickets.count
 
     @tickets = @tickets.page(params[:page]).per(params[:per_page] || 25)
-    
+
     # Set pagination headers
     response.headers['X-Total-Count'] = @total_count.to_s
     response.headers['X-Current-Page'] = @tickets.current_page.to_s
@@ -81,50 +101,14 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
   end
 
   def create
-    Rails.logger.info '=== TICKET CREATE DEBUG ==='
-    Rails.logger.info "Received params: #{params.inspect}"
-    Rails.logger.info "message_ids param: #{params[:message_ids].inspect}"
-    Rails.logger.info "Conversation ID from params: #{params.dig(:ticket, :conversation_id)}"
-    
-    # If we have messages, get the conversation ID from the first message instead of params
-    if params[:message_ids].present? && params[:message_ids].any?
-      first_message_id = params[:message_ids].first
-      begin
-        first_message = Message.find(first_message_id)
-        if first_message.account_id == current_account.id
-          @conversation = current_account.conversations.find(first_message.conversation_id)
-          Rails.logger.info "Using conversation from first message: #{@conversation.id} (display_id: #{@conversation.display_id})"
-        else
-          Rails.logger.error "Security violation: First message belongs to different account"
-          return render json: { error: 'Invalid message' }, status: :bad_request
-        end
-      rescue ActiveRecord::RecordNotFound
-        Rails.logger.error "First message not found: #{first_message_id}"
-        return render json: { error: 'Message not found' }, status: :not_found
-      end
-    else
-      # Fallback to the conversation from params if no messages
-      Rails.logger.info "No messages provided, using conversation from params"
-    end
-    
-    Rails.logger.info "Final fetched conversation ID: #{@conversation&.id}"
-    Rails.logger.info "Final fetched conversation display_id: #{@conversation&.display_id}"
-
     @ticket = current_account.tickets.build(ticket_params)
-    @ticket.conversation = @conversation  # Explicitly set the conversation
     @ticket.created_by = Current.user
     @ticket.contact = @conversation.contact
 
     if @ticket.save
-      Rails.logger.info "Ticket saved successfully with ID: #{@ticket.id}"
-
       # Link selected messages to the ticket
       if params[:message_ids].present?
-        Rails.logger.info 'Linking messages to ticket...'
         link_messages_to_ticket
-        Rails.logger.info "Messages linked. Ticket now has #{@ticket.ticket_messages.count} linked messages"
-      else
-        Rails.logger.info 'No message_ids provided'
       end
 
       # Create activity message in conversation
@@ -199,7 +183,7 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
       @ticket.escalate!
 
       # Create activity message with optional note
-      message_content = note.present? ? "Ticket escalated: #{note}" : "Ticket escalated"
+      message_content = note.present? ? "Ticket escalated: #{note}" : 'Ticket escalated'
       create_ticket_activity_message(:escalated, message_content)
 
       # Broadcast ticket update to WebSocket for real-time updates
@@ -264,10 +248,10 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
 
     if message_ids.any?
       @ticket.ticket_messages.where(message_id: message_ids).destroy_all
-      
+
       # Broadcast ticket update to WebSocket for real-time updates
       broadcast_ticket_updated
-      
+
       render :show
     else
       render json: { error: 'No message IDs provided' }, status: :unprocessable_entity
@@ -277,14 +261,15 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
   def enhance_with_ai
     # Get the OpenAI hook for the account
     openai_hook = current_account.hooks.find_by(app_id: 'openai', status: 'enabled')
-    
+
     if openai_hook.blank?
-      render json: { error: 'OpenAI integration is not configured or enabled for this account' }, status: :unprocessable_entity
+      render json: { error: 'OpenAI integration is not configured or enabled for this account' },
+             status: :unprocessable_entity
       return
     end
 
     enhancement_options = params[:enhancement_options] || []
-    
+
     if enhancement_options.empty?
       render json: { error: 'At least one enhancement option must be selected' }, status: :unprocessable_entity
       return
@@ -293,7 +278,7 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
     begin
       # Get linked messages content for the ticket
       linked_messages_content = get_linked_messages_content(@ticket)
-      
+
       # Build the enhancement data
       enhancement_data = {
         title: @ticket.title || '',
@@ -304,16 +289,16 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
 
       # Call the OpenAI processor service
       result = openai_hook.process_event({
-        event: 'enhance_ticket',
-        data: enhancement_data
-      })
+                                           event: 'enhance_ticket',
+                                           data: enhancement_data
+                                         })
 
       if result && result[:error].blank?
         # Parse the AI response
         enhanced_data = parse_ai_enhancement_response(result)
-        
-        render json: { 
-          success: true, 
+
+        render json: {
+          success: true,
           enhanced_data: enhanced_data,
           message: 'Ticket enhanced successfully with AI'
         }
@@ -334,12 +319,8 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
     @ticket = current_account.tickets.find(params[:id])
   end
 
-  def fetch_conversation_from_params
-    # This will be called as a before_action, but we might override @conversation 
-    # in the create method if messages are present
+  def fetch_conversation
     conversation_id = params.dig(:ticket, :conversation_id)
-    Rails.logger.info "=== FETCH CONVERSATION FROM PARAMS DEBUG ==="
-    Rails.logger.info "Conversation ID from params: #{conversation_id}"
 
     return render json: { error: 'Conversation ID is required' }, status: :bad_request if conversation_id.blank?
 
@@ -354,7 +335,6 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
     ).perform
 
     @conversation = filtered_conversations.find(conversation_id)
-    Rails.logger.info "Found conversation from params: #{@conversation&.id} (display_id: #{@conversation&.display_id})"
   rescue ActiveRecord::RecordNotFound
     render json: { error: "Conversation not found or you don't have access to it" }, status: :not_found
   end
@@ -375,16 +355,16 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
 
     message_ids.each do |message_id|
       Rails.logger.info "Processing message ID: #{message_id}"
-      
+
       # Find message universally, then verify it belongs to the same account
       message = Message.find(message_id)
-      
+
       # Security check: ensure message belongs to the same account
       unless message.account_id == current_account.id
         Rails.logger.error "Security violation: Message #{message_id} belongs to different account"
         next
       end
-      
+
       Rails.logger.info "Found message: #{message.id} - #{message.content&.truncate(50)}"
       Rails.logger.info "Message conversation: #{message.conversation_id}, Ticket conversation: #{@ticket.conversation.id}"
 
@@ -441,7 +421,7 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
   def broadcast_ticket_created
     # Broadcast to the account channel for real-time updates
     Rails.logger.info "Broadcasting ticket creation: #{@ticket.id}"
-    
+
     ActionCable.server.broadcast(
       "account_#{current_account.id}",
       {
@@ -475,7 +455,7 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
   def broadcast_ticket_updated
     # Broadcast to the account channel for real-time updates
     Rails.logger.info "Broadcasting ticket update: #{@ticket.id}"
-    
+
     ActionCable.server.broadcast(
       "account_#{current_account.id}",
       {
@@ -509,33 +489,33 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
   def get_linked_messages_content(ticket)
     # Get linked messages for the ticket
     linked_messages = ticket.ticket_messages
-                           .includes(message: %i[sender conversation])
-                           .joins(:message)
-                           .order('messages.created_at ASC')
-                           .map(&:message)
-    
+                            .includes(message: %i[sender conversation])
+                            .joins(:message)
+                            .order('messages.created_at ASC')
+                            .map(&:message)
+
     return '' if linked_messages.empty?
-    
+
     # Format messages for AI processing
     messages_content = linked_messages.map do |message|
       sender_type = message.incoming? ? 'Customer' : 'Agent'
       sender_name = message.sender&.name || 'Unknown'
       timestamp = message.created_at.strftime('%Y-%m-%d %H:%M:%S')
-      
+
       "[#{timestamp}] #{sender_type} (#{sender_name}): #{message.content}"
     end
-    
+
     messages_content.join("\n")
   end
-  
+
   def parse_ai_enhancement_response(result)
     # Handle different response formats from OpenAI
     response_text = result.is_a?(String) ? result : result.to_s
-    
+
     begin
       # Try to parse as JSON first
       parsed_response = JSON.parse(response_text)
-      
+
       # Handle nested message structure if present
       if parsed_response.is_a?(Hash) && parsed_response['message']
         message_content = parsed_response['message']
@@ -551,7 +531,7 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
           parsed_response = message_content
         end
       end
-      
+
       # Ensure we return a hash with expected keys
       {
         title: parsed_response['title'] || parsed_response['enhanced_title'],
@@ -560,11 +540,10 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
         labels: parsed_response['labels'] || parsed_response['suggested_labels'] || [],
         recommendations: parsed_response['recommendations'] || parsed_response['action_recommendations'] || []
       }.compact
-      
     rescue JSON::ParserError => e
       Rails.logger.warn "Failed to parse AI response as JSON: #{e.message}"
       Rails.logger.warn "Response was: #{response_text}"
-      
+
       # Fallback: treat the entire response as description
       {
         description: response_text.strip
