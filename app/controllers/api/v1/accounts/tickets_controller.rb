@@ -101,9 +101,40 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
   end
 
   def create
+    Rails.logger.info '=== TICKET CONTACT DEBUG ==='
+    Rails.logger.info "Message IDs: #{params[:message_ids].inspect}"
+    Rails.logger.info "Conversation from params: #{@conversation.id} (contact: #{@conversation.contact&.name})"
+    
     @ticket = current_account.tickets.build(ticket_params)
     @ticket.created_by = Current.user
-    @ticket.contact = @conversation.contact
+    
+    # Set contact based on message context if messages are provided
+    if params[:message_ids].present? && params[:message_ids].any?
+      # Get the contact from the first message's conversation
+      first_message_id = params[:message_ids].first
+      begin
+        first_message = Message.find(first_message_id)
+        if first_message.account_id == current_account.id
+          message_conversation = first_message.conversation
+          @ticket.contact = message_conversation.contact
+          Rails.logger.info "Using contact from message conversation: #{message_conversation.id} (contact: #{message_conversation.contact&.name})"
+        else
+          # Fallback to conversation from params if security check fails
+          @ticket.contact = @conversation.contact
+          Rails.logger.info "Security fallback: using contact from params conversation"
+        end
+      rescue ActiveRecord::RecordNotFound
+        # Fallback to conversation from params if message not found
+        @ticket.contact = @conversation.contact
+        Rails.logger.info "Message not found fallback: using contact from params conversation"
+      end
+    else
+      # Use contact from the conversation in params if no messages
+      @ticket.contact = @conversation.contact
+      Rails.logger.info "No messages: using contact from params conversation"
+    end
+    
+    Rails.logger.info "Final ticket contact: #{@ticket.contact&.name}"
 
     if @ticket.save
       # Link selected messages to the ticket
