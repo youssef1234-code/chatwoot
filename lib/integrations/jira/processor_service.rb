@@ -136,32 +136,49 @@ class Integrations::Jira::ProcessorService
 
   def linked_issues(conversation_id)
     begin
-      # Get conversation to build the URL
-      conversation = Conversation.find(conversation_id)
-      conversation_url = conversation_url_for(conversation)
+      # Get linked issues from database
+      linked_issue_keys = JiraIssueLink.linked_issues_for_conversation(conversation_id)
       
-      # Use comment-based search from jira_client to get issues sorted by link date
-      response = jira_client.linked_issues(conversation_url)
-      
-      if response.is_a?(Hash) && (response[:error] || response['error'])
-        return { error: response[:error] || response['error'] }
+      if linked_issue_keys.empty?
+        return { data: [] }
       end
       
-      # Transform the response to match the expected frontend format
-      issues = response.map do |issue|
-        {
-          key: issue['key'],
-          summary: issue['fields']['summary'],
-          status: issue['fields']['status']['name'],
-          assignee: issue['fields']['assignee']&.dig('displayName'),
-          priority: issue['fields']['priority']&.dig('name'),
-          issueType: issue['fields']['issuetype']['name'],
-          url: "#{jira_site_url}/browse/#{issue['key']}",
-          id: issue['key'], # Use key as ID for frontend compatibility
-          commentId: issue['comment_id'], # Use actual comment ID
-          linked_at: issue['linked_at'] # Include the link date for sorting
-        }
+      # Fetch issue details from JIRA for each linked issue
+      issues = []
+      linked_issue_keys.each do |issue_key|
+        begin
+          issue_response = jira_client.get_issue(issue_key)
+          
+          # Skip if there's an error fetching this specific issue
+          if issue_response.is_a?(Hash) && (issue_response[:error] || issue_response['error'])
+            Rails.logger.warn("JIRA: Could not fetch details for linked issue #{issue_key}: #{issue_response[:error] || issue_response['error']}")
+            next
+          end
+          
+          # Get the link record for additional metadata
+          link_record = JiraIssueLink.find_by(conversation_id: conversation_id, issue_key: issue_key)
+          
+          issues << {
+            key: issue_response['key'],
+            summary: issue_response['fields']['summary'],
+            status: issue_response['fields']['status']['name'],
+            assignee: issue_response['fields']['assignee']&.dig('displayName'),
+            priority: issue_response['fields']['priority']&.dig('name'),
+            issueType: issue_response['fields']['issuetype']['name'],
+            url: "#{jira_site_url}/browse/#{issue_response['key']}",
+            id: issue_response['key'], # Use key as ID for frontend compatibility
+            commentId: link_record&.comment_id, # Use comment ID from database
+            linked_at: link_record&.linked_at&.iso8601 # Include the link date for sorting
+          }
+        rescue StandardError => e
+          Rails.logger.warn("JIRA: Error fetching issue #{issue_key}: #{e.message}")
+          # Continue with other issues even if one fails
+          next
+        end
       end
+      
+      # Sort by linked_at date (most recent first)
+      issues.sort! { |a, b| (b[:linked_at] || '') <=> (a[:linked_at] || '') }
 
       { data: issues }
     rescue StandardError => e

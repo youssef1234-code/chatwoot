@@ -59,6 +59,15 @@ class JiraIssueLink < ApplicationRecord
   end
 
   def self.unlink_issue(conversation_id, issue_key)
+    # Check if this issue is linked to any tickets
+    tickets_with_issue = Ticket.where(jira_issue_key: issue_key)
+    
+    if tickets_with_issue.exists?
+      # If the issue is linked to tickets, prevent unlinking
+      raise StandardError, "Cannot unlink JIRA issue #{issue_key} as it is linked to #{tickets_with_issue.count} ticket(s). Please remove the JIRA link from the ticket(s) first."
+    end
+    
+    # Only unlink if no tickets are associated with this issue
     where(conversation_id: conversation_id, issue_key: issue_key).destroy_all
   end
 
