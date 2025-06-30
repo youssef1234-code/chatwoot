@@ -120,7 +120,16 @@
           "CONDITION_TWO": "Send alerts every 30s until all the assigned conversations are read"
         },
         "SOUND_PERMISSION_ERROR": "Autoplay is disabled in your browser. To hear alerts automatically, enable sound permission in your browser settings or interact with the page.",
-        "READ_MORE": "Read more"
+        "READ_MORE": "Read more",
+        "AUDIO_HELP": {
+          "TITLE": "Audio notifications not working?",
+          "DESCRIPTION": "Modern browsers require user interaction before playing audio. Here are some tips:",
+          "TIP_1": "Click anywhere on this page to enable audio notifications",
+          "TIP_2": "Check your browser's sound settings for this site",
+          "TIP_3": "Ensure your system volume is turned up",
+          "TEST_BUTTON": "Test Audio",
+          "DISMISS_BUTTON": "Dismiss"
+        }
       },
       "EMAIL_NOTIFICATIONS_SECTION": {
         "TITLE": "Email Notifications",

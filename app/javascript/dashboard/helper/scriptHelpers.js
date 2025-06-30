@@ -7,6 +7,13 @@ import AnalyticsHelper from './AnalyticsHelper';
 import DashboardAudioNotificationHelper from './AudioAlerts/DashboardAudioNotificationHelper';
 import { emitter } from 'shared/helpers/mitt';
 
+// Load audio test utility in development/debug mode
+if (process.env.NODE_ENV === 'development' || window.location.search.includes('debug=audio')) {
+  import('./AudioAlerts/AudioTestUtil.js').then(module => {
+    window.ChatwootAudioTestUtil = module.default;
+  });
+}
+
 export const initializeAnalyticsEvents = () => {
   AnalyticsHelper.init();
   emitter.on(ANALYTICS_IDENTITY, ({ user }) => {
@@ -32,6 +39,11 @@ export const initializeAudioAlerts = user => {
     alwaysPlayAudioAlert: alwaysPlayAudioAlert || false,
     alertIfUnreadConversationExist: alertIfUnreadConversationExist || false,
   });
+
+  // Ensure global access for debugging
+  if (typeof window !== 'undefined') {
+    window.DashboardAudioNotificationHelper = DashboardAudioNotificationHelper;
+  }
 };
 
 export const initializeChatwootEvents = () => {

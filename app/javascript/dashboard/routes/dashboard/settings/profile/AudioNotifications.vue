@@ -4,6 +4,7 @@ import { useUISettings } from 'dashboard/composables/useUISettings';
 import AudioAlertTone from './AudioAlertTone.vue';
 import AudioAlertEvent from './AudioAlertEvent.vue';
 import AudioAlertCondition from './AudioAlertCondition.vue';
+import AudioNotificationHelp from './AudioNotificationHelp.vue';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useStore } from 'dashboard/composables/store';
 const store = useStore();
@@ -91,6 +92,8 @@ const handleAudioToneChange = value => {
 
 <template>
   <div id="profile-settings-notifications" class="flex flex-col gap-6">
+    <AudioNotificationHelp />
+    
     <AudioAlertTone
       :value="alertTone"
       :label="$t(`${i18nKeyPrefix}.DEFAULT_TONE.TITLE`)"

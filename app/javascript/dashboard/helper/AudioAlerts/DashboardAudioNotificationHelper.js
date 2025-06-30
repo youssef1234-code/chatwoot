@@ -38,30 +38,128 @@ export class DashboardAudioNotificationHelper {
       audio: null,
       tone: DEFAULT_TONE,
       hasSentSoundPermissionsRequest: false,
+      isAudioReady: false,
+      lastPlayTime: 0, // Prevent rapid successive notifications
     };
 
     this.currentUser = null;
+    
+    // Initialize user interaction handlers for audio
+    this.initializeUserInteractionHandlers();
   }
+
+  // Initialize audio after user interaction to comply with browser autoplay policies
+  initializeUserInteractionHandlers = () => {
+    const userInteractionEvents = ['click', 'touchstart', 'keydown'];
+    
+    const handleUserInteraction = async () => {
+      if (!this.audioConfig.isAudioReady) {
+        await this.prepareAudioForPlayback();
+        this.audioConfig.isAudioReady = true;
+        
+        // Remove listeners after first interaction
+        userInteractionEvents.forEach(event => {
+          document.removeEventListener(event, handleUserInteraction);
+        });
+      }
+    };
+
+    userInteractionEvents.forEach(event => {
+      document.addEventListener(event, handleUserInteraction, { once: true });
+    });
+  };
+
+  // Prepare audio for playback after user interaction
+  prepareAudioForPlayback = async () => {
+    try {
+      if (this.audioConfig.audio) {
+        // Try to play and immediately pause to "unlock" audio
+        this.audioConfig.audio.volume = 0;
+        const playPromise = this.audioConfig.audio.play();
+        if (playPromise !== undefined) {
+          await playPromise;
+          this.audioConfig.audio.pause();
+          this.audioConfig.audio.currentTime = 0;
+          this.audioConfig.audio.volume = 1;
+        }
+      }
+      await this.resumeAudioContextIfNeeded();
+    } catch (error) {
+      console.warn('Audio preparation failed:', error);
+    }
+  };
 
   intializeAudio = () => {
     const resourceUrl = `${ALERT_PATH_PREFIX}${this.audioConfig.tone}.mp3`;
     this.audioConfig.audio = new Audio(resourceUrl);
+    
+    // Preload the audio to avoid loading delays
+    this.audioConfig.audio.preload = 'auto';
+    
+    // Add error handling for audio loading
+    this.audioConfig.audio.addEventListener('error', (e) => {
+      console.warn('Audio loading error:', e);
+    });
+    
     return this.audioConfig.audio.load();
+  };
+
+  // Resume audio context if suspended
+  resumeAudioContextIfNeeded = async () => {
+    try {
+      if (window.AudioContext || window.webkitAudioContext) {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume();
+        }
+      }
+    } catch (error) {
+      console.warn('Audio context resume failed:', error);
+    }
   };
 
   playAudioAlert = async () => {
     try {
-      await this.audioConfig.audio.play();
+      // Prevent rapid successive notifications (minimum 1 second between plays)
+      const now = Date.now();
+      if (now - this.audioConfig.lastPlayTime < 1000) {
+        console.log('Audio notification throttled - too soon after last play');
+        return;
+      }
+
+      // Ensure audio is initialized
+      if (!this.audioConfig.audio) {
+        this.intializeAudio();
+      }
+
+      // Resume audio context if needed
+      await this.resumeAudioContextIfNeeded();
+
+      // Reset audio to beginning if it's already playing
+      this.audioConfig.audio.currentTime = 0;
+      
+      // Try to play the audio
+      const playPromise = this.audioConfig.audio.play();
+      
+      if (playPromise !== undefined) {
+        await playPromise;
+        this.audioConfig.lastPlayTime = now;
+      }
     } catch (error) {
-      if (
-        error.name === 'NotAllowedError' &&
-        !this.hasSentSoundPermissionsRequest
-      ) {
-        this.hasSentSoundPermissionsRequest = true;
-        useAlert(
-          'PROFILE_SETTINGS.FORM.AUDIO_NOTIFICATIONS_SECTION.SOUND_PERMISSION_ERROR',
-          { usei18n: true, duration: ALERT_DURATION }
-        );
+      console.warn('Audio playback failed:', error);
+      
+      if (error.name === 'NotAllowedError') {
+        if (!this.audioConfig.hasSentSoundPermissionsRequest) {
+          this.audioConfig.hasSentSoundPermissionsRequest = true;
+          useAlert(
+            'PROFILE_SETTINGS.FORM.AUDIO_NOTIFICATIONS_SECTION.SOUND_PERMISSION_ERROR',
+            { usei18n: true, duration: ALERT_DURATION }
+          );
+        }
+      } else if (error.name === 'NotSupportedError') {
+        console.warn('Audio format not supported');
+      } else if (error.name === 'AbortError') {
+        console.warn('Audio playback was aborted');
       }
     }
   };
@@ -90,11 +188,32 @@ export class DashboardAudioNotificationHelper {
 
     if (previousAudioTone !== audioAlertTone) {
       this.intializeAudio();
+      // Reset audio readiness when tone changes
+      this.audioConfig.isAudioReady = false;
     }
 
     initFaviconSwitcher();
     this.clearRecurringTimer();
     this.playAudioEvery30Seconds();
+    
+    // Log current audio notification settings for debugging
+    this.debugAudioSettings();
+  };
+
+  // Debug method to help troubleshoot audio issues
+  debugAudioSettings = () => {
+    if (window.location.search.includes('debug=audio')) {
+      console.log('Audio Notification Debug Info:', {
+        audioAlertType: this.notificationConfig.audioAlertType,
+        tone: this.audioConfig.tone,
+        isAudioReady: this.audioConfig.isAudioReady,
+        playAlertOnlyWhenHidden: this.notificationConfig.playAlertOnlyWhenHidden,
+        alertIfUnreadConversationExist: this.notificationConfig.alertIfUnreadConversationExist,
+        audioElement: this.audioConfig.audio,
+        windowVisible: WindowVisibilityHelper.isWindowVisible(),
+        currentUser: this.currentUser?.name || 'Unknown'
+      });
+    }
   };
 
   shouldPlayAlert = () => {
@@ -169,43 +288,65 @@ export class DashboardAudioNotificationHelper {
   };
 
   onNewMessage = message => {
+    const debugMode = window.location.search.includes('debug=audio');
+    
+    if (debugMode) {
+      console.log('New message received for audio notification:', message);
+    }
+
     // If the user does not have the permission to view the conversation, then dismiss the alert
     // FIX ME: There shouldn't be a new message if the user has no access to the conversation.
     if (!this.store.hasConversationPermission(this.currentUser)) {
+      if (debugMode) console.log('Audio notification dismissed: No conversation permission');
       return;
     }
 
     // If the conversation status is pending, then dismiss the alert
     // This case is common for all audio event types
     if (this.store.isMessageFromPendingConversation(message)) {
+      if (debugMode) console.log('Audio notification dismissed: Message from pending conversation');
       return;
     }
 
     // If the message is sent by the current user then dismiss the alert
     if (isMessageFromCurrentUser(message, this.currentUser.id)) {
+      if (debugMode) console.log('Audio notification dismissed: Message from current user');
       return;
     }
 
     if (!this.shouldNotifyOnMessage(message)) {
+      if (debugMode) console.log('Audio notification dismissed: Should not notify on this message type');
       return;
     }
 
     // If the message type is not incoming or private, then dismiss the alert
     const { message_type: messageType, private: isPrivate } = message;
     if (messageType !== MESSAGE_TYPE.INCOMING && !isPrivate) {
+      if (debugMode) console.log('Audio notification dismissed: Message type not incoming or private');
       return;
     }
 
     if (WindowVisibilityHelper.isWindowVisible()) {
       // If the user looking at the conversation, then dismiss the alert
       if (this.store.isMessageFromCurrentConversation(message)) {
+        if (debugMode) console.log('Audio notification dismissed: Message from current conversation');
         return;
       }
 
       // If the user has disabled alerts when active on the dashboard, the dismiss the alert
       if (this.notificationConfig.playAlertOnlyWhenHidden) {
+        if (debugMode) console.log('Audio notification dismissed: Play only when hidden is enabled and window is visible');
         return;
       }
+    }
+
+    if (debugMode) {
+      console.log('Playing audio notification for message:', message);
+      console.log('Audio settings:', {
+        audioAlertType: this.notificationConfig.audioAlertType,
+        isAudioReady: this.audioConfig.isAudioReady,
+        hasAudio: !!this.audioConfig.audio
+      });
     }
 
     this.playAudioAlert();
@@ -215,3 +356,8 @@ export class DashboardAudioNotificationHelper {
 }
 
 export default new DashboardAudioNotificationHelper(GlobalStore);
+
+// Make it globally accessible for debugging
+if (typeof window !== 'undefined') {
+  window.DashboardAudioNotificationHelper = new DashboardAudioNotificationHelper(GlobalStore);
+}
