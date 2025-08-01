@@ -7,7 +7,7 @@ export const routes = [
     name: 'tickets_index',
     component: TicketsWrapper,
     meta: {
-      permissions: ['administrator', 'agent'],
+      permissions: ['administrator', 'agent', 'custom_role'],
     },
   },
 ];
