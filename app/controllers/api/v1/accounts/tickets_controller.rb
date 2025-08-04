@@ -434,9 +434,12 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
                                           "Ticket ##{@ticket.id} \"#{@ticket.title}\" was closed"
                                         end
 
+    # Determine the correct conversation for the system message
+    target_conversation = determine_target_conversation_for_activity_message(action_type)
+
     Messages::MessageBuilder.new(
       Current.user,
-      @ticket.conversation,
+      target_conversation,
       {
         content: message_content,
         message_type: 'activity',
@@ -580,5 +583,22 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
         description: response_text.strip
       }
     end
+  end
+
+  def determine_target_conversation_for_activity_message(action_type)
+    # For all ticket actions, if there are linked messages, create the system message
+    # in the conversation where the messages actually came from, not the display conversation
+    if @ticket.ticket_messages.any?
+      # Get the conversation from the first linked message
+      first_linked_message = @ticket.ticket_messages.includes(:message).first&.message
+      if first_linked_message
+        Rails.logger.info "Creating activity message in actual conversation: #{first_linked_message.conversation_id} instead of display conversation: #{@ticket.conversation_id} for action: #{action_type}"
+        return first_linked_message.conversation
+      end
+    end
+
+    # If no linked messages, use the ticket's assigned conversation
+    Rails.logger.info "No linked messages found, using ticket's assigned conversation: #{@ticket.conversation_id} for action: #{action_type}"
+    @ticket.conversation
   end
 end
