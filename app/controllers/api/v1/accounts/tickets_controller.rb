@@ -10,16 +10,16 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
     # Enhanced conversation filtering for sidebar
     if params[:conversation_id].present?
       conversation_id = params[:conversation_id]
-      
+
       # Find tickets that either:
       # 1. Have the conversation_id directly (primary conversation), OR
       # 2. Have messages linked from this conversation
       tickets_with_messages_from_conversation = current_account.tickets
-        .joins(:ticket_messages)
-        .joins('INNER JOIN messages ON ticket_messages.message_id = messages.id')
-        .where('messages.conversation_id = ?', conversation_id)
-        .distinct
-        .pluck(:id)
+                                                               .joins(:ticket_messages)
+                                                               .joins('INNER JOIN messages ON ticket_messages.message_id = messages.id')
+                                                               .where('messages.conversation_id = ?', conversation_id)
+                                                               .distinct
+                                                               .pluck(:id)
 
       @tickets = @tickets.where(
         'tickets.conversation_id = ? OR tickets.id IN (?)',
@@ -27,7 +27,7 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
         tickets_with_messages_from_conversation.presence || [0] # Use [0] to avoid empty IN clause
       )
     end
-    
+
     @tickets = @tickets.by_status(params[:status]) if params[:status].present?
     @tickets = @tickets.by_priority(params[:priority]) if params[:priority].present?
     @tickets = @tickets.created_by(params[:created_by_id]) if params[:created_by_id].present?
@@ -104,10 +104,10 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
     Rails.logger.info '=== TICKET CONTACT DEBUG ==='
     Rails.logger.info "Message IDs: #{params[:message_ids].inspect}"
     Rails.logger.info "Conversation from params: #{@conversation.id} (contact: #{@conversation.contact&.name})"
-    
+
     @ticket = current_account.tickets.build(ticket_params)
     @ticket.created_by = Current.user
-    
+
     # Set contact based on message context if messages are provided
     if params[:message_ids].present? && params[:message_ids].any?
       # Get the contact from the first message's conversation
@@ -121,26 +121,24 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
         else
           # Fallback to conversation from params if security check fails
           @ticket.contact = @conversation.contact
-          Rails.logger.info "Security fallback: using contact from params conversation"
+          Rails.logger.info 'Security fallback: using contact from params conversation'
         end
       rescue ActiveRecord::RecordNotFound
         # Fallback to conversation from params if message not found
         @ticket.contact = @conversation.contact
-        Rails.logger.info "Message not found fallback: using contact from params conversation"
+        Rails.logger.info 'Message not found fallback: using contact from params conversation'
       end
     else
       # Use contact from the conversation in params if no messages
       @ticket.contact = @conversation.contact
-      Rails.logger.info "No messages: using contact from params conversation"
+      Rails.logger.info 'No messages: using contact from params conversation'
     end
-    
+
     Rails.logger.info "Final ticket contact: #{@ticket.contact&.name}"
 
     if @ticket.save
       # Link selected messages to the ticket
-      if params[:message_ids].present?
-        link_messages_to_ticket
-      end
+      link_messages_to_ticket if params[:message_ids].present?
 
       # Create activity message in conversation
       create_ticket_activity_message(:created)
@@ -365,7 +363,7 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
       current_account
     ).perform
 
-    @conversation = filtered_conversations.find(conversation_id)
+    @conversation = filtered_conversations.find_by(display_id: conversation_id)
   rescue ActiveRecord::RecordNotFound
     render json: { error: "Conversation not found or you don't have access to it" }, status: :not_found
   end

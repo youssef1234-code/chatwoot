@@ -81,15 +81,15 @@ class Api::V1::Accounts::Integrations::Jira::WebhooksController < Api::V1::Accou
   def find_accounts_for_issue(issue_key)
     # Find ALL accounts that have this issue linked (either via tickets or direct JIRA links)
     accounts = []
-    
+
     # From tickets
     ticket_accounts = Account.joins(:tickets).where(tickets: { jira_issue_key: issue_key })
     accounts += ticket_accounts.to_a
-    
+
     # From JIRA issue links
     jira_accounts = Account.joins(:jira_issue_links).where(jira_issue_links: { issue_key: issue_key })
     accounts += jira_accounts.to_a
-    
+
     accounts.uniq
   end
 
@@ -115,8 +115,6 @@ class Api::V1::Accounts::Integrations::Jira::WebhooksController < Api::V1::Accou
 
     Rails.logger.info("JIRA Webhook: Queued completion notification jobs for #{accounts.count} accounts")
   end
-
-
 
   def completed_status?(status)
     # Define which statuses indicate completion
@@ -169,7 +167,7 @@ class Api::V1::Accounts::Integrations::Jira::WebhooksController < Api::V1::Accou
       begin
         # Determine if the new status indicates "In Progress"
         in_progress = in_progress_status?(new_status)
-        
+
         # Update the ticket's JIRA status and in_progress flag
         ticket.update!(
           jira_status: new_status,
@@ -197,9 +195,8 @@ class Api::V1::Accounts::Integrations::Jira::WebhooksController < Api::V1::Accou
   def update_linked_tickets_on_jira_completion(issue_key, account_id)
     Rails.logger.info("JIRA Webhook: Updating tickets linked to completed JIRA issue #{issue_key}")
 
-    # Find all tickets linked to this JIRA issue that aren't already resolved/closed
+    # Find all tickets linked to this JIRA issue
     tickets = Ticket.where(account_id: account_id, jira_issue_key: issue_key)
-                    .where.not(status: %w[resolved closed])
 
     if tickets.empty?
       Rails.logger.info("JIRA Webhook: No active tickets found linked to issue #{issue_key}")
@@ -210,10 +207,7 @@ class Api::V1::Accounts::Integrations::Jira::WebhooksController < Api::V1::Accou
       Rails.logger.info("JIRA Webhook: Resolving ticket ##{ticket.id} due to JIRA issue completion")
 
       begin
-        # Use the ticket's resolve! method to ensure proper status handling
-        ticket.resolve!
-
-        # Create activity message in the conversation
+        # Only create activity message to notify about JIRA completion, but don't auto-resolve ticket
         create_jira_completion_activity_message(ticket, issue_key)
 
         # Broadcast ticket update to websockets
@@ -231,7 +225,7 @@ class Api::V1::Accounts::Integrations::Jira::WebhooksController < Api::V1::Accou
   def create_jira_completion_activity_message(ticket, issue_key)
     return unless ticket.conversation
 
-    message_content = "🎉 **Ticket Automatically Resolved**\n\nTicket ##{ticket.id} \"#{ticket.title}\" has been automatically resolved because the linked JIRA issue **#{issue_key}** was marked as completed."
+    message_content = "🎉 **JIRA Issue Completed**\n\nThe linked JIRA issue **#{issue_key}** has been marked as completed. Ticket ##{ticket.id} \"#{ticket.title}\" remains open and requires manual resolution."
 
     Messages::MessageBuilder.new(
       user: nil, # System message
@@ -279,7 +273,7 @@ class Api::V1::Accounts::Integrations::Jira::WebhooksController < Api::V1::Accou
   def broadcast_ticket_update_for_jira_status(ticket)
     # Broadcast ticket update for JIRA status changes to account channel for real-time UI updates
     Rails.logger.info("JIRA Webhook: Broadcasting ticket JIRA status update for ticket ##{ticket.id}")
-    
+
     broadcast_data = {
       id: ticket.id,
       title: ticket.title,
