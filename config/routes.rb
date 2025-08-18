@@ -53,6 +53,7 @@ Rails.application.routes.draw do
               collection do
                 get :metrics
                 get :summary
+                get :download
               end
             end
           end

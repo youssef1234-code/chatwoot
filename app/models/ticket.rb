@@ -2,36 +2,38 @@
 #
 # Table name: tickets
 #
-#  id                :bigint           not null, primary key
-#  category          :string
-#  description       :text
-#  issue_type        :string
-#  jira_in_progress  :boolean
-#  jira_issue_key    :string
-#  jira_status       :string
-#  priority          :integer          default("medium"), not null
-#  resolved_at       :datetime
-#  status            :integer          default("open"), not null
-#  title             :string           not null
-#  created_at        :datetime         not null
-#  updated_at        :datetime         not null
-#  account_id        :bigint           not null
-#  assigned_agent_id :bigint
-#  contact_id        :bigint
-#  conversation_id   :bigint           not null
-#  created_by_id     :bigint           not null
+#  id                 :bigint           not null, primary key
+#  category           :string
+#  description        :text
+#  is_feature_request :boolean          default(FALSE), not null
+#  issue_type         :string
+#  jira_in_progress   :boolean
+#  jira_issue_key     :string
+#  jira_status        :string
+#  priority           :integer          default("medium"), not null
+#  resolved_at        :datetime
+#  status             :integer          default("open"), not null
+#  title              :string           not null
+#  created_at         :datetime         not null
+#  updated_at         :datetime         not null
+#  account_id         :bigint           not null
+#  assigned_agent_id  :bigint
+#  contact_id         :bigint
+#  conversation_id    :bigint           not null
+#  created_by_id      :bigint           not null
 #
 # Indexes
 #
-#  index_tickets_on_account_id         (account_id)
-#  index_tickets_on_assigned_agent_id  (assigned_agent_id)
-#  index_tickets_on_category           (category)
-#  index_tickets_on_contact_id         (contact_id)
-#  index_tickets_on_conversation_id    (conversation_id)
-#  index_tickets_on_created_by_id      (created_by_id)
-#  index_tickets_on_jira_issue_key     (jira_issue_key)
-#  index_tickets_on_priority           (priority)
-#  index_tickets_on_status             (status)
+#  index_tickets_on_account_id          (account_id)
+#  index_tickets_on_assigned_agent_id   (assigned_agent_id)
+#  index_tickets_on_category            (category)
+#  index_tickets_on_contact_id          (contact_id)
+#  index_tickets_on_conversation_id     (conversation_id)
+#  index_tickets_on_created_by_id       (created_by_id)
+#  index_tickets_on_is_feature_request  (is_feature_request)
+#  index_tickets_on_jira_issue_key      (jira_issue_key)
+#  index_tickets_on_priority            (priority)
+#  index_tickets_on_status              (status)
 #
 # Foreign Keys
 #
@@ -82,6 +84,11 @@ class Ticket < ApplicationRecord
   scope :assigned_to, ->(user_id) { where(assigned_agent_id: user_id) }
   scope :with_jira_link, -> { joins(:jira_issue_link) }
   scope :without_jira_link, -> { left_joins(:jira_issue_link).where(jira_issue_links: { id: nil }) }
+  scope :feature_requests, -> { where(is_feature_request: true) }
+  scope :regular_tickets, -> { where(is_feature_request: false) }
+  scope :with_feature_request_filter, ->(include_feature_requests) { 
+    include_feature_requests ? all : where(is_feature_request: false) 
+  }
 
   before_save :set_resolved_at
 

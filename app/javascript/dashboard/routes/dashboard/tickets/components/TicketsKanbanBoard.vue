@@ -32,7 +32,6 @@
       class="flex-1 min-w-80"
       @ticket-move="handleTicketMove"
       @ticket-click="handleTicketClick"
-      @enhance-with-ai="$emit('enhance-with-ai', $event)"
     />
 
     <!-- Escalation Modal -->
@@ -74,10 +73,6 @@ export default {
       type: Object,
       required: true,
     },
-    isAiEnhancementEnabled: {
-      type: Boolean,
-      default: false,
-    },
     selectedStatuses: {
       type: Array,
       default: () => [],
@@ -86,7 +81,6 @@ export default {
   emits: [
     "ticket-updated",
     "refresh",
-    "enhance-with-ai",
     "ticket-click",
     "ticket-escalate",
   ],

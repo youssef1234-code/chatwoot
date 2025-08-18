@@ -4,6 +4,7 @@ json.description @ticket.description
 json.status @ticket.status
 json.priority @ticket.priority
 json.category @ticket.category
+json.is_feature_request @ticket.is_feature_request
 json.resolved_at @ticket.resolved_at
 json.created_at @ticket.created_at
 json.updated_at @ticket.updated_at

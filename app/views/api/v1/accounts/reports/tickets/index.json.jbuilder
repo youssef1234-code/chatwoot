@@ -5,6 +5,7 @@ json.tickets @tickets do |ticket|
   json.status ticket.status
   json.priority ticket.priority
   json.category ticket.category
+  json.is_feature_request ticket.is_feature_request
   json.escalated_to_jira ticket.escalated_to_jira?
   json.jira_issue_key ticket.jira_issue_key
   json.jira_url ticket.jira_url

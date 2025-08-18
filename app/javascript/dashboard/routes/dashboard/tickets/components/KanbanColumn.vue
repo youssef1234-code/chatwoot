@@ -110,7 +110,6 @@
         }"
         class="transition-all duration-200"
         @click="$emit('ticket-click', ticket)"
-        @enhance-with-ai="$emit('enhance-with-ai', ticket)"
       />
     </div>
   </div>
@@ -155,7 +154,7 @@ export default {
       default: () => true,
     },
   },
-  emits: ["ticket-move", "ticket-click", "enhance-with-ai"],
+  emits: ["ticket-move", "ticket-click"],
   setup(props, { emit }) {
     const { t } = useI18n();
     const { draggedTicket, isDragging } = useDragState();

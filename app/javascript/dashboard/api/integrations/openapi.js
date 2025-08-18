@@ -82,10 +82,13 @@ class OpenAIAPI extends ApiClient {
    * @param {Object} options - The options for ticket enhancement.
    * @param {string} options.title - The current title of the ticket.
    * @param {string} options.description - The current description of the ticket.
+   * @param {string} options.messages - The messages content for context.
+   * @param {Array} options.enhancementOptions - The enhancement options requested.
+   * @param {Array} options.availableCategories - The available categories to choose from.
    * @param {string} options.hookId - The ID of the hook to use for processing the enhancement.
    * @returns {Promise} A promise that resolves with the enhanced ticket data.
    */
-  enhanceTicket({ title, description, messages, enhancementOptions, hookId }) {
+  enhanceTicket({ title, description, messages, enhancementOptions, availableCategories, hookId }) {
     return axios.post(`${this.url}/hooks/${hookId}/process_event`, {
       event: {
         name: 'enhance_ticket',
@@ -94,6 +97,7 @@ class OpenAIAPI extends ApiClient {
           description,
           messages,
           enhancement_options: enhancementOptions,
+          available_categories: availableCategories,
         },
       },
     });

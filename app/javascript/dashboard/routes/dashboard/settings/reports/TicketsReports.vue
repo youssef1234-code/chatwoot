@@ -35,6 +35,10 @@ export default {
         category: null,
         assigned_agent_id: null,
         jira_status: null,
+        linked_with_jira: null,
+        // Feature request filters (default to regular tickets only)
+        feature_requests_only: null,
+        include_feature_requests: null,
       },
     };
   },
@@ -105,13 +109,18 @@ export default {
     
     async downloadReports() {
       try {
-        const fileName = generateFileName('tickets-report', 'csv');
+        const fileName = generateFileName({ 
+          type: 'tickets-report', 
+          to: this.activeFilter.to,
+          businessHours: this.activeFilter.businessHours 
+        });
         const params = {
           ...this.activeFilter,
           fileName,
         };
         await this.$store.dispatch('ticketsReports/download', params);
       } catch (error) {
+        console.log(error);
         useAlert(this.$t('TICKETS_REPORTS.DOWNLOAD_FAILED'));
       }
     },

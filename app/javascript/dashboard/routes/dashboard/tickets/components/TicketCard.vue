@@ -91,13 +91,6 @@
         >
           <button
             class="w-full px-3 py-2 text-sm text-left hover:bg-n-alpha-1 flex items-center gap-2"
-            @click.stop="$emit('enhance-with-ai')"
-          >
-            <Icon icon="i-lucide-sparkles" class="w-4 h-4" />
-            {{ $t("TICKETS.ACTIONS.ENHANCE_WITH_AI") }}
-          </button>
-          <button
-            class="w-full px-3 py-2 text-sm text-left hover:bg-n-alpha-1 flex items-center gap-2"
             @click.stop="openInConversation"
           >
             <Icon icon="i-lucide-external-link" class="w-4 h-4" />
@@ -263,7 +256,7 @@ export default {
       default: true,
     },
   },
-  emits: ["click", "enhance-with-ai", "dragstart", "dragend"],
+  emits: ["click", "dragstart", "dragend"],
   setup(props, { emit }) {
     const { t } = useI18n();
     const router = useRouter();

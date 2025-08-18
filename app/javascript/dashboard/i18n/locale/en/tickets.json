@@ -17,6 +17,7 @@
       "ORGANIZATION_FILTER": "Filter by Organization",
       "SEARCH_ORGANIZATIONS": "Search organizations...",
       "NO_ORGANIZATIONS_FOUND": "No organizations found",
+      "INCLUDE_FEATURE_REQUESTS": "Show Feature Requests Only",
       "DATE_RANGE": "Date Range",
       "START_DATE": "Start Date",
       "END_DATE": "End Date",
@@ -164,6 +165,8 @@
     "ASSIGNED_AGENT": "Assigned Agent",
     "GENERATE_WITH_AI": "Generate with AI",
     "GENERATE_WITH_AI_HELP": "Let AI create title and description from selected messages",
+    "ENHANCE_WITH_AI": "Generate with AI",
+    "ENHANCE_WITH_AI_HELP": "AI will generate fresh content for title, description, category, and priority from the conversation messages. Each click creates new suggestions.",
     "STATUS": {
       "LABEL": "Status",
       "OPEN": "Open",
@@ -194,29 +197,24 @@
     "LINK_JIRA_ISSUE": "Link a JIRA issue",
     "SELECT_JIRA_ISSUE": "Select a JIRA issue",
     "JIRA_LINK_HELP": "Enter the issue key from your JIRA project, e.g., PROJECT-123",
-
     "CREATE_TICKET_DESCRIPTION": "Create a new ticket from the selected messages to track and manage this issue.",
     "LINK_TO_EXISTING_DESCRIPTION": "Link the selected messages to an existing ticket.",
-
     "SELECTED_MESSAGES_PREVIEW": "Selected Messages ({count})",
     "SELECT_TICKET": "Select Ticket",
     "SELECT_TICKET_PLACEHOLDER": "Choose an existing ticket",
     "SELECTED_TICKET_PREVIEW": "Selected Ticket Details",
     "LINK_MESSAGES_INFO": "You are about to link {count} messages to this ticket.",
     "LINK_MESSAGES": "Link Messages",
-
     "CREATE_SUCCESS": "Ticket created successfully",
     "CREATE_ERROR": "Failed to create ticket. Please try again.",
     "LINK_SUCCESS": "Messages linked to ticket '{title}' successfully",
     "LINK_ERROR": "Failed to link messages to ticket. Please try again.",
-
     "LOADING_JIRA_ISSUES": "Loading linked JIRA issues...",
     "VIEW_DETAILS": "View Details",
     "ESCALATE_TO_JIRA": "Escalate to JIRA",
     "ESCALATE_DESCRIPTION": "Create a JIRA issue and link it to this ticket.",
     "ESCALATE_SUCCESS": "Ticket escalated to JIRA successfully",
     "ESCALATE_ERROR": "Failed to escalate ticket to JIRA. Please try again.",
-
     "RESOLVE": "Resolve",
     "CLOSE": "Close",
     "REOPEN": "Reopen",
@@ -247,23 +245,26 @@
     "DELETE_CONFIRMATION": "Are you sure you want to delete this ticket? This action cannot be undone.",
     "DELETE_SUCCESS": "Ticket deleted successfully",
     "DELETE_ERROR": "Failed to delete ticket. Please try again.",
-
     "MANAGE_MESSAGES": "Manage Messages",
     "ADD_MESSAGES": "Add Messages",
     "REMOVE_MESSAGES": "Remove Messages",
     "MESSAGES_IN_TICKET": "Messages in this ticket",
     "NO_MESSAGES_IN_TICKET": "No messages linked to this ticket yet.",
-
     "LINKED_JIRA_ISSUE": "Linked JIRA Issue",
     "VIEW_IN_JIRA": "View in JIRA",
     "JIRA_STATUS": "JIRA Status",
-
     "CREATED_BY": "Created by",
     "CREATED_AT": "Created at",
     "UPDATED_AT": "Last updated",
     "RESOLVED_AT": "Resolved at",
     "TIME_TO_RESOLVE": "Time to resolve",
-
+    "FEATURE_REQUEST": {
+      "LABEL": "Feature Request",
+      "HELP_TEXT": "Mark this as a feature request instead of a regular ticket"
+    },
+    "FEATURE_REQUESTS": "Feature Requests",
+    "REGULAR_TICKETS": "Tickets",
+    "NO_FEATURE_REQUESTS": "No feature requests found",
     "KANBAN": {
       "NOT_DONE": "Not Done",
       "IN_PROGRESS": "In Progress",
@@ -290,7 +291,6 @@
       "DRAG_HELP": "Hover over tickets to see drag handle",
       "DRAG_INSTRUCTION": "Use the blue handle on the left to drag tickets between columns"
     },
-
     "FILTERS": {
       "ALL": "All Tickets",
       "OPEN": "Open",
@@ -305,13 +305,11 @@
       "LINKED_TO_JIRA": "Linked to JIRA",
       "NOT_LINKED_TO_JIRA": "Not linked to JIRA"
     },
-
     "EMPTY_STATE": {
       "TITLE": "No tickets found",
       "DESCRIPTION": "Start by selecting messages in a conversation and creating your first ticket.",
       "CREATE_FIRST_TICKET": "Create your first ticket"
     },
-
     "LINKED_MESSAGES": {
       "TITLE": "Linked Messages",
       "SUBTITLE": "Messages linked to ticket {ticket}",
@@ -331,7 +329,6 @@
         "TEMPLATE": "Template"
       }
     },
-
     "ANALYTICS": {
       "TOTAL_TICKETS": "Total Tickets",
       "OPEN_TICKETS": "Open Tickets",
@@ -342,12 +339,10 @@
       "BY_STATUS": "Tickets by Status",
       "BY_AGENT": "Tickets by Agent"
     },
-
     "VIEW": {
       "KANBAN": "Kanban Board",
       "LIST": "List View"
     },
-
     "ACTIONS": {
       "ENHANCE_WITH_AI": "Enhance with AI",
       "OPEN_CONVERSATION": "Open in Chat",
@@ -358,7 +353,6 @@
       "RESOLVE": "Resolve",
       "ESCALATE": "Escalate to JIRA"
     },
-
     "CONVERSATION": "Conversation",
     "CONVERSATION_ID": "Conversation #{id}",
     "TIMESTAMPS": "Timestamps",
@@ -380,7 +374,7 @@
   },
   "GENERATE_WITH_AI": "Generate with AI",
   "GENERATE_WITH_AI_HELP": "Let AI create title and description from selected messages",
-  "AI_GENERATION_SUCCESS": "Title and description generated successfully",
+  "AI_GENERATION_SUCCESS": "New content generated! Review and create ticket when ready.",
   "AI_GENERATION_ERROR": "Failed to generate with AI",
   "UNTITLED": "Untitled",
   "TICKET_CATEGORIES": {

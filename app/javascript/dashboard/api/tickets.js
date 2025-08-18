@@ -58,12 +58,13 @@ class TicketsAPI extends ApiClient {
     return axios.get(`${this.url}/${ticketId}/messages`);
   }
 
-  async getForConversation(conversationId, { page = 1, per_page = 10 } = {}) {
+  async getForConversation(conversationId, { page = 1, per_page = 10, include_feature_requests = false } = {}) {
     return axios.get(this.url, {
       params: { 
         conversation_id: conversationId,
         page,
         per_page,
+        include_feature_requests,
       },
     });
   }

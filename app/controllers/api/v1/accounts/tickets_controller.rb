@@ -7,6 +7,19 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
                               .includes(:conversation, :contact, :created_by, :assigned_agent, :ticket_messages)
                               .order(id: :desc) # Sort by ID in descending order (newest first)
 
+    # Feature request filtering
+    if params[:is_feature_request].present?
+      case params[:is_feature_request]
+      when 'true'
+        @tickets = @tickets.feature_requests
+      when 'false'
+        @tickets = @tickets.regular_tickets
+      end
+    else
+      # By default, exclude feature requests unless explicitly requested
+      @tickets = @tickets.regular_tickets unless params[:include_feature_requests] == 'true'
+    end
+
     # Enhanced conversation filtering for sidebar
     if params[:conversation_id].present?
       conversation_id = params[:conversation_id]
@@ -371,7 +384,7 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
   def ticket_params
     params.require(:ticket).permit(
       :title, :description, :status, :priority, :category,
-      :conversation_id, :assigned_agent_id, :jira_issue_key
+      :conversation_id, :assigned_agent_id, :jira_issue_key, :is_feature_request
     )
   end
 
@@ -464,6 +477,7 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
           description: @ticket.description,
           status: @ticket.status,
           priority: @ticket.priority,
+          is_feature_request: @ticket.is_feature_request,
           conversation_id: @ticket.conversation_id,
           account_id: current_account.id,
           conversation: {
@@ -498,6 +512,7 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
           description: @ticket.description,
           status: @ticket.status,
           priority: @ticket.priority,
+          is_feature_request: @ticket.is_feature_request,
           conversation_id: @ticket.conversation_id,
           account_id: current_account.id,
           conversation: {

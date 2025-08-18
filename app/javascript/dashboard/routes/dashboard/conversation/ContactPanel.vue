@@ -23,7 +23,7 @@ import LinearIssuesList from 'dashboard/components/widgets/conversation/linear/I
 import LinearSetupCTA from 'dashboard/components/widgets/conversation/linear/LinearSetupCTA.vue';
 import JiraIssuesList from 'dashboard/components/widgets/conversation/jira/IssuesList.vue';
 import JiraSetupCTA from 'dashboard/components/widgets/conversation/jira/JiraSetupCTA.vue';
-import TicketsList from 'dashboard/components/widgets/conversation/tickets/TicketsList.vue';
+import TicketsAndFeatureRequestsList from 'dashboard/components/widgets/conversation/tickets/TicketsAndFeatureRequestsList.vue';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 
 const props = defineProps({
@@ -294,7 +294,7 @@ onMounted(() => {
                 value => toggleSidebarUIState('is_tickets_open', value)
               "
             >
-              <TicketsList :conversation-id="conversationId" />
+              <TicketsAndFeatureRequestsList :conversation-id="conversationId" />
             </AccordionItem>
           </div>
           <div

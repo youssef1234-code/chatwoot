@@ -84,11 +84,11 @@ export const actions = {
     }
   },
 
-  async fetchAllTickets({ dispatch, getters }) {
+  async fetchAllTickets({ dispatch, getters }, params = {}) {
     console.log('fetchAllTickets: Starting to fetch all pages');
     
     // Fetch first page with explicit per_page
-    const firstPageData = await dispatch('fetchTickets', { page: 1, per_page: 25 });
+    const firstPageData = await dispatch('fetchTickets', { page: 1, per_page: 25, ...params });
     console.log('fetchAllTickets: First page fetched, data length:', firstPageData?.length);
     
     const meta = getters.getMeta;
@@ -101,7 +101,7 @@ export const actions = {
     const promises = [];
     for (let page = 2; page <= totalPages; page++) {
       console.log(`fetchAllTickets: Queueing page ${page}`);
-      promises.push(dispatch('fetchTickets', { page, per_page: 25 }));
+      promises.push(dispatch('fetchTickets', { page, per_page: 25, ...params }));
     }
     
     if (promises.length > 0) {
@@ -132,10 +132,10 @@ export const actions = {
     }
   },
 
-  async fetchTicketsForConversation({ commit }, { conversationId, page = 1, per_page = 10, append = false }) {
+  async fetchTicketsForConversation({ commit }, { conversationId, page = 1, per_page = 10, append = false, include_feature_requests = false }) {
     commit(types.SET_TICKETS_UI_FLAG, { isFetchingConversationTickets: true });
     try {
-      const response = await TicketsAPI.getForConversation(conversationId, { page, per_page });
+      const response = await TicketsAPI.getForConversation(conversationId, { page, per_page, include_feature_requests });
       
       const totalCount = parseInt(response.headers['X-Total-Count'] || response.headers['x-total-count'] || response.data.length, 10);
       const currentPage = parseInt(response.headers['X-Current-Page'] || response.headers['x-current-page'] || page, 10);
@@ -176,6 +176,7 @@ export const actions = {
       page: nextPage,
       per_page: meta.perPage,
       append: true,
+      include_feature_requests: true,
     });
   },
 

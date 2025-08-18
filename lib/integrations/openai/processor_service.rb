@@ -55,10 +55,13 @@ class Integrations::Openai::ProcessorService < Integrations::OpenaiBaseService
                   end
     
     enhancement_options = ticket_data['enhancement_options'] || []
+    available_categories = ticket_data['available_categories'] || []
+    
     Rails.logger.info "Enhancement options: #{enhancement_options.inspect}"
+    Rails.logger.info "Available categories: #{available_categories.inspect}"
     
     # Build system instructions based on selected options
-    system_instructions = build_enhancement_instructions(enhancement_options)
+    system_instructions = build_enhancement_instructions(enhancement_options, ticket_data)
     Rails.logger.info "System instructions: #{system_instructions}"
     
     # Build user content with linked messages as primary source
@@ -72,21 +75,31 @@ class Integrations::Openai::ProcessorService < Integrations::OpenaiBaseService
     result
   end
 
-  def build_enhancement_instructions(enhancement_options)
-    base_instruction = "#{AGENT_INSTRUCTION} You are helping to enhance support tickets based on conversation messages. "
+  def build_enhancement_instructions(enhancement_options, ticket_data = {})
+    base_instruction = "#{AGENT_INSTRUCTION} You are helping to create support tickets based on conversation messages. "
 
     instructions = []
 
     if enhancement_options.include?('improve_title')
-      instructions << '- Create a clear, concise, and descriptive title that captures the main issue'
+      instructions << '- Create a clear, concise, and descriptive title that captures the main issue from the conversation'
     end
 
     if enhancement_options.include?('improve_description')
-      instructions << "- Write a comprehensive description that summarizes the customer's issue and relevant context"
+      instructions << "- Write a comprehensive description that summarizes the customer's issue and relevant context from the conversation"
     end
 
     if enhancement_options.include?('suggest_priority')
       instructions << '- Suggest an appropriate priority level (low, medium, high, urgent) based on the issue severity'
+    end
+
+    if enhancement_options.include?('suggest_category')
+      available_categories = ticket_data['available_categories'] || []
+      if available_categories.any?
+        categories_list = available_categories.join(', ')
+        instructions << "- Suggest the most appropriate category from these available options: #{categories_list}"
+      else
+        instructions << '- Suggest an appropriate category for this ticket'
+      end
     end
 
     if enhancement_options.include?('suggest_labels')
@@ -101,7 +114,7 @@ class Integrations::Openai::ProcessorService < Integrations::OpenaiBaseService
 
     response_format = build_response_format_instructions(enhancement_options)
 
-    "#{base_instruction}\n\nPlease:\n#{instructions_text}\n\n#{response_format}"
+    "#{base_instruction}\n\nAnalyze the conversation messages and:\n#{instructions_text}\n\n#{response_format}"
   end
 
   def build_response_format_instructions(enhancement_options)
@@ -112,6 +125,8 @@ class Integrations::Openai::ProcessorService < Integrations::OpenaiBaseService
     format_fields << '"description": "enhanced description text"' if enhancement_options.include?('improve_description')
 
     format_fields << '"priority": "low|medium|high|urgent"' if enhancement_options.include?('suggest_priority')
+
+    format_fields << '"category": "suggested category"' if enhancement_options.include?('suggest_category')
 
     format_fields << '"labels": ["label1", "label2", ...]' if enhancement_options.include?('suggest_labels')
 
@@ -135,25 +150,9 @@ class Integrations::Openai::ProcessorService < Integrations::OpenaiBaseService
       content_parts << ''
     end
 
-    # Add existing title/description only as reference context (don't send if empty)
-    existing_info = []
-
-    if ticket_data['title'].present? && ticket_data['title'].strip != ''
-      existing_info << "Current Title: #{ticket_data['title'].strip}"
-    end
-
-    if ticket_data['description'].present? && ticket_data['description'].strip != ''
-      existing_info << "Current Description: #{ticket_data['description'].strip}"
-    end
-
-    if existing_info.any?
-      content_parts << '=== EXISTING TICKET INFO ==='
-      content_parts.concat(existing_info)
-    end
-
-    # Fallback if no messages or existing content
+    # Fallback if no messages provided
     if content_parts.empty?
-      content_parts << 'No conversation messages or existing ticket information provided. Please create a generic support ticket structure.'
+      content_parts << 'No conversation messages provided. Please create a generic support ticket structure.'
     end
 
     content_parts.join("\n")

@@ -13,7 +13,7 @@
 
         <!-- Content -->
         <div class="flex-1 overflow-y-auto p-6">
-          <form @submit.prevent="createTicket" class="space-y-4">
+          <form @submit.prevent class="space-y-4">
             <!-- Title -->
             <div>
               <label class="block text-sm font-medium text-n-slate-12 mb-2">
@@ -90,6 +90,23 @@
               </p>
             </div>
 
+            <!-- Feature Request -->
+            <div>
+              <label class="flex items-center">
+                <input
+                  v-model="ticketForm.is_feature_request"
+                  type="checkbox"
+                  class="mr-2 h-4 w-4 text-n-blue-6 focus:ring-n-blue-5 border-n-slate-6 rounded"
+                />
+                <span class="text-sm font-medium text-n-slate-12">
+                  {{ $t("TICKETS.FEATURE_REQUEST.LABEL") }}
+                </span>
+              </label>
+              <p class="mt-1 text-xs text-n-slate-10">
+                {{ $t("TICKETS.FEATURE_REQUEST.HELP_TEXT") }}
+              </p>
+            </div>
+
             <!-- Selected Messages Preview -->
             <div v-if="selectedMessageIds.length > 0">
               <label class="block text-sm font-medium text-n-slate-12 mb-2">
@@ -120,10 +137,7 @@
 
             <!-- AI Enhancement Option -->
             <div
-              v-if="
-                selectedMessageIds.length > 0 &&
-                (!ticketForm.title.trim() || !ticketForm.description.trim())
-              "
+              v-if="selectedMessageIds.length > 0"
             >
               <Button
                 variant="outline"
@@ -135,10 +149,10 @@
                 class="w-full"
               >
                 <Icon icon="i-lucide-sparkles" class="w-4 h-4 mr-2" />
-                {{ $t("TICKETS.GENERATE_WITH_AI") }}
+                {{ $t("TICKETS.ENHANCE_WITH_AI") }}
               </Button>
               <p class="mt-1 text-xs text-n-slate-10">
-                {{ $t("TICKETS.GENERATE_WITH_AI_HELP") }}
+                {{ $t("TICKETS.ENHANCE_WITH_AI_HELP") }}
               </p>
             </div>
           </form>
@@ -209,6 +223,7 @@ const ticketForm = ref({
   jira_issue_key: "",
   assigned_agent_id: currentUser.value?.id || "",
   conversation_id: props.conversationId,
+  is_feature_request: false,
 });
 
 const isLoading = ref(false);
@@ -229,7 +244,9 @@ const currentAccount = computed(() => {
 
 // Get available categories from account settings
 const availableCategories = computed(() => {
-  return currentAccount.value?.settings?.ticket_categories || [];
+  const categories = currentAccount.value?.settings?.ticket_categories || [];
+  console.log('Available categories computed:', categories);
+  return categories;
 });
 
 const selectedMessagesPreview = computed(() => {
@@ -325,23 +342,30 @@ const generateTitleAndDescriptionWithAI = async () => {
       })
       .join("\n\n");
 
-    // Generate with AI
+    // Generate with AI - always generate fresh content from messages
     const enhancementOptions = [];
-    if (!ticketForm.value.title.trim())
-      enhancementOptions.push("improve_title");
-    if (!ticketForm.value.description.trim())
-      enhancementOptions.push("improve_description");
+    enhancementOptions.push("improve_title");
+    enhancementOptions.push("improve_description");
+    enhancementOptions.push("suggest_category");
+    enhancementOptions.push("suggest_priority");
 
     const response = await OpenaiAPI.enhanceTicket({
-      title: ticketForm.value.title || "",
-      description: ticketForm.value.description || "",
+      title: "", // Always send empty to get fresh generation
+      description: "", // Always send empty to get fresh generation
       messages: messagesContent,
       enhancementOptions,
+      availableCategories: availableCategories.value,
       hookId: openaiHook?.hooks[0]?.id,
+    });
+
+    console.log('AI Enhancement Request:', {
+      enhancementOptions,
+      availableCategories: availableCategories.value,
     });
 
     // Parse response
     let aiData = response.data;
+    console.log('AI Enhancement Response:', aiData);
     if (typeof aiData === "string") {
       try {
         aiData = JSON.parse(aiData);
@@ -363,13 +387,38 @@ const generateTitleAndDescriptionWithAI = async () => {
       }
     }
 
-    // Update form with AI-generated content
-    if (aiData.title && !ticketForm.value.title.trim()) {
+    // Update form with AI-generated content - always overwrite existing values
+    if (aiData.title) {
       ticketForm.value.title = aiData.title;
+      console.log('Title set to:', aiData.title);
     }
 
-    if (aiData.description && !ticketForm.value.description.trim()) {
+    if (aiData.description) {
       ticketForm.value.description = aiData.description;
+      console.log('Description set to:', aiData.description);
+    }
+
+    if (aiData.category) {
+      console.log('AI suggested category:', aiData.category, 'Available categories:', availableCategories.value);
+      // Validate that the suggested category exists in available categories
+      if (availableCategories.value.includes(aiData.category)) {
+        ticketForm.value.category = aiData.category;
+        console.log('Category set to:', aiData.category);
+      } else {
+        console.log('Category not found in available categories');
+      }
+    }
+
+    if (aiData.priority) {
+      console.log('AI suggested priority:', aiData.priority);
+      // Validate that the suggested priority is valid
+      const validPriorities = ["low", "medium", "high", "urgent"];
+      if (validPriorities.includes(aiData.priority)) {
+        ticketForm.value.priority = aiData.priority;
+        console.log('Priority set to:', aiData.priority);
+      } else {
+        console.log('Invalid priority suggested:', aiData.priority);
+      }
     }
 
     useAlert(t("TICKETS.AI_GENERATION_SUCCESS"));

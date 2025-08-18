@@ -17,6 +17,8 @@ class TicketsReportsAPI extends ApiClient {
     jira_status,
     page,
     businessHours,
+    feature_requests_only,
+    include_feature_requests,
   } = {}) {
     return axios.get(this.url, {
       params: {
@@ -30,6 +32,8 @@ class TicketsReportsAPI extends ApiClient {
         jira_status,
         page,
         business_hours: businessHours,
+        feature_requests_only,
+        include_feature_requests,
       },
     });
   }
@@ -44,6 +48,8 @@ class TicketsReportsAPI extends ApiClient {
     linked_with_jira,
     jira_status,
     businessHours,
+    feature_requests_only,
+    include_feature_requests,
   } = {}) {
     return axios.get(`${this.url}/metrics`, {
       params: {
@@ -56,6 +62,8 @@ class TicketsReportsAPI extends ApiClient {
         linked_with_jira,
         jira_status,
         business_hours: businessHours,
+        feature_requests_only,
+        include_feature_requests,
       },
     });
   }
@@ -70,6 +78,8 @@ class TicketsReportsAPI extends ApiClient {
     linked_with_jira,
     jira_status,
     businessHours,
+    feature_requests_only,
+    include_feature_requests,
   } = {}) {
     return axios.get(`${this.url}/summary`, {
       params: {
@@ -82,6 +92,8 @@ class TicketsReportsAPI extends ApiClient {
         linked_with_jira,
         jira_status,
         business_hours: businessHours,
+        feature_requests_only,
+        include_feature_requests,
       },
     });
   }
@@ -92,9 +104,12 @@ class TicketsReportsAPI extends ApiClient {
     priority,
     category,
     assigned_agent_id,
+    linked_with_jira,
     jira_status,
     businessHours,
     fileName,
+    feature_requests_only,
+    include_feature_requests,
   } = {}) {
     return axios.get(`${this.url}/download`, {
       params: {
@@ -104,8 +119,11 @@ class TicketsReportsAPI extends ApiClient {
         priority,
         category,
         assigned_agent_id,
+        linked_with_jira,
         jira_status,
         business_hours: businessHours,
+        feature_requests_only,
+        include_feature_requests,
       },
       responseType: 'blob',
     });

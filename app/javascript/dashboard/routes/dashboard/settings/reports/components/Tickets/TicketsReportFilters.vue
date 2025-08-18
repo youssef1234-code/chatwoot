@@ -35,6 +35,7 @@ export default {
         linked_with_jira: null,
         jira_status: null,
         category: null,
+        feature_requests: 'regular', // 'regular', 'only', 'all'
       },
     };
   },
@@ -148,6 +149,13 @@ export default {
         { id: 'done', name: this.$t('TICKETS_REPORTS.JIRA_STATUS.DONE') },
       ];
     },
+    featureRequestOptions() {
+      return [
+        { id: 'regular', name: this.$t('TICKETS_REPORTS.FEATURE_REQUESTS.REGULAR_ONLY') },
+        { id: 'only', name: this.$t('TICKETS_REPORTS.FEATURE_REQUESTS.FEATURE_REQUESTS_ONLY') },
+        { id: 'all', name: this.$t('TICKETS_REPORTS.FEATURE_REQUESTS.ALL_TICKETS') },
+      ];
+    },
     showJiraStatusFilter() {
       return this.selectedFilters.linked_with_jira === 'true';
     },
@@ -175,11 +183,30 @@ export default {
       this.emitFilterChange();
     },
     emitFilterChange() {
+      // Convert feature_requests filter to backend parameters
+      const filters = { ...this.selectedFilters };
+      
+      // Convert feature_requests to backend parameters
+      if (filters.feature_requests === 'only') {
+        filters.feature_requests_only = 'true';
+        delete filters.include_feature_requests;
+      } else if (filters.feature_requests === 'all') {
+        filters.include_feature_requests = 'true';
+        delete filters.feature_requests_only;
+      } else {
+        // 'regular' - default behavior, exclude feature requests
+        delete filters.include_feature_requests;
+        delete filters.feature_requests_only;
+      }
+      
+      // Remove the frontend-only feature_requests field
+      delete filters.feature_requests;
+
       this.$emit('filter-change', {
         from: this.from,
         to: this.to,
         businessHours: this.businessHoursSelected,
-        ...this.selectedFilters,
+        ...filters,
       });
     },
     fromCustomDate(date) {
@@ -308,6 +335,22 @@ export default {
           <option :value="null">{{ $t('TICKETS_REPORTS.FILTERS.ALL_AGENTS') }}</option>
           <option v-for="agent in agents" :key="agent.id" :value="agent.id">
             {{ agent.name }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Feature Requests Filter -->
+      <div>
+        <label class="block text-sm font-medium text-n-slate-11 mb-2">
+          {{ $t('TICKETS_REPORTS.FILTERS.FEATURE_REQUESTS') }}
+        </label>
+        <select
+          v-model="selectedFilters.feature_requests"
+          class="w-full px-3 py-2 border border-n-weak rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-woot-500 focus:border-woot-500 bg-n-solid-3 text-n-slate-12"
+          @change="onFilterOptionChange"
+        >
+          <option v-for="option in featureRequestOptions" :key="option.id" :value="option.id">
+            {{ option.name }}
           </option>
         </select>
       </div>

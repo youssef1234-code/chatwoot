@@ -33,19 +33,6 @@
               </div>
             </div>
             
-            <!-- AI Enhancement Toggle -->
-            <NextButton
-              v-if="isAiEnabled"
-              :variant="isAiEnhancementEnabled ? 'solid' : 'outline'"
-              color="blue"
-              size="sm"
-              :is-loading="isAiLoading"
-              @click="toggleAiEnhancement"
-            >
-              <Icon icon="i-lucide-sparkles" class="w-4 h-4 mr-2" />
-              {{ $t('TICKETS.TRACKING.AI_ENHANCEMENT') }}
-            </NextButton>
-            
             <!-- Refresh Button -->
             <NextButton
               variant="outline"
@@ -88,6 +75,20 @@
             >
               {{ filter.label }}
             </NextButton>
+          </div>
+
+          <!-- Feature Request Toggle -->
+          <div class="flex items-center gap-2">
+            <label class="flex items-center cursor-pointer">
+              <input
+                v-model="includeFeatureRequests"
+                type="checkbox"
+                class="mr-2 text-blue-600 focus:ring-blue-500 rounded"
+              />
+              <span class="text-sm text-n-slate-12">
+                {{ $t('TICKETS.TRACKING.INCLUDE_FEATURE_REQUESTS') }}
+              </span>
+            </label>
           </div>
 
           <!-- Advanced Filters -->
@@ -450,12 +451,10 @@
               :tickets="filteredTickets"
               :is-loading="isLoading"
               :current-user="currentUser"
-              :is-ai-enhancement-enabled="isAiEnhancementEnabled"
               :selected-statuses="selectedStatuses"
               @ticket-click="handleTicketClick"
               @ticket-updated="handleTicketUpdate"
               @refresh="refreshTickets"
-              @enhance-with-ai="enhanceTicketWithAi"
             />
             
             <!-- List View -->
@@ -482,13 +481,6 @@
         @updated="handleTicketUpdate"
         @refresh="refreshTickets"
       />
-
-      <AiEnhancementModal
-        v-if="showAiModal"
-        :ticket="selectedTicketForAi"
-        @close="closeAiModal"
-        @enhanced="handleAiEnhancement"
-      />
     </div>
   </div>
 </template>
@@ -507,7 +499,6 @@ import Icon from 'dashboard/components-next/icon/Icon.vue';
 import TicketsKanbanBoard from './components/TicketsKanbanBoard.vue';
 import TicketsListView from './components/TicketsListView.vue';
 import TicketDetailModal from './components/TicketDetailModal.vue';
-import AiEnhancementModal from './components/AiEnhancementModal.vue';
 
 import { useAlert } from 'dashboard/composables';
 import { useAccount } from 'dashboard/composables/useAccount';
@@ -523,7 +514,6 @@ export default {
     TicketsKanbanBoard,
     TicketsListView,
     TicketDetailModal,
-    AiEnhancementModal,
   },
   setup() {
     const store = useStore();
@@ -532,11 +522,11 @@ export default {
     
     // State
     const isLoading = ref(false);
-    const isAiLoading = ref(false);
     const searchQuery = ref('');
     const organizationSearchQuery = ref('');
     const selectedStatuses = ref([]);
     const selectedPriorities = ref([]);
+    const includeFeatureRequests = ref(false);
     const selectedAgents = ref([]);
     const selectedOrganizations = ref([]);
     const selectedJiraStatus = ref('');
@@ -551,11 +541,8 @@ export default {
     const showOrganizationDropdown = ref(false);
     const showJiraDropdown = ref(false);
     const showCategoryDropdown = ref(false);
-    const isAiEnhancementEnabled = ref(false);
     const showDetailModal = ref(false);
-    const showAiModal = ref(false);
     const selectedTicket = ref(null);
-    const selectedTicketForAi = ref(null);
     const viewMode = ref('kanban');
     const activeQuickFilter = ref('my_tickets');
     
@@ -762,8 +749,17 @@ export default {
     const loadTickets = async () => {
       isLoading.value = true;
       try {
-        // Fetch all tickets across all pages
-        await store.dispatch('tickets/fetchAllTickets');
+        // Fetch tickets based on feature request toggle
+        const apiParams = {};
+        if (includeFeatureRequests.value) {
+          // Show ONLY feature requests
+          apiParams.is_feature_request = 'true';
+        } else {
+          // Show ONLY regular tickets  
+          apiParams.is_feature_request = 'false';
+        }
+        
+        await store.dispatch('tickets/fetchAllTickets', apiParams);
         updateStats();
         
         // Load organizations after tickets are loaded
@@ -862,21 +858,6 @@ export default {
       }
     };
 
-    const toggleAiEnhancement = async () => {
-      if (!isAiEnhancementEnabled.value) {
-        isAiLoading.value = true;
-        try {
-          isAiEnhancementEnabled.value = true;
-        } catch (error) {
-          console.error('Failed to enable AI enhancement:', error);
-        } finally {
-          isAiLoading.value = false;
-        }
-      } else {
-        isAiEnhancementEnabled.value = false;
-      }
-    };
-
     const handleTicketClick = (ticket) => {
       selectedTicket.value = ticket;
       showDetailModal.value = true;
@@ -885,28 +866,6 @@ export default {
     const closeDetailModal = () => {
       showDetailModal.value = false;
       selectedTicket.value = null;
-    };
-
-    const enhanceTicketWithAi = (ticket) => {
-      selectedTicketForAi.value = ticket;
-      showAiModal.value = true;
-    };
-
-    const closeAiModal = () => {
-      showAiModal.value = false;
-      selectedTicketForAi.value = null;
-    };
-
-    const handleAiEnhancement = async (enhancedData) => {
-      try {
-        await store.dispatch('tickets/updateTicket', {
-          id: selectedTicketForAi.value.id,
-          ...enhancedData,
-        });
-        closeAiModal();
-      } catch (error) {
-        console.error('Failed to apply AI enhancement:', error);
-      }
     };
 
     const handleTicketUpdate = () => {
@@ -961,14 +920,19 @@ export default {
     // Watch for ticket changes to update stats
     watch(tickets, updateStats, { deep: true });
 
+    // Watch for feature request toggle changes
+    watch(includeFeatureRequests, () => {
+      loadTickets();
+    });
+
     return {
       // State
       isLoading,
-      isAiLoading,
       searchQuery,
       organizationSearchQuery,
       selectedStatuses,
       selectedPriorities,
+      includeFeatureRequests,
       selectedAgents,
       selectedOrganizations,
       selectedJiraStatus,
@@ -980,11 +944,8 @@ export default {
       showOrganizationDropdown,
       showJiraDropdown,
       showCategoryDropdown,
-      isAiEnhancementEnabled,
       showDetailModal,
-      showAiModal,
       selectedTicket,
-      selectedTicketForAi,
       viewMode,
       activeQuickFilter,
       ticketStats,
@@ -992,7 +953,6 @@ export default {
       // Computed
       currentUser,
       tickets,
-      isAiEnabled,
       quickFilters,
       statusOptions,
       priorityOptions,
@@ -1011,13 +971,9 @@ export default {
       applyQuickFilter,
       clearFilters,
       toggleMyTickets,
-      toggleAiEnhancement,
       getJiraFilterLabel,
       handleTicketClick,
       closeDetailModal,
-      enhanceTicketWithAi,
-      closeAiModal,
-      handleAiEnhancement,
       handleTicketUpdate,
     };
   },

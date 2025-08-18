@@ -5,6 +5,17 @@ class Api::V1::Accounts::Reports::TicketsController < Api::V1::Accounts::BaseCon
     # Build base query with filters (this will be used for both metrics and pagination)
     base_query = current_account.tickets.includes(:conversation, :assigned_agent, :created_by)
 
+    # Handle feature request filtering
+    if params[:feature_requests_only] == 'true'
+      # Show ONLY feature requests
+      base_query = base_query.feature_requests
+    elsif params[:include_feature_requests] == 'true'
+      # Include both regular tickets and feature requests (no filtering)
+    else
+      # Default: exclude feature requests from reports
+      base_query = base_query.regular_tickets
+    end
+
     # Apply date filters first (always required for proper time-based analysis)
     if params[:from].present? && parse_timestamp(params[:from])
       base_query = base_query.where('created_at >= ?', parse_timestamp(params[:from]))
@@ -74,6 +85,17 @@ class Api::V1::Accounts::Reports::TicketsController < Api::V1::Accounts::BaseCon
   def metrics
     @tickets = current_account.tickets
 
+    # Handle feature request filtering
+    if params[:feature_requests_only] == 'true'
+      # Show ONLY feature requests
+      @tickets = @tickets.feature_requests
+    elsif params[:include_feature_requests] == 'true'
+      # Include both regular tickets and feature requests (no filtering)
+    else
+      # Default: exclude feature requests from reports
+      @tickets = @tickets.regular_tickets
+    end
+
     # Apply date filters with defaults
     if params[:from].present? && parse_timestamp(params[:from])
       @tickets = @tickets.where('created_at >= ?', parse_timestamp(params[:from]))
@@ -131,6 +153,17 @@ class Api::V1::Accounts::Reports::TicketsController < Api::V1::Accounts::BaseCon
 
   def summary
     @tickets = current_account.tickets
+
+    # Handle feature request filtering
+    if params[:feature_requests_only] == 'true'
+      # Show ONLY feature requests
+      @tickets = @tickets.feature_requests
+    elsif params[:include_feature_requests] == 'true'
+      # Include both regular tickets and feature requests (no filtering)
+    else
+      # Default: exclude feature requests from reports
+      @tickets = @tickets.regular_tickets
+    end
 
     # Apply date filters with defaults
     if params[:from].present? && parse_timestamp(params[:from])
@@ -244,10 +277,152 @@ class Api::V1::Accounts::Reports::TicketsController < Api::V1::Accounts::BaseCon
     }
   end
 
+  def download
+    @tickets = current_account.tickets.includes(:conversation, :assigned_agent, :created_by)
+
+    # Handle feature request filtering
+    if params[:feature_requests_only] == 'true'
+      # Show ONLY feature requests
+      @tickets = @tickets.feature_requests
+    elsif params[:include_feature_requests] == 'true'
+      # Include both regular tickets and feature requests (no filtering)
+    else
+      # Default: exclude feature requests from reports
+      @tickets = @tickets.regular_tickets
+    end
+
+    # Apply date filters with defaults
+    if params[:from].present? && parse_timestamp(params[:from])
+      @tickets = @tickets.where('created_at >= ?', parse_timestamp(params[:from]))
+    else
+      # Default to last 30 days if no start date provided
+      @tickets = @tickets.where('created_at >= ?', 30.days.ago)
+    end
+    
+    if params[:to].present? && parse_timestamp(params[:to])
+      @tickets = @tickets.where('created_at <= ?', parse_timestamp(params[:to]))
+    else
+      # Default to current time if no end date provided
+      @tickets = @tickets.where('created_at <= ?', Time.current)
+    end
+
+    # Apply other filters
+    @tickets = @tickets.where(status: params[:status]) if params[:status].present?
+    @tickets = @tickets.where(priority: params[:priority]) if params[:priority].present?
+    @tickets = @tickets.where(category: params[:category]) if params[:category].present?
+    @tickets = @tickets.where(assigned_agent_id: params[:assigned_agent_id]) if params[:assigned_agent_id].present?
+
+    # JIRA linking filter (simple linked vs unlinked)
+    if params[:linked_with_jira].present?
+      case params[:linked_with_jira]
+      when 'true'
+        # Only tickets with JIRA issue key
+        @tickets = @tickets.where.not(jira_issue_key: [nil, ''])
+      when 'false'
+        # Only tickets without JIRA issue key
+        @tickets = @tickets.where(jira_issue_key: [nil, ''])
+      end
+    end
+
+    # JIRA status filter (only applies to linked tickets)
+    if params[:jira_status].present?
+      case params[:jira_status]
+      when 'escalated'
+        # Escalated tickets: status='escalated' AND jira_in_progress=false
+        @tickets = @tickets.where(status: 'escalated')
+                           .where(jira_in_progress: [false, nil])
+      when 'in_progress'
+        # In progress tickets: status='escalated' AND jira_in_progress=true
+        @tickets = @tickets.where(status: 'escalated')
+                           .where(jira_in_progress: true)
+      when 'done'
+        # Tickets that are resolved/closed
+        @tickets = @tickets.where(status: ['resolved', 'closed'])
+      end
+    end
+
+    # Generate CSV content
+    csv_data = generate_tickets_csv(@tickets)
+    
+    send_data csv_data, 
+              filename: "tickets-report-#{Date.current.strftime('%Y%m%d')}.csv",
+              type: 'text/csv',
+              disposition: 'attachment'
+  end
+
   private
 
   def check_authorization
     authorize :report, :view?
+  end
+
+  def generate_tickets_csv(tickets)
+    require 'csv'
+    
+    CSV.generate(headers: true) do |csv|
+      # CSV headers
+      csv << [
+        'Ticket ID',
+        'Title',
+        'Description',
+        'Status',
+        'Priority',
+        'Category',
+        'Type',
+        'Created Date',
+        'Updated Date',
+        'Resolved Date',
+        'Assigned Agent',
+        'Created By',
+        'Resolution Time (Hours)',
+        'JIRA Issue Key',
+        'JIRA Status',
+        'Contact Name',
+        'Contact Email'
+      ]
+      
+      # Data rows
+      tickets.find_each do |ticket|
+        resolution_time = nil
+        if ticket.resolved_at.present?
+          resolution_time = ((ticket.resolved_at - ticket.created_at) / 1.hour).round(2)
+        end
+        
+        jira_status = if ticket.jira_issue_key.present?
+          if ticket.status == 'escalated' && ticket.jira_in_progress?
+            'In Progress'
+          elsif ticket.status == 'escalated'
+            'Escalated'
+          elsif ['resolved', 'closed'].include?(ticket.status)
+            'Done'
+          else
+            'Unknown'
+          end
+        else
+          'Not Linked'
+        end
+        
+        csv << [
+          ticket.id,
+          ticket.title,
+          ticket.description,
+          ticket.status&.humanize,
+          ticket.priority&.humanize,
+          ticket.category,
+          ticket.is_feature_request? ? 'Feature Request' : 'Regular Ticket',
+          ticket.created_at&.strftime('%Y-%m-%d %H:%M:%S'),
+          ticket.updated_at&.strftime('%Y-%m-%d %H:%M:%S'),
+          ticket.resolved_at&.strftime('%Y-%m-%d %H:%M:%S'),
+          ticket.assigned_agent&.name,
+          ticket.created_by&.name,
+          resolution_time,
+          ticket.jira_issue_key,
+          jira_status,
+          ticket.conversation&.contact&.name,
+          ticket.conversation&.contact&.email
+        ]
+      end
+    end
   end
 
   def calculate_metrics(tickets_query)

@@ -606,6 +606,7 @@
       "PRIORITY": "Priority", 
       "CATEGORY": "Category",
       "AGENT": "Agent",
+      "FEATURE_REQUESTS": "Ticket Type",
       "LINKED_WITH_JIRA": "Linked with JIRA",
       "JIRA_STATUS": "JIRA Status",
       "ALL": "All",
@@ -645,6 +646,11 @@
       "IN_PROGRESS": "In Progress", 
       "DONE": "Done",
       "NOT_ESCALATED" : "NOT ESCALATED"
+    },
+    "FEATURE_REQUESTS": {
+      "REGULAR_ONLY": "Regular Tickets Only",
+      "FEATURE_REQUESTS_ONLY": "Feature Requests Only",
+      "ALL_TICKETS": "All Tickets (Regular + Feature Requests)"
     },
     "METRICS": {
       "TOTAL_TICKETS": "Total Tickets",
