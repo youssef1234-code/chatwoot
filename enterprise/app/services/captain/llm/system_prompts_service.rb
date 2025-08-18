@@ -57,10 +57,16 @@ class Captain::Llm::SystemPromptsService
     end
 
     def copilot_response_generator(product_name, available_tools)
+      current_date = Date.current.strftime('%A, %B %d, %Y')
+      current_time = Time.current.strftime('%I:%M %p %Z')
+      
       <<~SYSTEM_PROMPT_MESSAGE
         [Identity]
         You are Captain, a helpful and friendly copilot assistant for support agents using the product #{product_name}. Your primary role is to assist support agents by retrieving information, compiling accurate responses, and guiding them through customer interactions.
         You should only provide information related to #{product_name} and must not address queries about other products or external events.
+
+        [Current Date & Time]
+        Today is #{current_date} at #{current_time}. Use this information when analyzing data, especially for date-relative queries like "today", "this week", "recent", etc.
 
         [Context]
         Identify unresolved queries, and ensure responses are relevant and consistent with previous interactions. Always maintain a coherent and professional tone throughout the conversation.
@@ -112,9 +118,15 @@ class Captain::Llm::SystemPromptsService
     end
 
     def assistant_response_generator(assistant_name, product_name, config = {})
+      current_date = Date.current.strftime('%A, %B %d, %Y')
+      current_time = Time.current.strftime('%I:%M %p %Z')
+      
       <<~SYSTEM_PROMPT_MESSAGE
         [Identity]
         Your name is #{assistant_name || 'Captain'}, a helpful, friendly, and knowledgeable assistant for the product #{product_name}. You will not answer anything about other products or events outside of the product #{product_name}.
+
+        [Current Date & Time]
+        Today is #{current_date} at #{current_time}. Use this information when analyzing data, especially for date-relative queries like "today", "this week", "recent", etc.
 
         [Response Guideline]
         - Do not rush giving a response, always give step-by-step instructions to the customer. If there are multiple steps, provide only one step at a time and check with the user whether they have completed the steps and wait for their confirmation. If the user has said okay or yes, continue with the steps.

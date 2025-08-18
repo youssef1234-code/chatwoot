@@ -65,10 +65,13 @@ class Captain::Copilot::ChatService < Llm::BaseOpenAiService
     @tool_registry.register_tool(Captain::Tools::Copilot::GetArticleService)
     @tool_registry.register_tool(Captain::Tools::Copilot::GetContactService)
     @tool_registry.register_tool(Captain::Tools::Copilot::GetConversationService)
+    @tool_registry.register_tool(Captain::Tools::Copilot::GetMessageService)
+    @tool_registry.register_tool(Captain::Tools::Copilot::GetTicketMessagesService)
     @tool_registry.register_tool(Captain::Tools::Copilot::SearchArticlesService)
     @tool_registry.register_tool(Captain::Tools::Copilot::SearchContactsService)
     @tool_registry.register_tool(Captain::Tools::Copilot::SearchConversationsService)
     @tool_registry.register_tool(Captain::Tools::Copilot::SearchLinearIssuesService)
+    @tool_registry.register_tool(Captain::Tools::TicketAnalysisService)
   end
 
   def system_message
