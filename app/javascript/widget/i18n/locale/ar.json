@@ -98,7 +98,10 @@
   "CSAT": {
     "TITLE": "قيم محادثتك",
     "SUBMITTED_TITLE": "شكرا لك على تقييم المحادثة",
-    "PLACEHOLDER": "أخبرنا المزيد..."
+    "PLACEHOLDER": "أخبرنا المزيد...",
+    "FEEDBACK_MANDATORY_PLACEHOLDER": "يرجى إخبارنا لماذا أعطيت هذا التقييم (مطلوب)",
+    "FEEDBACK_REQUIRED": "التعليق مطلوب لهذا التقييم",
+    "SUBMIT_FEEDBACK": "إرسال التعليق"
   },
   "NPS": {
     "TITLE": "ما مدى احتمالية أن توصي بنا لصديق أو زميل؟",
@@ -108,6 +111,8 @@
     "EXTREMELY_LIKELY": "محتمل جدًا",
     "FEEDBACK_LABEL": "ما السبب الرئيسي لتقييمك؟",
     "FEEDBACK_PLACEHOLDER": "حدثنا أكثر عن تقييمك...",
+    "FEEDBACK_MANDATORY_PLACEHOLDER": "يرجى إخبارنا لماذا أعطيت هذا التقييم (مطلوب)",
+    "FEEDBACK_REQUIRED": "التعليق مطلوب لهذا التقييم",
     "SUBMIT": "إرسال",
     "YOUR_RATING": "تقييمك",
     "YOUR_FEEDBACK": "ملاحظاتك",
@@ -151,5 +156,10 @@
   },
   "FOOTER_REPLY_TO": {
     "REPLY_TO": "الرد على:"
-  }
+  },
+  "SURVEY_FEEDBACK_REQUIRED": "يرجى إكمال الاستطلاع قبل إرسال رسائل جديدة",
+  "CSAT_RATING_REQUIRED": "يرجى تقديم تقييم للمتابعة",
+  "CSAT_FEEDBACK_REQUIRED": "يرجى تقديم تعليق على تقييمك للمتابعة",
+  "NPS_RATING_REQUIRED": "يرجى تقديم تقييم للمتابعة",
+  "NPS_FEEDBACK_REQUIRED": "يرجى تقديم تعليق على تقييمك للمتابعة"
 }

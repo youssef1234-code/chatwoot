@@ -49,7 +49,18 @@ export default {
         ?.feedback_message;
     },
     isButtonDisabled() {
-      return !(this.selectedRating && this.feedback);
+      // For CSAT ratings 1, 2, 3 (Poor, Fair, Average) - feedback is mandatory
+      if (this.selectedRating && this.selectedRating <= 3) {
+        return !(this.selectedRating && this.feedback && this.feedback.trim());
+      }
+      // For ratings 4, 5 (Good, Excellent) - only rating is required
+      return !this.selectedRating;
+    },
+    requiresFeedback() {
+      return this.selectedRating && this.selectedRating <= 3;
+    },
+    isFeedbackMandatory() {
+      return this.requiresFeedback && !this.isFeedbackSubmitted;
     },
     textColor() {
       return getContrastingTextColor(this.widgetColor);
@@ -107,11 +118,19 @@ export default {
 
     selectRating(rating) {
       this.selectedRating = rating.value;
-      this.onSubmit();
+      // Auto-submit for positive ratings (4-5, Good/Excellent)
+      // Don't auto-submit for negative ratings (1-3, Poor/Fair/Average) - require feedback
+      if (this.selectedRating >= 4) {
+        this.onSubmit();
+      }
     },
     selectStarRating(value) {
       this.selectedRating = value;
-      this.onSubmit();
+      // Auto-submit for positive ratings (4-5, Good/Excellent)  
+      // Don't auto-submit for negative ratings (1-3, Poor/Fair/Average) - require feedback
+      if (this.selectedRating >= 4) {
+        this.onSubmit();
+      }
     },
   },
 };
@@ -142,13 +161,14 @@ export default {
       @select-rating="selectStarRating"
     />
     <form
-      v-if="!isFeedbackSubmitted"
+      v-if="!isFeedbackSubmitted && selectedRating"
       class="feedback-form flex"
       @submit.prevent="onSubmit()"
     >
       <input
         v-model="feedback"
-        :placeholder="$t('CSAT.PLACEHOLDER')"
+        :placeholder="requiresFeedback ? $t('CSAT.FEEDBACK_MANDATORY_PLACEHOLDER') || $t('CSAT.PLACEHOLDER') : $t('CSAT.PLACEHOLDER')"
+        :class="{ 'border-red-500': requiresFeedback && !feedback }"
         @keydown.enter="onSubmit"
       />
       <button
@@ -160,10 +180,13 @@ export default {
           color: textColor,
         }"
       >
-        <Spinner v-if="isUpdating && feedback" />
+        <Spinner v-if="isUpdating" />
         <FluentIcon v-else icon="chevron-right" />
       </button>
     </form>
+    <div v-if="requiresFeedback && !feedback && selectedRating" class="feedback-required-message px-4 pb-3">
+      <p class="text-red-500 text-xs">{{ $t('CSAT.FEEDBACK_REQUIRED') || 'Feedback is required for this rating' }}</p>
+    </div>
   </div>
 </template>
 

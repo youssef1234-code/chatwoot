@@ -10,6 +10,13 @@ class NpsSurveys::ResponseBuilder
 
     return if rating.blank?
 
+    # Validate that feedback is provided when mandatory (ratings 0-8)
+    if rating <= 8 && feedback_message.blank?
+      Rails.logger.warn "NPS rating #{rating} requires feedback but none provided"
+      return
+    end
+
+    # Allow optional feedback for ratings 9-10, or proceed with mandatory feedback for ratings 0-8
     process_nps_response(conversation, rating, feedback_message)
   end
 

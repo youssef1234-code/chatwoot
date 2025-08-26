@@ -98,7 +98,10 @@
   "CSAT": {
     "TITLE": "Rate your conversation",
     "SUBMITTED_TITLE": "Thank you for submitting the rating",
-    "PLACEHOLDER": "Tell us more..."
+    "PLACEHOLDER": "Tell us more...",
+    "FEEDBACK_MANDATORY_PLACEHOLDER": "Please tell us why you gave this rating (required)",
+    "FEEDBACK_REQUIRED": "Feedback is required for this rating",
+    "SUBMIT_FEEDBACK": "Submit Feedback"
   },
   "NPS": {
     "TITLE": "How likely are you to recommend us to a friend or colleague?",
@@ -108,6 +111,8 @@
     "EXTREMELY_LIKELY": "Extremely likely",
     "FEEDBACK_LABEL": "What's the primary reason for your score?",
     "FEEDBACK_PLACEHOLDER": "Tell us more about your rating...",
+    "FEEDBACK_MANDATORY_PLACEHOLDER": "Please tell us why you gave this rating (required)",
+    "FEEDBACK_REQUIRED": "Feedback is required for this rating",
     "SUBMIT": "Submit",
     "YOUR_RATING": "Your rating",
     "YOUR_FEEDBACK": "Your feedback",
@@ -151,5 +156,10 @@
   },
   "FOOTER_REPLY_TO": {
     "REPLY_TO": "Replying to:"
-  }
+  },
+  "SURVEY_FEEDBACK_REQUIRED": "Please complete the survey before sending new messages",
+  "CSAT_RATING_REQUIRED": "Please provide a rating to continue",
+  "CSAT_FEEDBACK_REQUIRED": "Please provide feedback for your rating to continue",
+  "NPS_RATING_REQUIRED": "Please provide a rating to continue",
+  "NPS_FEEDBACK_REQUIRED": "Please provide feedback for your rating to continue"
 }

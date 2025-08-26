@@ -28,6 +28,14 @@ export default {
       type: Function,
       default: () => {},
     },
+    disabled: {
+      type: Boolean,
+      default: false,
+    },
+    disabledMessage: {
+      type: String,
+      default: '',
+    },
   },
   data() {
     return {
@@ -71,9 +79,11 @@ export default {
       this.isFocused = false;
     },
     onFocus() {
+      if (this.disabled) return;
       this.isFocused = true;
     },
     handleButtonClick() {
+      if (this.disabled) return;
       if (this.userInput && this.userInput.trim()) {
         this.onSendMessage(this.userInput);
       }
@@ -81,12 +91,14 @@ export default {
       this.focusInput();
     },
     handleEnterKeyPress(e) {
+      if (this.disabled) return;
       if (e.keyCode === 13 && !e.shiftKey) {
         e.preventDefault();
         this.handleButtonClick();
       }
     },
     toggleEmojiPicker() {
+      if (this.disabled) return;
       this.showEmojiPicker = !this.showEmojiPicker;
     },
     hideEmojiPicker(e) {
@@ -96,6 +108,7 @@ export default {
       }
     },
     emojiOnClick(emoji) {
+      if (this.disabled) return;
       this.userInput = `${this.userInput}${emoji} `;
     },
     onTypingOff() {
@@ -116,21 +129,35 @@ export default {
 
 <template>
   <div
-    class="items-center flex ltr:pl-3 rtl:pr-3 ltr:pr-2 rtl:pl-2 rounded-[7px] transition-all duration-200 bg-n-background !shadow-[0_0_0_1px,0_0_2px_3px]"
+    class="relative items-center flex ltr:pl-3 rtl:pr-3 ltr:pr-2 rtl:pl-2 rounded-[7px] transition-all duration-200 bg-n-background !shadow-[0_0_0_1px,0_0_2px_3px]"
     :class="{
-      '!shadow-n-brand dark:!shadow-n-brand': isFocused,
-      '!shadow-n-strong dark:!shadow-n-strong': !isFocused,
+      '!shadow-n-brand dark:!shadow-n-brand': isFocused && !disabled,
+      '!shadow-n-strong dark:!shadow-n-strong': !isFocused && !disabled,
+      'opacity-50': disabled,
     }"
     @keydown.esc="hideEmojiPicker"
   >
+    <!-- Disabled overlay -->
+    <div
+      v-if="disabled"
+      class="absolute inset-0 bg-n-background bg-opacity-80 backdrop-blur-sm rounded-[7px] flex items-center justify-center z-10 cursor-not-allowed"
+      :title="disabledMessage"
+    >
+      <div class="text-n-slate-10 text-sm font-medium text-center px-3">
+        {{ disabledMessage }}
+      </div>
+    </div>
+
     <ResizableTextArea
       id="chat-input"
       ref="chatInput"
       v-model="userInput"
       :rows="1"
-      :aria-label="$t('CHAT_PLACEHOLDER')"
-      :placeholder="$t('CHAT_PLACEHOLDER')"
+      :aria-label="disabled ? disabledMessage : $t('CHAT_PLACEHOLDER')"
+      :placeholder="disabled ? '' : $t('CHAT_PLACEHOLDER')"
+      :disabled="disabled"
       class="user-message-input reset-base chat-input-enhanced"
+      :class="{ 'cursor-not-allowed': disabled }"
       @typing-off="onTypingOff"
       @typing-on="onTypingOn"
       @focus="onFocus"
@@ -138,14 +165,15 @@ export default {
     />
     <div class="flex items-center ltr:pl-2 rtl:pr-2">
       <ChatAttachmentButton
-        v-if="showAttachment"
+        v-if="showAttachment && !disabled"
         class="text-n-slate-12"
         :on-attach="onSendAttachment"
       />
       <button
-        v-if="hasEmojiPickerEnabled"
+        v-if="hasEmojiPickerEnabled && !disabled"
         class="flex items-center justify-center min-h-8 min-w-8"
         :aria-label="$t('EMOJI.ARIA_LABEL')"
+        :disabled="disabled"
         @click="toggleEmojiPicker"
       >
         <FluentIcon
@@ -158,14 +186,15 @@ export default {
         />
       </button>
       <EmojiInput
-        v-if="showEmojiPicker"
+        v-if="showEmojiPicker && !disabled"
         v-on-clickaway="hideEmojiPicker"
         :on-click="emojiOnClick"
         @keydown.esc="hideEmojiPicker"
       />
       <ChatSendButton
-        v-if="showSendButton"
+        v-if="showSendButton && !disabled"
         :color="widgetColor"
+        :disabled="disabled"
         @click="handleButtonClick"
       />
     </div>

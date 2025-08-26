@@ -41,12 +41,18 @@ export default {
              this.messageContentAttributes?.npsSurveyResponse?.feedback_message;
     },
     isButtonDisabled() {
-      // Only require feedback for negative scores (0-6, detractors)
-      if (this.selectedRating !== null && this.selectedRating <= 6) {
-        return !(this.selectedRating !== null && this.feedback);
+      // For NPS ratings 0-8 - feedback is mandatory
+      if (this.selectedRating !== null && this.selectedRating <= 8) {
+        return !(this.selectedRating !== null && this.feedback && this.feedback.trim());
       }
-      // For neutral and positive scores, only rating is required
+      // For ratings 9-10 (promoters) - only rating is required
       return this.selectedRating === null;
+    },
+    requiresFeedback() {
+      return this.selectedRating !== null && this.selectedRating <= 8;
+    },
+    isFeedbackMandatory() {
+      return this.requiresFeedback && !this.isFeedbackSubmitted;
     },
     textColor() {
       return getContrastingTextColor(this.widgetColor);
@@ -104,8 +110,9 @@ export default {
     selectRating(rating) {
       this.selectedRating = rating.value;
       
-      // Auto-submit for positive ratings (7-10), require feedback for negative (0-6)
-      if (this.selectedRating >= 7) {
+      // Auto-submit for positive ratings (9-10, promoters)
+      // Don't auto-submit for ratings 0-8 - require feedback
+      if (this.selectedRating >= 9) {
         this.onSubmit();
       }
     },
@@ -159,17 +166,22 @@ export default {
 
       </div>
 
-      <!-- Feedback - Only show for negative scores (0-6) -->
-      <div v-if="selectedRating !== null && selectedRating <= 6" class="space-y-2">
+      <!-- Feedback - Show for all ratings (mandatory for 0-8, optional for 9-10) -->
+      <div v-if="selectedRating !== null" class="space-y-2">
         <label class="text-sm font-medium text-slate-700 dark:text-slate-300">
           {{ $t('NPS.FEEDBACK_LABEL') }}
+          <span v-if="requiresFeedback" class="text-red-500">*</span>
         </label>
         <textarea
           v-model="feedback"
-          :placeholder="$t('NPS.FEEDBACK_PLACEHOLDER')"
+          :placeholder="requiresFeedback ? ($t('NPS.FEEDBACK_MANDATORY_PLACEHOLDER') || $t('NPS.FEEDBACK_PLACEHOLDER')) : $t('NPS.FEEDBACK_PLACEHOLDER')"
+          :class="{ 'border-red-500': requiresFeedback && !feedback }"
           class="w-full p-2 text-sm border border-slate-300 dark:border-slate-500 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           rows="3"
         />
+        <div v-if="requiresFeedback && !feedback" class="text-red-500 text-xs">
+          {{ $t('NPS.FEEDBACK_REQUIRED') || 'Feedback is required for this rating' }}
+        </div>
       </div>
 
       <!-- Submit Button -->

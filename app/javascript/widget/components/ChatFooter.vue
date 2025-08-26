@@ -30,6 +30,7 @@ export default {
       conversationSize: 'conversation/getConversationSize',
       currentUser: 'contacts/getCurrentUser',
       isWidgetStyleFlat: 'appConfig/isWidgetStyleFlat',
+      allMessages: 'conversation/getConversation',
     }),
     textColor() {
       return getContrastingTextColor(this.widgetColor);
@@ -50,6 +51,85 @@ export default {
         this.inReplyTo && (this.inReplyTo.content || this.inReplyTo.attachments)
       );
     },
+    hasPendingSurveyFeedback() {
+      if (!this.allMessages || Object.keys(this.allMessages).length === 0) {
+        return false;
+      }
+      
+      const messages = Object.values(this.allMessages);
+      return messages.some(message => {
+        // Check for unanswered CSAT surveys
+        if (message.content_type === 'input_csat') {
+          const submittedValues = message.content_attributes?.submitted_values;
+          const csatResponse = submittedValues?.csat_survey_response;
+          
+          // If no rating provided at all, survey is pending
+          if (!csatResponse?.rating) {
+            return true;
+          }
+          
+          // If rating 1-3 provided but no feedback, survey is pending
+          if (csatResponse.rating <= 3 && !csatResponse.feedback_message) {
+            return true;
+          }
+        }
+        
+        // Check for unanswered NPS surveys
+        if (message.content_type === 'input_nps') {
+          const submittedValues = message.content_attributes?.submitted_values;
+          const npsResponse = submittedValues?.nps_survey_response;
+          
+          // If no rating provided at all, survey is pending
+          if (npsResponse?.rating === undefined || npsResponse?.rating === null) {
+            return true;
+          }
+          
+          // If rating 0-8 provided but no feedback, survey is pending
+          if (npsResponse.rating <= 8 && !npsResponse.feedback_message) {
+            return true;
+          }
+        }
+        
+        return false;
+      });
+    },
+    isMessageSendingDisabled() {
+      return this.hideReplyBox || this.hasPendingSurveyFeedback;
+    },
+    disabledMessage() {
+      if (this.hasPendingSurveyFeedback) {
+        // Check what type of survey is pending
+        const messages = Object.values(this.allMessages || {});
+        for (const message of messages) {
+          if (message.content_type === 'input_csat') {
+            const submittedValues = message.content_attributes?.submitted_values;
+            const csatResponse = submittedValues?.csat_survey_response;
+            
+            if (!csatResponse?.rating) {
+              return this.$t('CSAT_RATING_REQUIRED') || 'Please provide a rating to continue';
+            }
+            if (csatResponse.rating <= 3 && !csatResponse.feedback_message) {
+              return this.$t('CSAT_FEEDBACK_REQUIRED') || 'Please provide feedback for your rating to continue';
+            }
+          }
+          
+          if (message.content_type === 'input_nps') {
+            const submittedValues = message.content_attributes?.submitted_values;
+            const npsResponse = submittedValues?.nps_survey_response;
+            
+            if (npsResponse?.rating === undefined || npsResponse?.rating === null) {
+              return this.$t('NPS_RATING_REQUIRED') || 'Please provide a rating to continue';
+            }
+            if (npsResponse.rating <= 8 && !npsResponse.feedback_message) {
+              return this.$t('NPS_FEEDBACK_REQUIRED') || 'Please provide feedback for your rating to continue';
+            }
+          }
+        }
+        
+        return this.$t('SURVEY_FEEDBACK_REQUIRED') || 'Please complete the survey before sending new messages';
+      }
+      return '';
+    },
   },
   mounted() {
     emitter.on(BUS_EVENTS.TOGGLE_REPLY_TO_MESSAGE, this.toggleReplyTo);
@@ -65,6 +145,11 @@ export default {
       'clearConversationAttributes',
     ]),
     async handleSendMessage(content) {
+      // Prevent sending if there's pending survey feedback
+      if (this.hasPendingSurveyFeedback) {
+        return;
+      }
+      
       await this.sendMessage({
         content,
         replyTo: this.inReplyTo ? this.inReplyTo.id : null,
@@ -77,6 +162,11 @@ export default {
       }
     },
     async handleSendAttachment(attachment) {
+      // Prevent sending if there's pending survey feedback
+      if (this.hasPendingSurveyFeedback) {
+        return;
+      }
+      
       await this.sendAttachment({
         attachment,
         replyTo: this.inReplyTo ? this.inReplyTo.id : null,
@@ -130,8 +220,18 @@ export default {
       :in-reply-to="inReplyTo"
       @dismiss="inReplyTo = null"
     />
+    
+    <!-- Show feedback required message when surveys are pending -->
+    <div v-if="hasPendingSurveyFeedback" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 mb-2 mx-3">
+      <p class="text-red-600 dark:text-red-400 text-sm text-center">
+        {{ disabledMessage }}
+      </p>
+    </div>
+    
     <ChatInputWrap
       class="shadow-sm"
+      :disabled="hasPendingSurveyFeedback"
+      :disabled-message="disabledMessage"
       :on-send-message="handleSendMessage"
       :on-send-attachment="handleSendAttachment"
     />

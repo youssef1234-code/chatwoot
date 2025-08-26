@@ -10,6 +10,13 @@ class CsatSurveys::ResponseBuilder
 
     return if rating.blank?
 
+    # Validate that feedback is provided when mandatory (ratings 1-3: Poor, Fair, Average)
+    if rating <= 3 && feedback_message.blank?
+      Rails.logger.warn "CSAT rating #{rating} requires feedback but none provided"
+      return
+    end
+
+    # Allow optional feedback for ratings 4-5, or proceed with mandatory feedback for ratings 1-3
     process_csat_response(conversation, rating, feedback_message)
   end
 
