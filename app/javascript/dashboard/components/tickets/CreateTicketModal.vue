@@ -144,7 +144,7 @@
                 color="blue"
                 size="small"
                 :loading="isGeneratingWithAI"
-                :disabled="isLoading"
+                :disabled="isLoading || isSubmitting"
                 @click="generateTitleAndDescriptionWithAI"
                 class="w-full"
               >
@@ -167,14 +167,14 @@
             slate
             :label="$t('TICKETS.CANCEL')"
             @click="onClose"
-            :disabled="isLoading"
+            :disabled="isLoading || isSubmitting"
           />
 
           <Button
             blue
             :label="$t('TICKETS.CREATE_TICKET')"
-            :loading="isLoading"
-            :disabled="!ticketForm.title.trim() || !ticketForm.description.trim() || !ticketForm.category.trim()"
+            :loading="isLoading || isSubmitting"
+            :disabled="!ticketForm.title.trim() || !ticketForm.description.trim() || !ticketForm.category.trim() || isSubmitting"
             @click="createTicket"
           />
         </div>
@@ -229,6 +229,8 @@ const ticketForm = ref({
 const isLoading = ref(false);
 const isGeneratingWithAI = ref(false);
 const errors = ref({});
+const isSubmitting = ref(false);
+const lastSubmissionTime = ref(0);
 
 const currentAccount = computed(() => {
   const accountId = store.getters.getCurrentAccountId;
@@ -276,7 +278,16 @@ const createTicket = async () => {
     return;
   }
 
+  // Prevent double submission with debouncing
+  const now = Date.now();
+  if (isSubmitting.value || (now - lastSubmissionTime.value < 2000)) {
+    console.log('Preventing duplicate submission');
+    return;
+  }
+
   isLoading.value = true;
+  isSubmitting.value = true;
+  lastSubmissionTime.value = now;
   errors.value = {};
 
   try {
@@ -298,12 +309,16 @@ const createTicket = async () => {
     useAlert(t("TICKETS.CREATE_ERROR"));
   } finally {
     isLoading.value = false;
+    // Keep isSubmitting true for a short period to prevent rapid re-submission
+    setTimeout(() => {
+      isSubmitting.value = false;
+    }, 1000);
   }
 };
 
 // AI generation function for ticket title and description
 const generateTitleAndDescriptionWithAI = async () => {
-  if (isGeneratingWithAI.value || props.selectedMessageIds.length === 0) return;
+  if (isGeneratingWithAI.value || props.selectedMessageIds.length === 0 || isSubmitting.value) return;
 
   isGeneratingWithAI.value = true;
 
