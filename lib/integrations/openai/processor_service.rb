@@ -76,20 +76,26 @@ class Integrations::Openai::ProcessorService < Integrations::OpenaiBaseService
   end
 
   def build_enhancement_instructions(enhancement_options, ticket_data = {})
-    base_instruction = "#{AGENT_INSTRUCTION} You are helping to create support tickets based on conversation messages. "
+    base_instruction = "#{AGENT_INSTRUCTION} You are helping to create support tickets based on conversation messages. Your primary goal is accuracy and staying strictly focused on what the customer actually reported. Do NOT infer additional problems, add generic advice, or make assumptions beyond what is explicitly stated in the conversation."
 
     instructions = []
 
     if enhancement_options.include?('improve_title')
-      instructions << '- Create a clear, concise, and descriptive title that captures the main issue from the conversation'
+      instructions << '- Create a clear, specific, and actionable title that directly reflects the core issue mentioned by the customer. Use technical terms if mentioned. Avoid generic phrases. Keep it under 80 characters. Focus on the ACTUAL problem described, not potential solutions.'
     end
 
     if enhancement_options.include?('improve_description')
-      instructions << "- Write a comprehensive description that summarizes the customer's issue and relevant context from the conversation"
+      instructions << "- Write a focused description that:
+        • Summarizes the specific problem the customer described
+        • Includes relevant details, error messages, or technical information mentioned
+        • Maintains the customer's context and terminology
+        • Does NOT add assumptions, generic troubleshooting steps, or solutions not requested
+        • Stays strictly within the scope of what was actually reported
+        • Uses clear, professional language while preserving important user details"
     end
 
     if enhancement_options.include?('suggest_priority')
-      instructions << '- Suggest an appropriate priority level (low, medium, high, urgent) based on the issue severity'
+      instructions << build_priority_mapping_instructions
     end
 
     if enhancement_options.include?('suggest_category')
@@ -117,6 +123,21 @@ class Integrations::Openai::ProcessorService < Integrations::OpenaiBaseService
     "#{base_instruction}\n\nAnalyze the conversation messages and:\n#{instructions_text}\n\n#{response_format}"
   end
 
+  def build_priority_mapping_instructions
+    priority_mapping = {
+      'urgent' => ['Payroll', 'Billing', 'General'],
+      'high' => ['Attendance Tracking', 'Support Chat', 'Mobile Attendance'], 
+      'medium' => ['Onboarding', 'Requests', 'View Employee', 'Leave Balance', 'Attendance Schedule', 'Reports', 'Mobile App', 'Setup Role'],
+      'low' => ['Home', 'Dashboard', 'Applicant', 'Setup Organization', 'Setup Employment Settings', 'Setup Leave Management', 'Setup Request Config', 'Setup Attendance Rule', 'Setup Payroll Management', 'Setup Laws']
+    }
+
+    mapping_text = priority_mapping.map do |priority, categories|
+      "#{priority}: #{categories.join(', ')}"
+    end.join("\n")
+
+    "- Determine the priority level based on the following category-to-priority mapping. Analyze the conversation to identify which category the issue relates to, then assign the corresponding priority:\n\n#{mapping_text}\n\nIf the issue doesn't clearly fit any specific category, use 'medium' as the default priority. Focus on the actual impact described by the user rather than making assumptions."
+  end
+
   def build_response_format_instructions(enhancement_options)
     format_fields = []
 
@@ -124,7 +145,7 @@ class Integrations::Openai::ProcessorService < Integrations::OpenaiBaseService
 
     format_fields << '"description": "enhanced description text"' if enhancement_options.include?('improve_description')
 
-    format_fields << '"priority": "low|medium|high|urgent"' if enhancement_options.include?('suggest_priority')
+    format_fields << '"priority": "urgent|high|medium|low"' if enhancement_options.include?('suggest_priority')
 
     format_fields << '"category": "suggested category"' if enhancement_options.include?('suggest_category')
 
