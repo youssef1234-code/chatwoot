@@ -110,6 +110,7 @@
         }"
         class="transition-all duration-200"
         @click="$emit('ticket-click', ticket)"
+        @ticket-deleted="$emit('ticket-deleted', $event)"
       />
     </div>
   </div>
@@ -154,7 +155,7 @@ export default {
       default: () => true,
     },
   },
-  emits: ["ticket-move", "ticket-click"],
+  emits: ["ticket-move", "ticket-click", "ticket-deleted"],
   setup(props, { emit }) {
     const { t } = useI18n();
     const { draggedTicket, isDragging } = useDragState();

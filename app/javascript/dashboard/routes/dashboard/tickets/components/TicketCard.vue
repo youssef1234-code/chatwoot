@@ -96,6 +96,16 @@
             <Icon icon="i-lucide-external-link" class="w-4 h-4" />
             {{ $t("TICKETS.ACTIONS.OPEN_CONVERSATION") }}
           </button>
+          
+          <!-- Delete Button (Admin Only) -->
+          <button
+            v-if="isAdministrator"
+            class="w-full px-3 py-2 text-sm text-left hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 text-red-600 dark:text-red-400"
+            @click.stop="initiateDelete"
+          >
+            <Icon icon="i-lucide-trash-2" class="w-4 h-4" />
+            {{ $t("TICKETS.ACTIONS.DELETE_TICKET") }}
+          </button>
         </div>
       </div>
     </div>
@@ -224,6 +234,15 @@
       <!-- Created Date -->
       <span>{{ formatDate(ticket.created_at) }}</span>
     </div>
+
+    <!-- Delete Confirmation Modal -->
+    <DeleteTicketConfirmationModal
+      :show="showDeleteConfirmation"
+      :is-deleting="isDeleting"
+      :ticket="ticket"
+      @confirm="confirmDeleteTicket"
+      @cancel="cancelDelete"
+    />
   </div>
 </template>
 
@@ -231,16 +250,20 @@
 import { ref, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
+import { useStore } from "vuex";
 import { formatDistanceToNow } from "date-fns";
 import { useDragState } from "dashboard/composables/useDragState";
+import { useAdmin } from "dashboard/composables/useAdmin";
 import NextButton from "dashboard/components-next/button/Button.vue";
 import Icon from "dashboard/components-next/icon/Icon.vue";
+import DeleteTicketConfirmationModal from "dashboard/components/tickets/DeleteTicketConfirmationModal.vue";
 
 export default {
   name: "TicketCard",
   components: {
     NextButton,
     Icon,
+    DeleteTicketConfirmationModal,
   },
   props: {
     ticket: {
@@ -256,15 +279,22 @@ export default {
       default: true,
     },
   },
-  emits: ["click", "dragstart", "dragend"],
+  emits: ["click", "dragstart", "dragend", "ticket-deleted"],
   setup(props, { emit }) {
     const { t } = useI18n();
     const router = useRouter();
+    const store = useStore();
+    const { isAdmin } = useAdmin();
 
     // State
     const isDragging = ref(false);
     const showActionsMenu = ref(false);
+    const showDeleteConfirmation = ref(false);
+    const isDeleting = ref(false);
     const dragStartTime = ref(0);
+  
+    // Admin check
+    const isAdministrator = computed(() => isAdmin.value);
 
     // Computed
     const customerInfo = computed(() => {
@@ -471,16 +501,51 @@ export default {
       }
     };
 
+    // Delete functionality
+    const initiateDelete = () => {
+      showActionsMenu.value = false;
+      showDeleteConfirmation.value = true;
+    };
+
+    const cancelDelete = () => {
+      showDeleteConfirmation.value = false;
+    };
+
+    const confirmDeleteTicket = async () => {
+      isDeleting.value = true;
+      try {
+        await store.dispatch('tickets/deleteTicket', props.ticket.id);
+        showDeleteConfirmation.value = false;
+        store.dispatch('notifications/push', {
+          message: t('TICKETS.ACTIONS.DELETE_SUCCESS'),
+          type: 'success',
+        });
+        // Emit an event to parent component to handle removal from UI
+        emit('ticket-deleted', props.ticket.id);
+      } catch (error) {
+        console.error('Error deleting ticket:', error);
+        store.dispatch('notifications/push', {
+          message: t('TICKETS.ACTIONS.DELETE_ERROR'),
+          type: 'error',
+        });
+      } finally {
+        isDeleting.value = false;
+      }
+    };
+
     return {
       // State
       isDragging,
       showActionsMenu,
+      showDeleteConfirmation,
+      isDeleting,
       dragStartTime,
 
       // Computed
       customerInfo,
       jiraStatus,
       effectiveStatus,
+      isAdministrator,
 
       // Methods
       getStatusColor,
@@ -494,6 +559,9 @@ export default {
       handleKeyDown,
       openInConversation,
       openJiraIssue,
+      initiateDelete,
+      cancelDelete,
+      confirmDeleteTicket,
     };
   },
 };

@@ -3,10 +3,12 @@ import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import { useAlert } from 'dashboard/composables';
+import { useAdmin } from 'dashboard/composables/useAdmin';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import EditTicketModal from 'dashboard/components/tickets/EditTicketModal.vue';
 import EscalateToJiraModal from 'dashboard/components/tickets/EscalateToJiraModal.vue';
 import ViewTicketMessagesModal from 'dashboard/components/tickets/ViewTicketMessagesModal.vue';
+import DeleteTicketConfirmationModal from 'dashboard/components/tickets/DeleteTicketConfirmationModal.vue';
 import { formatDate } from 'shared/helpers/DateHelper';
 import { emitter } from 'shared/helpers/mitt';
 
@@ -25,10 +27,17 @@ const emit = defineEmits(['refresh']);
 
 const { t } = useI18n();
 const store = useStore();
+const { isAdmin } = useAdmin();
 const isUpdating = ref(false);
+const isDeleting = ref(false);
 const showEditModal = ref(false);
 const showEscalateModal = ref(false);
 const showViewMessagesModal = ref(false);
+const showDeleteConfirmation = ref(false);
+
+// Check if current user is administrator
+const currentUser = computed(() => store.getters.getCurrentUser);
+const isAdministrator = computed(() => isAdmin.value);
 
 const ticketTitle = computed(() => props.ticket.title || 'Untitled Ticket');
 const ticketDescription = computed(() => props.ticket.description || '');
@@ -118,6 +127,33 @@ const closeViewMessagesModal = () => {
   showViewMessagesModal.value = false;
 };
 
+const openDeleteConfirmation = () => {
+  showDeleteConfirmation.value = true;
+};
+
+const closeDeleteConfirmation = () => {
+  showDeleteConfirmation.value = false;
+};
+
+const confirmDeleteTicket = async () => {
+  isDeleting.value = true;
+  try {
+    await store.dispatch('tickets/deleteTicket', props.ticket.id);
+    useAlert(t('TICKETS.DELETE_SUCCESS'));
+    emit('refresh');
+    closeDeleteConfirmation();
+  } catch (error) {
+    console.error('Failed to delete ticket:', error);
+    if (error.response?.status === 403) {
+      useAlert(t('TICKETS.DELETE_ACCESS_DENIED'));
+    } else {
+      useAlert(t('TICKETS.DELETE_ERROR'));
+    }
+  } finally {
+    isDeleting.value = false;
+  }
+};
+
 const viewJiraIssue = () => {
   if (props.ticket.jira_url) {
     window.open(props.ticket.jira_url, '_blank');
@@ -148,11 +184,20 @@ const handleJiraIssueUpdate = (data) => {
   }
 };
 
+const handleTicketDeleted = (data) => {
+  if (data.ticket_id === props.ticket.id) {
+    console.log('TicketItem: This ticket was deleted remotely', data);
+    // Emit refresh to parent to remove this ticket from the list
+    emit('refresh');
+  }
+};
+
 onMounted(() => {
   // Listen for ticket updates
   emitter.on('tickets:ticket-updated', handleTicketUpdate);
   emitter.on('jira:ticket-auto-resolved', handleTicketUpdate);
   emitter.on('jira:issue-status-updated', handleJiraIssueUpdate);
+  emitter.on('tickets:ticket-deleted', handleTicketDeleted);
 });
 
 onUnmounted(() => {
@@ -160,6 +205,7 @@ onUnmounted(() => {
   emitter.off('tickets:ticket-updated', handleTicketUpdate);
   emitter.off('jira:ticket-auto-resolved', handleTicketUpdate);
   emitter.off('jira:issue-status-updated', handleJiraIssueUpdate);
+  emitter.off('tickets:ticket-deleted', handleTicketDeleted);
 });
 </script>
 
@@ -278,6 +324,20 @@ onUnmounted(() => {
             <i class="ri-message-3-line" />
             {{ $t('TICKETS.VIEW_MESSAGES') }}
           </NextButton>
+
+          <!-- Delete button (Admin only) -->
+          <NextButton
+            v-if="isAdministrator"
+            size="tiny"
+            variant="ghost"
+            color-scheme="danger"
+            class="hover:bg-red-50 hover:text-red-700"
+            :loading="isDeleting"
+            @click="openDeleteConfirmation"
+          >
+            <i class="ri-delete-bin-line" />
+            {{ $t('TICKETS.DELETE_TICKET') }}
+          </NextButton>
         </div>
       </div>
     </div>
@@ -297,10 +357,19 @@ onUnmounted(() => {
       @escalated="onTicketEscalated"
     />
     
-    <ViewTicketMessagesModal
+        <ViewTicketMessagesModal
       v-if="showViewMessagesModal"
       :ticket="ticket"
       @close="closeViewMessagesModal"
+    />
+
+    <!-- Delete Confirmation Modal -->
+    <DeleteTicketConfirmationModal
+      :show="showDeleteConfirmation"
+      :is-deleting="isDeleting"
+      :ticket="ticket"
+      @confirm="confirmDeleteTicket"
+      @cancel="closeDeleteConfirmation"
     />
   </div>
 </template>

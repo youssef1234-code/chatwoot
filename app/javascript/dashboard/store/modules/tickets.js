@@ -253,6 +253,25 @@ export const actions = {
     }
   },
 
+  // Convenience method for deleting tickets 
+  async deleteTicket({ commit }, ticketId) {
+    commit(types.SET_TICKETS_UI_FLAG, { isDeleting: true });
+    try {
+      await TicketsAPI.delete(ticketId);
+      commit(types.DELETE_TICKET, ticketId);
+      
+      // Note: WebSocket event will be broadcasted from the server
+      // which will trigger removeTicketFromWebSocket for other clients
+      
+      return true;
+    } catch (error) {
+      console.error('Error deleting ticket:', error);
+      throw error;
+    } finally {
+      commit(types.SET_TICKETS_UI_FLAG, { isDeleting: false });
+    }
+  },
+
   async escalateToJira({ commit }, { ticketId, jiraIssueKey }) {
     commit(types.SET_TICKETS_UI_FLAG, { isUpdating: true });
     try {
@@ -372,6 +391,12 @@ export const actions = {
     } else {
       console.log('Tickets Store: Ticket not found in store, ignoring WebSocket update');
     }
+  },
+
+  // WebSocket action to remove ticket when deleted by another user/tab
+  removeTicketFromWebSocket({ commit }, ticketId) {
+    console.log('Tickets store: Removing ticket from WebSocket', ticketId);
+    commit(types.DELETE_TICKET, ticketId);
   },
 };
 

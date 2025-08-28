@@ -349,6 +349,11 @@
       "VIEW_DETAILS": "View Details",
       "EDIT": "Edit",
       "DELETE": "Delete",
+      "DELETE_TICKET": "Delete Ticket",
+      "DELETE_CONFIRMATION": "Are you sure you want to delete this ticket?",
+      "DELETE_CONFIRMATION_MESSAGE": "This action will permanently delete the ticket and unlink it from messages. The linked JIRA issue will remain unchanged.",
+      "DELETE_SUCCESS": "Ticket deleted successfully",
+      "DELETE_ERROR": "Failed to delete ticket",
       "MARK_AS_DONE": "Mark as Done",
       "RESOLVE": "Resolve",
       "ESCALATE": "Escalate to JIRA"

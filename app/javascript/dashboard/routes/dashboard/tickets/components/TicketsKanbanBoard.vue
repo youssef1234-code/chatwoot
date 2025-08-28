@@ -32,6 +32,7 @@
       class="flex-1 min-w-80"
       @ticket-move="handleTicketMove"
       @ticket-click="handleTicketClick"
+      @ticket-deleted="handleTicketDeleted"
     />
 
     <!-- Escalation Modal -->
@@ -45,12 +46,14 @@
 </template>
 
 <script>
-import { computed, ref, watch } from "vue";
+import { computed, ref, watch, onMounted, onUnmounted } from "vue";
 import { useStore } from "vuex";
 import { useI18n } from "vue-i18n";
+import { emitter } from "shared/helpers/mitt";
 
 import KanbanColumn from "./KanbanColumn.vue";
 import EscalateToJiraModal from "dashboard/components/tickets/EscalateToJiraModal.vue";
+import Icon from "dashboard/components-next/icon/Icon.vue";
 
 import { useAlert } from "dashboard/composables";
 
@@ -59,6 +62,7 @@ export default {
   components: {
     KanbanColumn,
     EscalateToJiraModal,
+    Icon,
   },
   props: {
     tickets: {
@@ -83,6 +87,7 @@ export default {
     "refresh",
     "ticket-click",
     "ticket-escalate",
+    "ticket-deleted",
   ],
   setup(props, { emit }) {
     const store = useStore();
@@ -310,6 +315,29 @@ export default {
       emit("ticket-click", ticket);
     };
 
+    const handleTicketDeleted = (ticketId) => {
+      // The ticket should already be removed from the store by the delete action
+      // This handler can be used for any additional UI cleanup if needed
+      console.log("Ticket deleted:", ticketId);
+    };
+
+    // WebSocket event handlers for real-time updates
+    const handleTicketDeletedEvent = (data) => {
+      console.log('KanbanBoard: Received ticket deleted event', data);
+      // The ticket should already be removed from the store,
+      // but we can emit refresh to ensure UI is up to date
+      emit("refresh");
+    };
+
+    // Setup WebSocket listeners
+    onMounted(() => {
+      emitter.on('tickets:ticket-deleted', handleTicketDeletedEvent);
+    });
+
+    onUnmounted(() => {
+      emitter.off('tickets:ticket-deleted', handleTicketDeletedEvent);
+    });
+
     return {
       // State
       showEscalationModal,
@@ -332,6 +360,7 @@ export default {
       handleEscalationModalClose,
       handleEscalationConfirm,
       handleTicketClick,
+      handleTicketDeleted,
     };
   },
 };

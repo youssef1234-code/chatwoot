@@ -38,6 +38,7 @@ class ActionCableConnector extends BaseActionCableConnector {
       'jira_issue_status_updated': this.onJiraIssueStatusUpdated,
       'ticket_updated': this.onTicketUpdated,
       'ticket_created': this.onTicketCreated,
+      'ticket_deleted': this.onTicketDeleted,
     };
   }
 
@@ -271,6 +272,20 @@ class ActionCableConnector extends BaseActionCableConnector {
     emitter.emit('tickets:ticket-created', data);
     
     console.log('Ticket ActionCable: Emitted ticket creation events');
+  };
+
+  onTicketDeleted = data => {
+    console.log('Ticket ActionCable: Received ticket deletion event', data);
+    
+    // Remove ticket from the store if tickets module exists
+    if (this.app.$store.hasModule('tickets')) {
+      this.app.$store.dispatch('tickets/removeTicketFromWebSocket', data.ticket_id);
+    }
+    
+    // Emit event for ticket components to listen to
+    emitter.emit('tickets:ticket-deleted', data);
+    
+    console.log('Ticket ActionCable: Emitted ticket deletion events');
   };
 }
 

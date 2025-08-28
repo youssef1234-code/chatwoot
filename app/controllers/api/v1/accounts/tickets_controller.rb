@@ -1,6 +1,7 @@
 class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
   before_action :fetch_ticket, except: %i[index create]
   before_action :fetch_conversation, only: [:create]
+  before_action :ensure_administrator, only: [:destroy]
 
   def index
     @tickets = current_account.tickets
@@ -187,12 +188,27 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
   end
 
   def destroy
+    # Store ticket data before deletion for broadcasting
+    ticket_data = {
+      id: @ticket.id,
+      conversation_id: @ticket.conversation_id,
+      account_id: current_account.id
+    }
+
+    # Delete the ticket and its message links, but preserve JIRA issue
+    # Ticket messages will be automatically deleted due to dependent: :destroy
     @ticket.destroy!
 
-    # Create activity message in conversation
+    # Create activity message in conversation to notify about ticket deletion
     create_ticket_activity_message(:deleted)
 
+    # Broadcast ticket deletion to all connected clients
+    broadcast_ticket_deleted(ticket_data)
+
     head :no_content
+  rescue StandardError => e
+    Rails.logger.error "Error deleting ticket #{@ticket.id}: #{e.message}"
+    render json: { error: 'Failed to delete ticket' }, status: :internal_server_error
   end
 
   def escalate_to_jira
@@ -356,6 +372,12 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
   end
 
   private
+
+  def ensure_administrator
+    return if Current.account_user&.administrator?
+
+    render json: { error: 'Access denied. Administrator privileges required.' }, status: :forbidden
+  end
 
   def fetch_ticket
     @ticket = current_account.tickets.find(params[:id])
@@ -613,5 +635,22 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
     # If no linked messages, use the ticket's assigned conversation
     Rails.logger.info "No linked messages found, using ticket's assigned conversation: #{@ticket.conversation_id} for action: #{action_type}"
     @ticket.conversation
+  end
+
+  def broadcast_ticket_deleted(ticket_data)
+    # Broadcast to the account channel for real-time updates
+    Rails.logger.info "Broadcasting ticket deletion: #{ticket_data[:id]}"
+
+    ActionCable.server.broadcast(
+      "account_#{current_account.id}",
+      {
+        event: 'ticket_deleted',
+        data: {
+          ticket_id: ticket_data[:id],
+          conversation_id: ticket_data[:conversation_id],
+          account_id: ticket_data[:account_id]
+        }
+      }
+    )
   end
 end
