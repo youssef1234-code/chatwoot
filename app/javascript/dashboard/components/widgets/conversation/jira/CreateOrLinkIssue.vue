@@ -86,7 +86,7 @@ const conversationTitle = computed(() => {
     </div>
 
     <!-- Tab Content -->
-    <div class="overflow-hidden p-6">
+  <div class="flex-1 overflow-y-auto p-6">
       <CreateIssue
         v-if="isCreateTabActive"
         :conversation-id="conversationId"
@@ -107,8 +107,8 @@ const conversationTitle = computed(() => {
   
   <!-- Modal mode for standalone use -->
   <Modal v-else :show="true" @close="handleClose">
-    <div class="w-full max-w-2xl mx-auto">
-      <div class="flex flex-col h-[600px]">
+    <div class="w-full max-w-none mx-auto cw-expand-modal">
+      <div class="flex flex-col h-[70vh] cw-expand-col">
         <!-- Header -->
         <div class="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-600">
           <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
@@ -155,3 +155,19 @@ const conversationTitle = computed(() => {
     </div>
   </Modal>
 </template>
+
+<style>
+/* Only in expanded state, give more height for the Jira modal internals */
+.modal-container.expanded .cw-expand-modal .cw-expand-col {
+  height: 85vh;
+  transition: height 280ms cubic-bezier(0.4, 0.0, 0.2, 1);
+  will-change: height;
+}
+
+/* Base smooth transition for expandable elements */
+.cw-expand-col {
+  transition: height 280ms cubic-bezier(0.4, 0.0, 0.2, 1);
+  will-change: height;
+  transform: translateZ(0); /* Force GPU acceleration */
+}
+</style>

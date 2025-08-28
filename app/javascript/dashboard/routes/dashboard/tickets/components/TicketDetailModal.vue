@@ -4,8 +4,8 @@
     :on-close="() => $emit('close')"
     :close-on-backdrop-click="false"
   >
-    <div class="w-full max-w-4xl mx-auto">
-      <div class="flex flex-col h-[700px]">
+    <div class="w-full max-w-none mx-auto cw-expand-modal">
+      <div class="flex flex-col h-[70vh] cw-expand-col">
         <!-- Header -->
         <div
           class="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-600"
@@ -102,16 +102,16 @@
 
               <!-- Description -->
               <div>
-                <label class="block text-sm font-medium text-n-slate-12 mb-2">
-                  {{ $t("TICKETS.DESCRIPTION") }}
-                </label>
-                <textarea
+                <TextArea
                   v-model="editForm.description"
-                  rows="4"
-                  class="w-full px-3 py-2 border border-n-slate-6 rounded-md focus:outline-none focus:ring-2 focus:ring-n-blue-6 bg-n-slate-1 text-n-slate-12"
+                  :label="$t('TICKETS.DESCRIPTION')"
                   :placeholder="$t('TICKETS.DESCRIPTION_PLACEHOLDER')"
-                  @input="markAsChanged"
-                ></textarea>
+                  :autoHeight="true"
+                  :resize="true"
+                  :minHeight="'8rem'"
+                  :maxHeight="'60vh'"
+                  @update:modelValue="markAsChanged"
+                />
                 <p v-if="errors.description" class="mt-1 text-sm text-red-600">
                   {{ errors.description }}
                 </p>
@@ -866,6 +866,7 @@ import Button from "dashboard/components-next/button/Button.vue";
 import Icon from "dashboard/components-next/icon/Icon.vue";
 import MessageItem from "./MessageItem.vue";
 import EscalateToJiraModal from "dashboard/components/tickets/EscalateToJiraModal.vue";
+import TextArea from "dashboard/components-next/textarea/TextArea.vue";
 
 import { useAlert } from "dashboard/composables";
 import TicketsAPI from "dashboard/api/tickets";
@@ -878,6 +879,7 @@ export default {
     Icon,
     MessageItem,
     EscalateToJiraModal,
+    TextArea,
   },
   props: {
     ticket: {
@@ -1362,6 +1364,22 @@ export default {
   },
 };
 </script>
+
+<style>
+/* Only apply extra height when the base Modal is expanded */
+.modal-container.expanded .cw-expand-modal .cw-expand-col {
+  height: 85vh;
+  transition: height 280ms cubic-bezier(0.4, 0.0, 0.2, 1);
+  will-change: height;
+}
+
+/* Base smooth transition for expandable elements */
+.cw-expand-col {
+  transition: height 280ms cubic-bezier(0.4, 0.0, 0.2, 1);
+  will-change: height;
+  transform: translateZ(0); /* Force GPU acceleration */
+}
+</style>
 <style scoped>
 /* Custom scrollbar for messages */
 .overflow-y-auto::-webkit-scrollbar {

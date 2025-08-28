@@ -314,7 +314,10 @@ onMounted(() => {
         v-model="formState.description"
         :label="$t('INTEGRATION_SETTINGS.JIRA.ADD_OR_LINK.FORM.DESCRIPTION.LABEL')"
         :placeholder="$t('INTEGRATION_SETTINGS.JIRA.ADD_OR_LINK.FORM.DESCRIPTION.PLACEHOLDER')"
-        :rows="3"
+        :autoHeight="true"
+        :resize="true"
+        :minHeight="'8rem'"
+        :maxHeight="'60vh'"
       />
 
       <!-- Dropdowns -->

@@ -101,9 +101,10 @@ const onClose = () => {
     :show="true"
     :on-close="onClose"
     :close-on-backdrop-click="false"
+    :expandable="true"
   >
-    <div class="w-full max-w-4xl mx-auto">
-      <div class="flex flex-col h-[700px]">
+    <div class="w-full max-w-none mx-auto cw-expand-modal">
+      <div class="flex flex-col h-[70vh] cw-expand-col">
         <!-- Header -->
         <div class="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-600">
           <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
@@ -112,7 +113,7 @@ const onClose = () => {
         </div>
         
         <!-- Content -->
-        <div class="flex-1 overflow-y-auto p-6">
+  <div class="flex-1 overflow-y-auto p-6">
           <div class="mb-6">
             <h3 class="text-sm font-medium text-n-slate-12 mb-2">
               {{ $t('TICKETS.ESCALATING_TICKET') }}
@@ -129,7 +130,7 @@ const onClose = () => {
           </div>
 
           <!-- JIRA Integration Component -->
-          <div class="border border-n-weak rounded-lg">
+          <div class="border border-n-weak rounded-lg h-full overflow-hidden">
             <CreateOrLinkIssue
               v-if="ticket.conversation?.id"
               :conversation-id="ticket.conversation.id"
@@ -160,3 +161,19 @@ const onClose = () => {
     </div>
   </Modal>
 </template>
+
+<style>
+/* Only stretch the escalate modal internals when base Modal is expanded */
+.modal-container.expanded .cw-expand-modal .cw-expand-col {
+  height: 85vh;
+  transition: height 280ms cubic-bezier(0.4, 0.0, 0.2, 1);
+  will-change: height;
+}
+
+/* Base smooth transition for expandable elements */
+.cw-expand-col {
+  transition: height 280ms cubic-bezier(0.4, 0.0, 0.2, 1);
+  will-change: height;
+  transform: translateZ(0); /* Force GPU acceleration */
+}
+</style>

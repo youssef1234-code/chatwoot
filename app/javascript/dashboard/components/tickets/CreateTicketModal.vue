@@ -1,7 +1,7 @@
 <template>
   <Modal :show="true" :on-close="onClose" :close-on-backdrop-click="false">
-    <div class="w-full max-w-2xl mx-auto">
-      <div class="flex flex-col h-[600px]">
+    <div class="w-full max-w-none mx-auto cw-expand-modal">
+      <div class="flex flex-col h-[70vh] cw-expand-col">
         <!-- Header -->
         <div
           class="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-600"
@@ -13,7 +13,7 @@
 
         <!-- Content -->
         <div class="flex-1 overflow-y-auto p-6">
-          <form @submit.prevent class="space-y-4">
+          <form @submit.prevent class="h-full space-y-4">
             <!-- Title -->
             <div>
               <label class="block text-sm font-medium text-n-slate-12 mb-2">
@@ -33,78 +33,76 @@
 
             <!-- Description -->
             <div>
-              <label class="block text-sm font-medium text-n-slate-12 mb-2">
-                {{ $t("TICKETS.DESCRIPTION") }}
-              </label>
-              <textarea
+              <TextArea
                 v-model="ticketForm.description"
-                rows="4"
-                class="w-full px-3 py-2 border border-n-slate-6 rounded-md focus:outline-none focus:ring-2 focus:ring-n-blue-6 bg-n-slate-1 text-n-slate-12"
+                :label="$t('TICKETS.DESCRIPTION')"
                 :placeholder="$t('TICKETS.DESCRIPTION_PLACEHOLDER')"
-              ></textarea>
+                :autoHeight="true"
+                :resize="true"
+                :minHeight="'8rem'"
+                :maxHeight="'50vh'"
+              />
               <p v-if="errors.description" class="mt-1 text-sm text-red-600">
                 {{ errors.description[0] }}
               </p>
             </div>
 
-            <!-- Priority -->
-            <div>
-              <label class="block text-sm font-medium text-n-slate-12 mb-2">
-                {{ $t("TICKETS.PRIORITY.LABEL") }}
-              </label>
-              <select
-                v-model="ticketForm.priority"
-                class="w-full px-3 py-2 border border-n-slate-6 rounded-md focus:outline-none focus:ring-2 focus:ring-n-blue-6 bg-n-slate-1 text-n-slate-12"
-              >
-                <option value="low">{{ $t("TICKETS.PRIORITY.LOW") }}</option>
-                <option value="medium">
-                  {{ $t("TICKETS.PRIORITY.MEDIUM") }}
-                </option>
-                <option value="high">{{ $t("TICKETS.PRIORITY.HIGH") }}</option>
-                <option value="urgent">
-                  {{ $t("TICKETS.PRIORITY.URGENT") }}
-                </option>
-              </select>
-            </div>
-
-            <!-- Category -->
-            <div>
-              <label class="block text-sm font-medium text-n-slate-12 mb-2">
-                {{ $t("TICKETS.CATEGORY.LABEL") }}
-              </label>
-              <select
-                v-model="ticketForm.category"
-                class="w-full px-3 py-2 border border-n-slate-6 rounded-md focus:outline-none focus:ring-2 focus:ring-n-blue-6 bg-n-slate-1 text-n-slate-12"
-              >
-                <option value="">{{ $t("TICKETS.CATEGORY.SELECT") }}</option>
-                <option
-                  v-for="category in availableCategories"
-                  :key="category"
-                  :value="category"
+            <!-- Priority / Category / Feature Request -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-n-slate-12 mb-2">
+                  {{ $t("TICKETS.PRIORITY.LABEL") }}
+                </label>
+                <select
+                  v-model="ticketForm.priority"
+                  class="w-full px-3 py-2 border border-n-slate-6 rounded-md focus:outline-none focus:ring-2 focus:ring-n-blue-6 bg-n-slate-1 text-n-slate-12"
                 >
-                  {{ category }}
-                </option>
-              </select>
-              <p v-if="errors.category" class="mt-1 text-sm text-red-600">
-                {{ errors.category[0] }}
-              </p>
-            </div>
-
-            <!-- Feature Request -->
-            <div>
-              <label class="flex items-center">
-                <input
-                  v-model="ticketForm.is_feature_request"
-                  type="checkbox"
-                  class="mr-2 h-4 w-4 text-n-blue-6 focus:ring-n-blue-5 border-n-slate-6 rounded"
-                />
-                <span class="text-sm font-medium text-n-slate-12">
-                  {{ $t("TICKETS.FEATURE_REQUEST.LABEL") }}
-                </span>
-              </label>
-              <p class="mt-1 text-xs text-n-slate-10">
-                {{ $t("TICKETS.FEATURE_REQUEST.HELP_TEXT") }}
-              </p>
+                  <option value="low">{{ $t("TICKETS.PRIORITY.LOW") }}</option>
+                  <option value="medium">
+                    {{ $t("TICKETS.PRIORITY.MEDIUM") }}
+                  </option>
+                  <option value="high">{{ $t("TICKETS.PRIORITY.HIGH") }}</option>
+                  <option value="urgent">
+                    {{ $t("TICKETS.PRIORITY.URGENT") }}
+                  </option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-n-slate-12 mb-2">
+                  {{ $t("TICKETS.CATEGORY.LABEL") }}
+                </label>
+                <select
+                  v-model="ticketForm.category"
+                  class="w-full px-3 py-2 border border-n-slate-6 rounded-md focus:outline-none focus:ring-2 focus:ring-n-blue-6 bg-n-slate-1 text-n-slate-12"
+                >
+                  <option value="">{{ $t("TICKETS.CATEGORY.SELECT") }}</option>
+                  <option
+                    v-for="category in availableCategories"
+                    :key="category"
+                    :value="category"
+                  >
+                    {{ category }}
+                  </option>
+                </select>
+                <p v-if="errors.category" class="mt-1 text-sm text-red-600">
+                  {{ errors.category[0] }}
+                </p>
+              </div>
+              <div class="md:col-span-2">
+                <label class="flex items-center">
+                  <input
+                    v-model="ticketForm.is_feature_request"
+                    type="checkbox"
+                    class="mr-2 h-4 w-4 text-n-blue-6 focus:ring-n-blue-5 border-n-slate-6 rounded"
+                  />
+                  <span class="text-sm font-medium text-n-slate-12">
+                    {{ $t("TICKETS.FEATURE_REQUEST.LABEL") }}
+                  </span>
+                </label>
+                <p class="mt-1 text-xs text-n-slate-10">
+                  {{ $t("TICKETS.FEATURE_REQUEST.HELP_TEXT") }}
+                </p>
+              </div>
             </div>
 
             <!-- Selected Messages Preview -->
@@ -117,7 +115,7 @@
                 }}
               </label>
               <div
-                class="max-h-40 overflow-y-auto border border-n-slate-6 rounded-md bg-n-slate-1"
+                class="max-h-[35vh] overflow-y-auto border border-n-slate-6 rounded-md bg-n-slate-1 cw-selected-preview"
               >
                 <div
                   v-for="message in selectedMessagesPreview"
@@ -190,6 +188,7 @@ import { useAlert } from "dashboard/composables";
 import Modal from "dashboard/components/Modal.vue";
 import Button from "dashboard/components-next/button/Button.vue";
 import Icon from "dashboard/components-next/icon/Icon.vue";
+import TextArea from "dashboard/components-next/textarea/TextArea.vue";
 import OpenaiAPI from "dashboard/api/integrations/openapi";
 import { useStoreGetters, useStore } from "dashboard/composables/store";
 
@@ -453,3 +452,32 @@ const onClose = () => {
   emit("close");
 };
 </script>
+
+<style>
+/* Only when the base Modal is expanded, stretch the inner column to use more height */
+.modal-container.expanded .cw-expand-modal .cw-expand-col {
+  height: 88vh; /* near the container's 90vh, accounting for borders/animation */
+  transition: height 280ms cubic-bezier(0.4, 0.0, 0.2, 1);
+  will-change: height;
+}
+
+/* Give selected messages preview more room only when expanded */
+.modal-container.expanded .cw-expand-modal .cw-selected-preview {
+  max-height: 55vh;
+  transition: max-height 280ms cubic-bezier(0.4, 0.0, 0.2, 1);
+  will-change: max-height;
+}
+
+/* Base smooth transitions for all expandable elements */
+.cw-expand-col {
+  transition: height 280ms cubic-bezier(0.4, 0.0, 0.2, 1);
+  will-change: height;
+  transform: translateZ(0); /* Force GPU acceleration */
+}
+
+.cw-selected-preview {
+  transition: max-height 280ms cubic-bezier(0.4, 0.0, 0.2, 1);
+  will-change: max-height;
+  transform: translateZ(0); /* Force GPU acceleration */
+}
+</style>
