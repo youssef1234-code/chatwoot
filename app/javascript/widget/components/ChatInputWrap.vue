@@ -129,21 +129,22 @@ export default {
 
 <template>
   <div
-    class="relative items-center flex ltr:pl-3 rtl:pr-3 ltr:pr-2 rtl:pl-2 rounded-[7px] transition-all duration-200 bg-n-background !shadow-[0_0_0_1px,0_0_2px_3px]"
+    class="relative items-center flex ltr:pl-3 rtl:pr-3 ltr:pr-2 rtl:pl-2 rounded-[7px] transition-all duration-200 bg-n-background"
     :class="{
+      '!shadow-[0_0_0_1px,0_0_2px_3px]': !disabled,
       '!shadow-n-brand dark:!shadow-n-brand': isFocused && !disabled,
       '!shadow-n-strong dark:!shadow-n-strong': !isFocused && !disabled,
-      'opacity-50': disabled,
+  'opacity-50 !border !border-red-500 dark:!border-red-500 !shadow-none': disabled,
     }"
     @keydown.esc="hideEmojiPicker"
   >
     <!-- Disabled overlay -->
     <div
       v-if="disabled"
-      class="absolute inset-0 bg-n-background bg-opacity-80 backdrop-blur-sm rounded-[7px] flex items-center justify-center z-10 cursor-not-allowed"
+      class="absolute inset-0 bg-red-50 bg-opacity-90 dark:bg-red-900 backdrop-blur-sm rounded-[7px] !border !border-red-500 dark:!border-red-500 flex items-center justify-center z-10 cursor-not-allowed"
       :title="disabledMessage"
     >
-      <div class="text-n-slate-10 text-sm font-medium text-center px-3">
+  <div class="text-red-600 dark:text-red-400 text-sm font-medium text-center px-3" role="alert" aria-live="polite">
         {{ disabledMessage }}
       </div>
     </div>

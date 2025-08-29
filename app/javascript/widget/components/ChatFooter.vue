@@ -222,15 +222,7 @@ export default {
       @dismiss="inReplyTo = null"
     />
     
-    <!-- Show feedback required message when surveys are pending and responses are mandatory -->
-    <div v-if="responseMandatory && hasPendingSurveyFeedback" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 mb-2 mx-3">
-      <p class="text-red-600 dark:text-red-400 text-sm text-center">
-        {{ disabledMessage }}
-      </p>
-    </div>
-    
     <ChatInputWrap
-      class="shadow-sm"
       :disabled="responseMandatory && hasPendingSurveyFeedback"
       :disabled-message="disabledMessage"
       :on-send-message="handleSendMessage"
