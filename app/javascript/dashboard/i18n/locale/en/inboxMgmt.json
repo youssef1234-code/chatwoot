@@ -448,6 +448,10 @@
         "ENABLED": "Enabled",
         "DISABLED": "Disabled"
       },
+      "RESPONSE_MANDATORY": {
+        "ENABLED": "Enabled",
+        "DISABLED": "Disabled"
+      },
       "LOCK_TO_SINGLE_CONVERSATION": {
         "ENABLED": "Enabled",
         "DISABLED": "Disabled"
@@ -507,6 +511,8 @@
       "SENDER_NAME_SECTION_TEXT": "Enable/Disable showing Agent's name in email, if disabled it will show business name",
       "ENABLE_CONTINUITY_VIA_EMAIL": "Enable conversation continuity via email",
       "ENABLE_CONTINUITY_VIA_EMAIL_SUB_TEXT": "Conversations will continue over email if the contact email address is available.",
+      "RESPONSE_MANDATORY": "Make survey responses mandatory",
+      "RESPONSE_MANDATORY_SUB_TEXT": "When enabled, customers must complete CSAT and NPS surveys before sending new messages.",
       "LOCK_TO_SINGLE_CONVERSATION": "Lock to single conversation",
       "LOCK_TO_SINGLE_CONVERSATION_SUB_TEXT": "Enable or disable multiple conversations for the same contact in this inbox",
       "INBOX_UPDATE_TITLE": "Inbox Settings",

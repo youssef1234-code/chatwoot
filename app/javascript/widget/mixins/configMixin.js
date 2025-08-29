@@ -43,5 +43,14 @@ export default {
         preChatFields.filter(field => field.enabled).length > 0;
       return this.preChatFormEnabled && hasEnabledFields;
     },
+    responseMandatory() {
+      const cfg = window.chatwootWebChannel || {};
+      // Prefer camelCase key populated by show.html.erb; fall back to snake_case from API config
+      return Boolean(
+        typeof cfg.responseMandatory !== 'undefined'
+          ? cfg.responseMandatory
+          : cfg.response_mandatory
+      );
+    },
   },
 };

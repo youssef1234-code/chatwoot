@@ -7,6 +7,7 @@ import ChatInputWrap from 'widget/components/ChatInputWrap.vue';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 import { sendEmailTranscript } from 'widget/api/conversation';
 import routerMixin from 'widget/mixins/routerMixin';
+import configMixin from 'widget/mixins/configMixin';
 import { IFrameHelper } from '../helpers/utils';
 import { CHATWOOT_ON_START_CONVERSATION } from '../constants/sdkEvents';
 import { emitter } from 'shared/helpers/mitt';
@@ -17,7 +18,7 @@ export default {
     CustomButton,
     FooterReplyTo,
   },
-  mixins: [routerMixin],
+  mixins: [routerMixin, configMixin],
   data() {
     return {
       inReplyTo: null,
@@ -94,10 +95,10 @@ export default {
       });
     },
     isMessageSendingDisabled() {
-      return this.hideReplyBox || this.hasPendingSurveyFeedback;
+      return this.hideReplyBox || (this.responseMandatory && this.hasPendingSurveyFeedback);
     },
     disabledMessage() {
-      if (this.hasPendingSurveyFeedback) {
+      if (this.responseMandatory && this.hasPendingSurveyFeedback) {
         // Check what type of survey is pending
         const messages = Object.values(this.allMessages || {});
         for (const message of messages) {
@@ -145,8 +146,8 @@ export default {
       'clearConversationAttributes',
     ]),
     async handleSendMessage(content) {
-      // Prevent sending if there's pending survey feedback
-      if (this.hasPendingSurveyFeedback) {
+      // Prevent sending if there's pending survey feedback and response is mandatory
+      if (this.responseMandatory && this.hasPendingSurveyFeedback) {
         return;
       }
       
@@ -162,8 +163,8 @@ export default {
       }
     },
     async handleSendAttachment(attachment) {
-      // Prevent sending if there's pending survey feedback
-      if (this.hasPendingSurveyFeedback) {
+      // Prevent sending if there's pending survey feedback and response is mandatory
+      if (this.responseMandatory && this.hasPendingSurveyFeedback) {
         return;
       }
       
@@ -221,8 +222,8 @@ export default {
       @dismiss="inReplyTo = null"
     />
     
-    <!-- Show feedback required message when surveys are pending -->
-    <div v-if="hasPendingSurveyFeedback" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 mb-2 mx-3">
+    <!-- Show feedback required message when surveys are pending and responses are mandatory -->
+    <div v-if="responseMandatory && hasPendingSurveyFeedback" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 mb-2 mx-3">
       <p class="text-red-600 dark:text-red-400 text-sm text-center">
         {{ disabledMessage }}
       </p>
@@ -230,7 +231,7 @@ export default {
     
     <ChatInputWrap
       class="shadow-sm"
-      :disabled="hasPendingSurveyFeedback"
+      :disabled="responseMandatory && hasPendingSurveyFeedback"
       :disabled-message="disabledMessage"
       :on-send-message="handleSendMessage"
       :on-send-attachment="handleSendAttachment"

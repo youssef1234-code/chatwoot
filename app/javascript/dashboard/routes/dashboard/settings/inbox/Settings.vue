@@ -63,6 +63,7 @@ export default {
       locktoSingleConversation: false,
       allowMessagesAfterResolved: true,
       continuityViaEmail: true,
+      responseMandatory: false,
       selectedInboxName: '',
       channelWebsiteUrl: '',
       webhookUrl: '',
@@ -291,6 +292,7 @@ export default {
         this.allowMessagesAfterResolved =
           this.inbox.allow_messages_after_resolved;
         this.continuityViaEmail = this.inbox.continuity_via_email;
+        this.responseMandatory = this.inbox.response_mandatory;
         this.channelWebsiteUrl = this.inbox.website_url;
         this.channelWelcomeTitle = this.inbox.welcome_title;
         this.channelWelcomeTagline = this.inbox.welcome_tagline;
@@ -328,6 +330,7 @@ export default {
             selectedFeatureFlags: this.selectedFeatureFlags,
             reply_time: this.replyTime || 'in_a_few_minutes',
             continuity_via_email: this.continuityViaEmail,
+            response_mandatory: this.responseMandatory,
           },
         };
         if (this.avatarFile) {
@@ -637,6 +640,21 @@ export default {
                   'INBOX_MGMT.SETTINGS_POPUP.ENABLE_CONTINUITY_VIA_EMAIL_SUB_TEXT'
                 )
               }}
+            </p>
+          </label>
+
+          <label v-if="isAWebWidgetInbox" class="pb-4">
+            {{ $t('INBOX_MGMT.SETTINGS_POPUP.RESPONSE_MANDATORY') }}
+            <select v-model="responseMandatory">
+              <option :value="false">
+                {{ $t('INBOX_MGMT.EDIT.RESPONSE_MANDATORY.DISABLED') }}
+              </option>
+              <option :value="true">
+                {{ $t('INBOX_MGMT.EDIT.RESPONSE_MANDATORY.ENABLED') }}
+              </option>
+            </select>
+            <p class="pb-1 text-sm not-italic text-n-slate-11">
+              {{ $t('INBOX_MGMT.SETTINGS_POPUP.RESPONSE_MANDATORY_SUB_TEXT') }}
             </p>
           </label>
           <div class="pb-4">
