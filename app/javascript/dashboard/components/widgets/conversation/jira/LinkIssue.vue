@@ -129,8 +129,8 @@ const getStatusColor = (status) => {
 </script>
 
 <template>
-  <div class="flex flex-col p-6 min-h-[400px]">
-    <div class="flex-1">
+  <div class="flex flex-col h-full">
+    <div class="flex-1 p-6">
       <p class="text-sm text-n-slate-11 mb-4">
         {{ $t('INTEGRATION_SETTINGS.JIRA.ADD_OR_LINK.DESCRIPTION') }}
       </p>
@@ -184,7 +184,7 @@ const getStatusColor = (status) => {
     </div>
 
     <!-- Footer -->
-    <div class="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-600">
+    <div class="flex justify-end gap-3 p-6 pt-4 border-t border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800">
       <Button ghost slate :label="$t('INTEGRATION_SETTINGS.JIRA.CANCEL')" @click="onClose" />
       <Button
         blue

@@ -113,8 +113,8 @@ const onClose = () => {
         </div>
         
         <!-- Content -->
-  <div class="flex-1 overflow-y-auto p-6">
-          <div class="mb-6">
+        <div class="flex-1 flex flex-col overflow-hidden">
+          <div class="p-6 pb-4">
             <h3 class="text-sm font-medium text-n-slate-12 mb-2">
               {{ $t('TICKETS.ESCALATING_TICKET') }}
             </h3>
@@ -130,7 +130,7 @@ const onClose = () => {
           </div>
 
           <!-- JIRA Integration Component -->
-          <div class="border border-n-weak rounded-lg h-full overflow-hidden">
+          <div class="flex-1 border-t border-n-weak overflow-hidden">
             <CreateOrLinkIssue
               v-if="ticket.conversation?.id"
               :conversation-id="ticket.conversation.id"
@@ -175,5 +175,10 @@ const onClose = () => {
   transition: height 280ms cubic-bezier(0.4, 0.0, 0.2, 1);
   will-change: height;
   transform: translateZ(0); /* Force GPU acceleration */
+}
+
+/* Ensure JIRA component takes full height in embedded mode */
+.cw-expand-col .border-t {
+  min-height: 0; /* Allow flexbox to shrink */
 }
 </style>

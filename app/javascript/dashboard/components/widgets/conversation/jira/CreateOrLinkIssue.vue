@@ -66,7 +66,7 @@ const conversationTitle = computed(() => {
 </script>
 
 <template>
-  <div v-if="!showHeader" class="w-full">
+  <div v-if="!showHeader" class="w-full h-full flex flex-col">
     <!-- Embedded mode for EscalateToJiraModal -->
     <!-- Tab Navigation -->
     <div class="flex border-b border-slate-200 dark:border-slate-600">
@@ -86,7 +86,7 @@ const conversationTitle = computed(() => {
     </div>
 
     <!-- Tab Content -->
-  <div class="flex-1 overflow-y-auto p-6">
+    <div class="flex-1 overflow-y-auto">
       <CreateIssue
         v-if="isCreateTabActive"
         :conversation-id="conversationId"
