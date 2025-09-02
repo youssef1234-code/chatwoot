@@ -84,6 +84,83 @@ export default {
         }]
       };
     },
+    categoryChartData() {
+      if (!this.summaryData.category_distribution || Object.keys(this.summaryData.category_distribution).length === 0) {
+        return { labels: [], datasets: [] };
+      }
+      
+      const categoryCounts = this.summaryData.category_distribution;
+      const maxCategories = 10; // Show top 10 categories
+      
+      // Sort categories by count in descending order
+      const sortedCategories = Object.entries(categoryCounts)
+        .sort(([,a], [,b]) => b - a);
+      
+      let labels = [];
+      let data = [];
+      let otherCount = 0;
+      
+      sortedCategories.forEach(([category, count], index) => {
+        if (index < maxCategories) {
+          labels.push(category || this.$t('TICKETS_REPORTS.UNCATEGORIZED'));
+          data.push(count);
+        } else {
+          otherCount += count;
+        }
+      });
+      
+      // Add "Others" category if there are more than maxCategories
+      if (otherCount > 0) {
+        labels.push(this.$t('TICKETS_REPORTS.OTHERS'));
+        data.push(otherCount);
+      }
+      
+      return {
+        labels: labels,
+        datasets: [{
+          data: data,
+          backgroundColor: [
+            '#10B981', // emerald
+            '#3B82F6', // blue
+            '#F59E0B', // amber
+            '#EF4444', // red
+            '#8B5CF6', // violet
+            '#06B6D4', // cyan
+            '#84CC16', // lime
+            '#F97316', // orange
+            '#EC4899', // pink
+            '#6B7280', // gray
+            '#78716C', // stone - for "Others"
+          ],
+          borderWidth: 2,
+          borderColor: '#fff',
+        }]
+      };
+    },
+    priorityChartData() {
+      if (!this.summaryData.priority_distribution || Object.keys(this.summaryData.priority_distribution).length === 0) {
+        return { labels: [], datasets: [] };
+      }
+      
+      const priorityCounts = this.summaryData.priority_distribution;
+      
+      return {
+        labels: Object.keys(priorityCounts).map(priority => 
+          priority ? this.$t(`TICKETS_REPORTS.PRIORITY.${priority.toUpperCase()}`) : this.$t('TICKETS_REPORTS.UNCATEGORIZED')
+        ),
+        datasets: [{
+          data: Object.values(priorityCounts),
+          backgroundColor: [
+            '#10B981', // emerald - low
+            '#F59E0B', // amber - medium
+            '#F97316', // orange - high
+            '#EF4444', // red - urgent
+          ],
+          borderWidth: 2,
+          borderColor: '#fff',
+        }]
+      };
+    },
     chartOptions() {
       return {
         responsive: true,
@@ -170,6 +247,46 @@ export default {
           v-else-if="resolutionTrendData.datasets.length"
           :data="resolutionTrendData"
           :options="lineChartOptions"
+        />
+        <div v-else class="flex items-center justify-center h-full text-n-slate-10">
+          {{ $t('TICKETS_REPORTS.NO_DATA') }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Tickets by Category Chart -->
+    <div class="p-6 shadow outline-1 outline outline-n-container rounded-xl bg-n-solid-2">
+      <h3 class="text-lg font-medium text-n-slate-12 mb-4">
+        {{ $t('TICKETS_REPORTS.CHARTS.TICKETS_BY_CATEGORY') }}
+      </h3>
+      <div class="h-80">
+        <div v-if="isLoading" class="flex items-center justify-center h-full">
+          <div class="w-8 h-8 border-2 border-woot-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+        <DoughnutChart
+          v-else-if="categoryChartData.datasets.length"
+          :data="categoryChartData"
+          :options="chartOptions"
+        />
+        <div v-else class="flex items-center justify-center h-full text-n-slate-10">
+          {{ $t('TICKETS_REPORTS.NO_DATA') }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Tickets by Priority Chart -->
+    <div class="p-6 shadow outline-1 outline outline-n-container rounded-xl bg-n-solid-2">
+      <h3 class="text-lg font-medium text-n-slate-12 mb-4">
+        {{ $t('TICKETS_REPORTS.CHARTS.TICKETS_BY_PRIORITY') }}
+      </h3>
+      <div class="h-80">
+        <div v-if="isLoading" class="flex items-center justify-center h-full">
+          <div class="w-8 h-8 border-2 border-woot-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+        <DoughnutChart
+          v-else-if="priorityChartData.datasets.length"
+          :data="priorityChartData"
+          :options="chartOptions"
         />
         <div v-else class="flex items-center justify-center h-full text-n-slate-10">
           {{ $t('TICKETS_REPORTS.NO_DATA') }}

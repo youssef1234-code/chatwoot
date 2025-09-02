@@ -133,6 +133,9 @@ export default {
               {{ $t('TICKETS_REPORTS.TABLE.PRIORITY') }}
             </th>
             <th class="px-6 py-3 text-left text-xs font-medium text-n-slate-11 uppercase tracking-wider">
+              {{ $t('TICKETS_REPORTS.TABLE.CATEGORY') }}
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-n-slate-11 uppercase tracking-wider">
               {{ $t('TICKETS_REPORTS.TABLE.AGENT') }}
             </th>
             <th class="px-6 py-3 text-left text-xs font-medium text-n-slate-11 uppercase tracking-wider">
@@ -150,7 +153,7 @@ export default {
           <!-- Loading State -->
           <template v-if="isLoading">
             <tr v-for="n in 5" :key="n">
-              <td v-for="col in 8" :key="col" class="px-6 py-4 whitespace-nowrap">
+              <td v-for="col in 9" :key="col" class="px-6 py-4 whitespace-nowrap">
                 <div class="w-20 h-4 bg-n-slate-3 rounded animate-pulse" />
               </td>
             </tr>
@@ -186,6 +189,9 @@ export default {
               >
                 {{ ticket.priority ? $t(`TICKETS_REPORTS.PRIORITY.${ticket.priority.toUpperCase()}`) : '-' }}
               </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-n-slate-12">
+              {{ ticket.category || '-' }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-n-slate-12">
               {{ ticket.assigned_agent?.name || $t('TICKETS_REPORTS.UNASSIGNED') }}

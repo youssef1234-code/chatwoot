@@ -278,7 +278,7 @@ class Api::V1::Accounts::Reports::TicketsController < Api::V1::Accounts::BaseCon
   end
 
   def download
-    @tickets = current_account.tickets.includes(:conversation, :assigned_agent, :created_by)
+    @tickets = current_account.tickets.includes({ conversation: :contact }, :assigned_agent, :created_by)
 
     # Handle feature request filtering
     if params[:feature_requests_only] == 'true'
@@ -346,7 +346,7 @@ class Api::V1::Accounts::Reports::TicketsController < Api::V1::Accounts::BaseCon
     
     send_data csv_data, 
               filename: "tickets-report-#{Date.current.strftime('%Y%m%d')}.csv",
-              type: 'text/csv',
+              type: 'text/csv; charset=utf-8',
               disposition: 'attachment'
   end
 
@@ -359,7 +359,10 @@ class Api::V1::Accounts::Reports::TicketsController < Api::V1::Accounts::BaseCon
   def generate_tickets_csv(tickets)
     require 'csv'
     
-    CSV.generate(headers: true) do |csv|
+    # Create a BOM for proper UTF-8 encoding
+    bom = "\uFEFF"
+    
+    csv_content = CSV.generate(headers: true, encoding: 'UTF-8') do |csv|
       # CSV headers
       csv << [
         'Ticket ID',
@@ -378,7 +381,10 @@ class Api::V1::Accounts::Reports::TicketsController < Api::V1::Accounts::BaseCon
         'JIRA Issue Key',
         'JIRA Status',
         'Contact Name',
-        'Contact Email'
+        'Contact Email',
+        'Contact Organization',
+        'Linked Messages Count',
+        'Linked Messages Content'
       ]
       
       # Data rows
@@ -402,6 +408,10 @@ class Api::V1::Accounts::Reports::TicketsController < Api::V1::Accounts::BaseCon
           'Not Linked'
         end
         
+        # Get linked messages content
+        linked_messages_content = get_linked_messages_content_for_export(ticket)
+        linked_messages_count = ticket.ticket_messages.count
+        
         csv << [
           ticket.id,
           ticket.title,
@@ -419,10 +429,22 @@ class Api::V1::Accounts::Reports::TicketsController < Api::V1::Accounts::BaseCon
           ticket.jira_issue_key,
           jira_status,
           ticket.conversation&.contact&.name,
-          ticket.conversation&.contact&.email
+          ticket.conversation&.contact&.email,
+          ticket.conversation&.contact&.additional_attributes&.dig('company_name') || 
+            ticket.conversation&.contact&.additional_attributes&.dig('companyName') || 
+            ticket.conversation&.contact&.custom_attributes&.dig('company_name') || 
+            ticket.conversation&.contact&.custom_attributes&.dig('companyName') ||
+            ticket.conversation&.contact&.custom_attributes&.dig('organization') || 
+            ticket.conversation&.contact&.additional_attributes&.dig('organization') ||
+            'N/A',
+          linked_messages_count,
+          linked_messages_content
         ]
       end
     end
+    
+    # Prepend BOM for proper UTF-8 encoding in Excel
+    bom + csv_content
   end
 
   def calculate_metrics(tickets_query)
@@ -466,5 +488,31 @@ class Api::V1::Accounts::Reports::TicketsController < Api::V1::Accounts::BaseCon
   rescue ArgumentError
     # If all else fails, return nil
     nil
+  end
+
+  def get_linked_messages_content_for_export(ticket)
+    # Get linked messages for the ticket
+    linked_messages = ticket.ticket_messages
+                            .includes(message: %i[sender conversation])
+                            .joins(:message)
+                            .order('messages.created_at ASC')
+                            .map(&:message)
+
+    return '' if linked_messages.empty?
+
+    # Format messages for export with proper encoding
+    messages_content = linked_messages.map do |message|
+      sender_type = message.incoming? ? 'Customer' : 'Agent'
+      sender_name = message.sender&.name || 'Unknown'
+      timestamp = message.created_at.strftime('%Y-%m-%d %H:%M:%S')
+      content = message.content || ''
+      
+      # Clean up content for CSV export
+      clean_content = content.gsub(/[\r\n]+/, ' ').gsub(/\s+/, ' ').strip
+      
+      "[#{timestamp}] #{sender_type} (#{sender_name}): #{clean_content}"
+    end
+
+    messages_content.join(' | ')
   end
 end
