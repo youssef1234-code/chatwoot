@@ -164,6 +164,12 @@ class Ticket < ApplicationRecord
     resolved_at - created_at
   end
 
+  def safe_conversation
+    account.conversations.find_by(display_id: conversation_id)
+  rescue ActiveRecord::RecordNotFound
+    nil
+  end
+
   private
 
   def set_resolved_at

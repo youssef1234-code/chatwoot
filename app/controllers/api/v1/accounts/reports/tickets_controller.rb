@@ -428,14 +428,14 @@ class Api::V1::Accounts::Reports::TicketsController < Api::V1::Accounts::BaseCon
           resolution_time,
           ticket.jira_issue_key,
           jira_status,
-          ticket.conversation&.contact&.name,
-          ticket.conversation&.contact&.email,
-          ticket.conversation&.contact&.additional_attributes&.dig('company_name') || 
-            ticket.conversation&.contact&.additional_attributes&.dig('companyName') || 
-            ticket.conversation&.contact&.custom_attributes&.dig('company_name') || 
-            ticket.conversation&.contact&.custom_attributes&.dig('companyName') ||
-            ticket.conversation&.contact&.custom_attributes&.dig('organization') || 
-            ticket.conversation&.contact&.additional_attributes&.dig('organization') ||
+          ticket.safe_conversation&.contact&.name,
+          ticket.safe_conversation&.contact&.email,
+          ticket.safe_conversation&.contact&.additional_attributes&.dig('company_name') || 
+            ticket.safe_conversation&.contact&.additional_attributes&.dig('companyName') || 
+            ticket.safe_conversation&.contact&.custom_attributes&.dig('company_name') || 
+            ticket.safe_conversation&.contact&.custom_attributes&.dig('companyName') ||
+            ticket.safe_conversation&.contact&.custom_attributes&.dig('organization') || 
+            ticket.safe_conversation&.contact&.additional_attributes&.dig('organization') ||
             'N/A',
           linked_messages_count,
           linked_messages_content
