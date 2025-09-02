@@ -58,7 +58,14 @@ export default {
       }
       
       const messages = Object.values(this.allMessages);
-      return messages.some(message => {
+      
+      // Only check the last 10 messages to avoid blocking users due to very old surveys
+      // Sort messages by timestamp to get the most recent ones first
+      const sortedMessages = messages.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      const recentMessages = sortedMessages.slice(0, 10);
+      
+      // Check the recent messages for any pending survey responses
+      return recentMessages.some(message => {
         // Check for unanswered CSAT surveys
         if (message.content_type === 'input_csat') {
           const submittedValues = message.content_attributes?.submitted_values;
@@ -99,9 +106,15 @@ export default {
     },
     disabledMessage() {
       if (this.responseMandatory && this.hasPendingSurveyFeedback) {
-        // Check what type of survey is pending
+        // Check what type of survey is pending - only check the last 10 messages
         const messages = Object.values(this.allMessages || {});
-        for (const message of messages) {
+        
+        // Sort messages by timestamp to get the most recent ones first
+        const sortedMessages = messages.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        const recentMessages = sortedMessages.slice(0, 10);
+        
+        // Check recent messages for pending surveys and return appropriate message
+        for (const message of recentMessages) {
           if (message.content_type === 'input_csat') {
             const submittedValues = message.content_attributes?.submitted_values;
             const csatResponse = submittedValues?.csat_survey_response;
