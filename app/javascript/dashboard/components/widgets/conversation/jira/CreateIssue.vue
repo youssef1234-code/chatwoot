@@ -297,8 +297,8 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex flex-col h-full">
-    <div class="flex-1 overflow-y-auto p-6 space-y-4">
+  <div class="flex flex-col p-6 min-h-[400px]">
+    <div class="flex-1 overflow-y-auto space-y-4">
       <!-- Summary -->
       <Input
         v-model="formState.summary"
@@ -314,10 +314,8 @@ onMounted(() => {
         v-model="formState.description"
         :label="$t('INTEGRATION_SETTINGS.JIRA.ADD_OR_LINK.FORM.DESCRIPTION.LABEL')"
         :placeholder="$t('INTEGRATION_SETTINGS.JIRA.ADD_OR_LINK.FORM.DESCRIPTION.PLACEHOLDER')"
-        :autoHeight="true"
+        :rows="3"
         :resize="true"
-        :minHeight="'8rem'"
-        :maxHeight="'60vh'"
       />
 
       <!-- Dropdowns -->
@@ -389,7 +387,7 @@ onMounted(() => {
     </div>
 
     <!-- Footer -->
-    <div class="flex justify-end gap-3 p-6 pt-4 border-t border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800">
+    <div class="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-600">
       <Button ghost slate :label="$t('INTEGRATION_SETTINGS.JIRA.CANCEL')" @click="onClose" />
       <Button
         blue

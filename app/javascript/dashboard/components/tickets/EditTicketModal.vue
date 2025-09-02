@@ -1,7 +1,7 @@
 <template>
   <Modal :show="true" :on-close="onClose" :close-on-backdrop-click="false">
-    <div class="w-full max-w-2xl mx-auto cw-expand-modal">
-      <div class="flex flex-col h-[600px] cw-expand-col">
+    <div class="w-full max-w-2xl mx-auto">
+      <div class="flex flex-col h-[600px]">
         <!-- Header -->
         <div
           class="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-600"
@@ -290,19 +290,3 @@ onMounted(() => {
   loadJiraIssues();
 });
 </script>
-
-<style>
-/* Only increase height in expanded state of base Modal */
-.modal-container.expanded .cw-expand-modal .cw-expand-col {
-  height: 80vh;
-  transition: height 280ms cubic-bezier(0.4, 0.0, 0.2, 1);
-  will-change: height;
-}
-
-/* Base smooth transition for expandable elements */
-.cw-expand-col {
-  transition: height 280ms cubic-bezier(0.4, 0.0, 0.2, 1);
-  will-change: height;
-  transform: translateZ(0); /* Force GPU acceleration */
-}
-</style>
