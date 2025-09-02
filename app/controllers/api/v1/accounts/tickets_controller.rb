@@ -374,7 +374,7 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
   private
 
   def ensure_administrator
-    return if Current.account_user&.administrator?
+    return if Current.account_user&.administrator? && Current.account_user&.custom_role_id.nil?
 
     render json: { error: 'Access denied. Administrator privileges required.' }, status: :forbidden
   end

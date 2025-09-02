@@ -35,9 +35,10 @@ const showEscalateModal = ref(false);
 const showViewMessagesModal = ref(false);
 const showDeleteConfirmation = ref(false);
 
-// Check if current user is administrator
+// Check if current user is administrator and not a custom role
 const currentUser = computed(() => store.getters.getCurrentUser);
-const isAdministrator = computed(() => isAdmin.value);
+const currentCustomRoleId = computed(() => store.getters.getCurrentCustomRoleId);
+const isAdministrator = computed(() => isAdmin.value && !currentCustomRoleId.value);
 
 const ticketTitle = computed(() => props.ticket.title || 'Untitled Ticket');
 const ticketDescription = computed(() => props.ticket.description || '');

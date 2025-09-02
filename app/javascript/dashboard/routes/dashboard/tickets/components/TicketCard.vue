@@ -293,8 +293,9 @@ export default {
     const isDeleting = ref(false);
     const dragStartTime = ref(0);
   
-    // Admin check
-    const isAdministrator = computed(() => isAdmin.value);
+    // Admin check - ensure user is administrator and not a custom role
+    const currentCustomRoleId = computed(() => store.getters.getCurrentCustomRoleId);
+    const isAdministrator = computed(() => isAdmin.value && !currentCustomRoleId.value);
 
     // Computed
     const customerInfo = computed(() => {
