@@ -6,7 +6,7 @@ import { ARTICLE_EDITOR_MENU_OPTIONS } from 'dashboard/constants/editor';
 
 import HelpCenterLayout from 'dashboard/components-next/HelpCenter/HelpCenterLayout.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
-import FullEditor from 'dashboard/components/widgets/WootWriter/FullEditor.vue';
+import ArticleMarkdownEditor from 'dashboard/components/widgets/WootWriter/ArticleMarkdownEditor.vue';
 import ArticleEditorHeader from 'dashboard/components-next/HelpCenter/Pages/ArticleEditorPage/ArticleEditorHeader.vue';
 import ArticleEditorControls from 'dashboard/components-next/HelpCenter/Pages/ArticleEditorPage/ArticleEditorControls.vue';
 
@@ -130,7 +130,7 @@ const previewArticle = () => {
           @set-category="setCategoryId"
         />
       </div>
-      <FullEditor
+      <ArticleMarkdownEditor
         v-model="articleContent"
         class="py-0 pb-10 pl-4 rtl:pr-4 rtl:pl-0 h-fit"
         :placeholder="

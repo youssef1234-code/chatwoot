@@ -41,6 +41,12 @@
       "SAVED": "Saved"
     },
     "ARTICLE_EDITOR": {
+      "MODE": {
+        "WYSIWYG": "Visual",
+        "MARKDOWN": "Markdown",
+        "SPLIT": "Split View"
+      },
+      "PREVIEW_LABEL": "Preview",
       "IMAGE_UPLOAD": {
         "TITLE": "Upload image",
         "UPLOADING": "Uploading...",
