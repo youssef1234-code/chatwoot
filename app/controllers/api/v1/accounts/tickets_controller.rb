@@ -1,7 +1,114 @@
 class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
-  before_action :fetch_ticket, except: %i[index create]
+  before_action :fetch_ticket, except: %i[index create analytics kanban]
   before_action :fetch_conversation, only: [:create]
   before_action :ensure_administrator, only: [:destroy]
+
+  # GET /api/v1/accounts/:account_id/tickets/analytics
+  # Returns counts per status for Kanban header (optimized - no ticket data)
+  def analytics
+    base_scope = current_account.tickets
+
+    # Apply same filters as index
+    if params[:is_feature_request].present?
+      case params[:is_feature_request]
+      when 'true'
+        base_scope = base_scope.feature_requests
+      when 'false'
+        base_scope = base_scope.regular_tickets
+      end
+    else
+      base_scope = base_scope.regular_tickets unless params[:include_feature_requests] == 'true'
+    end
+
+    # Group by status and count
+    status_counts = base_scope.group(:status).count
+
+    # Calculate derived counts for Kanban columns
+    analytics = {
+      total: status_counts.values.sum,
+      not_done: status_counts['open'] || 0,
+      in_progress: (status_counts['in_progress'] || 0),
+      escalated: (status_counts['escalated'] || 0),
+      done: (status_counts['resolved'] || 0) + (status_counts['closed'] || 0),
+      # Include the raw status counts too
+      by_status: {
+        open: status_counts['open'] || 0,
+        in_progress: status_counts['in_progress'] || 0,
+        escalated: status_counts['escalated'] || 0,
+        resolved: status_counts['resolved'] || 0,
+        closed: status_counts['closed'] || 0
+      },
+      # Plane state breakdown for dynamic columns
+      by_plane_state: base_scope.where.not(plane_state: [nil, '']).group(:plane_state).count,
+      # Priority breakdown
+      by_priority: base_scope.group(:priority).count,
+      # JIRA escalated count
+      jira_escalated: base_scope.where.not(jira_issue_key: nil).count,
+      # Plane escalated count
+      plane_escalated: base_scope.where.not(plane_issue_id: nil).count
+    }
+
+    render json: analytics, status: :ok
+  end
+
+  # GET /api/v1/accounts/:account_id/tickets/kanban
+  # Returns paginated tickets for a specific Kanban column with cursor-based pagination
+  def kanban
+    column = params[:column] || 'all'
+    cursor = params[:cursor] # Last ticket ID for infinite scroll
+    limit = (params[:limit] || 20).to_i.clamp(1, 100)
+
+    base_scope = current_account.tickets
+                              .includes(:conversation, :contact, :created_by, :assigned_agent)
+                              .order(id: :desc)
+
+    # Apply feature request filter
+    if params[:is_feature_request].present?
+      case params[:is_feature_request]
+      when 'true'
+        base_scope = base_scope.feature_requests
+      when 'false'
+        base_scope = base_scope.regular_tickets
+      end
+    else
+      base_scope = base_scope.regular_tickets unless params[:include_feature_requests] == 'true'
+    end
+
+    # Filter by column (status)
+    status_val = params[:status]
+    plane_state_filter = params[:plane_state]
+
+    @tickets = if plane_state_filter.present?
+                 # Filter by plane_state for dynamic Plane columns
+                 base_scope.where(plane_state: plane_state_filter)
+               elsif status_val.present?
+                 # Direct status filter (supports comma-separated)
+                 statuses = status_val.split(',').map(&:strip)
+                 base_scope.where(status: statuses)
+               else
+                 base_scope
+               end
+
+    # Apply cursor-based pagination (for infinite scroll)
+    @tickets = @tickets.where('tickets.id < ?', cursor) if cursor.present?
+
+    # Get one extra to check if there are more
+    tickets_with_extra = @tickets.limit(limit + 1).to_a
+    has_more = tickets_with_extra.size > limit
+    @tickets = tickets_with_extra.take(limit)
+
+    # Get next cursor
+    next_cursor = @tickets.last&.id
+
+    render json: {
+      tickets: @tickets.map { |ticket| serialize_ticket_for_kanban(ticket) },
+      pagination: {
+        has_more: has_more,
+        next_cursor: has_more ? next_cursor : nil,
+        count: @tickets.size
+      }
+    }, status: :ok
+  end
 
   def index
     @tickets = current_account.tickets
@@ -234,6 +341,83 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
     end
   end
 
+  def escalate_to_plane
+    plane_issue_id = params[:plane_issue_id]
+    plane_issue_key = params[:plane_issue_key]
+    plane_project_id = params[:plane_project_id]
+
+    if plane_issue_id.blank? || plane_project_id.blank?
+      render json: { error: 'Plane issue ID and project ID are required' }, status: :unprocessable_entity
+      return
+    end
+
+    begin
+      @ticket.escalate_to_plane!(plane_issue_id, plane_issue_key, plane_project_id)
+
+      # Create activity message
+      create_ticket_activity_message(:escalated_to_plane)
+
+      # Broadcast ticket update to WebSocket for real-time updates
+      broadcast_ticket_updated
+
+      render :show
+    rescue StandardError => e
+      render json: { error: e.message }, status: :unprocessable_entity
+    end
+  end
+
+  def link_jira_issue
+    jira_issue_key = params[:jira_issue_key]
+    jira_url = params[:jira_url]
+
+    if jira_issue_key.blank?
+      render json: { error: 'JIRA issue key is required' }, status: :unprocessable_entity
+      return
+    end
+
+    begin
+      @ticket.update!(
+        jira_issue_key: jira_issue_key,
+        jira_url: jira_url,
+        escalated_to_jira: true
+      )
+
+      create_ticket_activity_message(:linked_to_jira)
+      broadcast_ticket_updated
+
+      render :show
+    rescue StandardError => e
+      render json: { error: e.message }, status: :unprocessable_entity
+    end
+  end
+
+  def link_plane_issue
+    plane_issue_id = params[:plane_issue_id]
+    plane_issue_key = params[:plane_issue_key]
+    plane_project_id = params[:plane_project_id]
+
+    if plane_issue_id.blank? || plane_project_id.blank?
+      render json: { error: 'Plane issue ID and project ID are required' }, status: :unprocessable_entity
+      return
+    end
+
+    begin
+      @ticket.update!(
+        plane_issue_id: plane_issue_id,
+        plane_issue_key: plane_issue_key,
+        plane_project_id: plane_project_id,
+        escalated_to_plane: true
+      )
+
+      create_ticket_activity_message(:linked_to_plane)
+      broadcast_ticket_updated
+
+      render :show
+    rescue StandardError => e
+      render json: { error: e.message }, status: :unprocessable_entity
+    end
+  end
+
   def escalate
     note = params[:note]
 
@@ -274,6 +458,28 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
     create_ticket_activity_message(:closed)
 
     # Broadcast ticket update to WebSocket for real-time updates
+    broadcast_ticket_updated
+
+    render :show
+  rescue StandardError => e
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+
+  def mark_already_working
+    @ticket.mark_already_working!
+
+    create_ticket_activity_message(:marked_already_working)
+    broadcast_ticket_updated
+
+    render :show
+  rescue StandardError => e
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+
+  def mark_bad_config
+    @ticket.mark_bad_config!
+
+    create_ticket_activity_message(:marked_bad_config)
     broadcast_ticket_updated
 
     render :show
@@ -652,5 +858,46 @@ class Api::V1::Accounts::TicketsController < Api::V1::Accounts::BaseController
         }
       }
     )
+  end
+
+  def serialize_ticket_for_kanban(ticket)
+    {
+      id: ticket.id,
+      title: ticket.title,
+      description: ticket.description,
+      status: ticket.status,
+      priority: ticket.priority,
+      is_feature_request: ticket.is_feature_request,
+      conversation_id: ticket.conversation_id,
+      account_id: ticket.account_id,
+      conversation: ticket.conversation ? {
+        id: ticket.conversation.id,
+        display_id: ticket.conversation.display_id,
+        status: ticket.conversation.status
+      } : nil,
+      contact: ticket.contact ? {
+        id: ticket.contact.id,
+        name: ticket.contact.name,
+        email: ticket.contact.email
+      } : nil,
+      assigned_agent: ticket.assigned_agent ? {
+        id: ticket.assigned_agent.id,
+        name: ticket.assigned_agent.name,
+        email: ticket.assigned_agent.email
+      } : nil,
+      created_by: ticket.created_by ? {
+        id: ticket.created_by.id,
+        name: ticket.created_by.name
+      } : nil,
+      created_at: ticket.created_at,
+      updated_at: ticket.updated_at,
+      jira_issue_key: ticket.jira_issue_key,
+      jira_status: ticket.jira_status,
+      jira_in_progress: ticket.jira_in_progress?,
+      plane_issue_id: ticket.plane_issue_id,
+      plane_issue_key: ticket.plane_issue_key,
+      plane_state: ticket.plane_state,
+      plane_in_progress: ticket.plane_in_progress?
+    }
   end
 end

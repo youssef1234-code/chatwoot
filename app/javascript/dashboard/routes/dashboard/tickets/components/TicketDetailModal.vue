@@ -51,6 +51,13 @@
                 >
                   {{ ticket.jira_issue_key }}
                 </span>
+                <!-- Plane Badge -->
+                <span
+                  v-if="ticket.plane_issue_id"
+                  class="px-2 py-1 text-xs font-medium rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200"
+                >
+                  {{ $t('TICKETS.PLANE_LINKED') }}
+                </span>
               </div>
             </div>
           </div>
@@ -390,29 +397,37 @@
 
               <!-- Escalation Section -->
               <div
-                v-if="canEscalateToJira"
+                v-if="canEscalateToJira || canEscalateToPlane"
                 class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800"
               >
-                <div class="flex items-center justify-between">
-                  <div>
-                    <h3
-                      class="text-sm font-medium text-amber-900 dark:text-amber-100 mb-1"
-                    >
-                      {{ $t("TICKETS.DETAIL.ESCALATE_TO_JIRA") }}
-                    </h3>
-                    <p class="text-xs text-amber-800 dark:text-amber-200">
-                      {{ $t("TICKETS.DETAIL.ESCALATE_DESCRIPTION") }}
-                    </p>
-                  </div>
+                <h3
+                  class="text-sm font-medium text-amber-900 dark:text-amber-100 mb-3"
+                >
+                  {{ $t("TICKETS.DETAIL.ESCALATION") }}
+                </h3>
+                <div class="flex flex-wrap items-center gap-3">
                   <Button
+                    v-if="canEscalateToJira"
                     amber
                     size="sm"
                     :loading="isEscalating"
                     @click="showEscalateModal"
                   >
-                    {{ $t("TICKETS.DETAIL.ESCALATE") }}
+                    {{ $t("TICKETS.DETAIL.ESCALATE_TO_JIRA") }}
+                  </Button>
+                  <Button
+                    v-if="canEscalateToPlane"
+                    variant="solid"
+                    color="indigo"
+                    size="sm"
+                    @click="showEscalateToPlaneModal = true"
+                  >
+                    {{ $t("TICKETS.DETAIL.ESCALATE_TO_PLANE") }}
                   </Button>
                 </div>
+                <p class="text-xs text-amber-800 dark:text-amber-200 mt-2">
+                  {{ $t("TICKETS.DETAIL.ESCALATE_DESCRIPTION") }}
+                </p>
               </div>
 
               <!-- Timestamps -->
@@ -707,6 +722,103 @@
             </div>
           </div>
 
+          <!-- Plane Integration Tab -->
+          <div v-show="activeTab === 'plane'" class="h-full overflow-y-auto p-6">
+            <div
+              v-if="ticket.plane_issue_id || canEscalateToPlane"
+              class="max-w-2xl"
+            >
+              <!-- Existing Plane Issue -->
+              <div
+                v-if="ticket.plane_issue_id"
+                class="p-6 bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-900/30 dark:to-violet-900/30 rounded-xl border-2 border-indigo-200 dark:border-indigo-700 shadow-lg"
+              >
+                <div class="flex items-center justify-between mb-6">
+                  <div class="flex items-center gap-4">
+                    <div
+                      class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-xl flex items-center justify-center shadow-md"
+                    >
+                      <Icon
+                        icon="i-lucide-plane"
+                        class="w-6 h-6 text-white"
+                      />
+                    </div>
+                    <div>
+                      <h3
+                        class="text-xl font-bold text-indigo-900 dark:text-indigo-100 flex items-center gap-2"
+                      >
+                        {{ $t('TICKETS.PLANE_LINKED') }}
+                        <span
+                          class="px-2 py-1 bg-indigo-100 dark:bg-indigo-800 text-indigo-800 dark:text-indigo-200 rounded-full text-xs font-medium"
+                        >
+                          LINKED
+                        </span>
+                      </h3>
+                      <p
+                        class="text-sm text-indigo-700 dark:text-indigo-300 flex items-center gap-1"
+                      >
+                        <Icon icon="i-lucide-link" class="w-4 h-4" />
+                        {{ $t("TICKETS.DETAIL.LINKED_PLANE_ISSUE") }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Escalate to Plane CTA -->
+              <div
+                v-else
+                class="p-6 bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-900/30 dark:to-violet-900/30 rounded-xl border-2 border-dashed border-indigo-300 dark:border-indigo-600"
+              >
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-4">
+                    <div
+                      class="w-12 h-12 bg-gradient-to-br from-indigo-400 to-violet-500 rounded-xl flex items-center justify-center shadow-md"
+                    >
+                      <Icon
+                        icon="i-lucide-plane"
+                        class="w-6 h-6 text-white"
+                      />
+                    </div>
+                    <div>
+                      <h3
+                        class="text-lg font-bold text-indigo-900 dark:text-indigo-100"
+                      >
+                        {{ $t("TICKETS.DETAIL.ESCALATE_TO_PLANE") }}
+                      </h3>
+                      <p
+                        class="text-sm text-indigo-800 dark:text-indigo-200 flex items-center gap-1"
+                      >
+                        <Icon icon="i-lucide-arrow-up-right" class="w-4 h-4" />
+                        {{ $t("TICKETS.DETAIL.ESCALATE_TO_PLANE_DESCRIPTION") }}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="solid"
+                    color="indigo"
+                    size="lg"
+                    @click="showEscalateToPlaneModal = true"
+                    class="shadow-md hover:shadow-lg transition-shadow"
+                  >
+                    <Icon icon="i-lucide-trending-up" class="w-4 h-4 mr-2" />
+                    {{ $t("TICKETS.DETAIL.ESCALATE") }}
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <div v-else class="text-center py-12">
+              <Icon
+                icon="i-lucide-plane"
+                class="w-12 h-12 text-slate-400 mx-auto mb-4"
+              />
+              <p class="text-slate-600 dark:text-slate-400">
+                {{ $t("TICKETS.DETAIL.PLANE_NOT_AVAILABLE") }}
+              </p>
+            </div>
+          </div>
+
           <!-- Conversation Tab -->
           <div
             v-show="activeTab === 'conversation'"
@@ -851,6 +963,14 @@
       @close="showEscalateToJiraModal = false"
       @escalated="handleEscalated"
     />
+
+    <!-- Escalate to Plane Modal -->
+    <EscalateToPlaneModal
+      v-if="showEscalateToPlaneModal"
+      :ticket="ticket"
+      @close="showEscalateToPlaneModal = false"
+      @escalated="handlePlaneEscalated"
+    />
   </Modal>
 </template>
 
@@ -866,8 +986,11 @@ import Button from "dashboard/components-next/button/Button.vue";
 import Icon from "dashboard/components-next/icon/Icon.vue";
 import MessageItem from "./MessageItem.vue";
 import EscalateToJiraModal from "dashboard/components/tickets/EscalateToJiraModal.vue";
+import EscalateToPlaneModal from "dashboard/components/tickets/EscalateToPlaneModal.vue";
 
 import { useAlert } from "dashboard/composables";
+import { useFunctionGetter, useMapGetter } from "dashboard/composables/store";
+import { FEATURE_FLAGS } from "dashboard/featureFlags";
 import TicketsAPI from "dashboard/api/tickets";
 
 export default {
@@ -878,6 +1001,7 @@ export default {
     Icon,
     MessageItem,
     EscalateToJiraModal,
+    EscalateToPlaneModal,
   },
   props: {
     ticket: {
@@ -894,6 +1018,26 @@ export default {
     const store = useStore();
     const { t } = useI18n();
     const router = useRouter();
+
+    // Integration availability detection
+    const currentAccountId = useMapGetter('getCurrentAccountId');
+    const isFeatureEnabledonAccount = useMapGetter('accounts/isFeatureEnabledonAccount');
+
+    const jiraIntegration = useFunctionGetter('integrations/getIntegration', 'jira');
+    const isJiraIntegrationEnabled = computed(() => jiraIntegration.value?.enabled || false);
+    const isJiraFeatureEnabled = computed(() => {
+      const fn = isFeatureEnabledonAccount.value;
+      return fn ? fn(currentAccountId.value, FEATURE_FLAGS.JIRA) : false;
+    });
+    const isJiraAvailable = computed(() => isJiraIntegrationEnabled.value || isJiraFeatureEnabled.value);
+
+    const planeIntegration = useFunctionGetter('integrations/getIntegration', 'plane');
+    const isPlaneIntegrationEnabled = computed(() => planeIntegration.value?.enabled || false);
+    const isPlaneFeatureEnabled = computed(() => {
+      const fn = isFeatureEnabledonAccount.value;
+      return fn ? fn(currentAccountId.value, FEATURE_FLAGS.PLANE) : false;
+    });
+    const isPlaneAvailable = computed(() => isPlaneIntegrationEnabled.value || isPlaneFeatureEnabled.value);
     const showAlert = useAlert();
 
     // State
@@ -908,6 +1052,7 @@ export default {
     const activeTab = ref("basic");
     const hasChanges = ref(false);
     const showEscalateToJiraModal = ref(false);
+    const showEscalateToPlaneModal = ref(false);
     const errors = ref({});
 
     // Tabs configuration
@@ -933,6 +1078,15 @@ export default {
               id: "jira",
               label: t("TICKETS.DETAIL.JIRA_INTEGRATION"),
               icon: "i-lucide-external-link",
+            },
+          ]
+        : []),
+      ...(props.ticket.plane_issue_id || canEscalateToPlane.value
+        ? [
+            {
+              id: "plane",
+              label: t("TICKETS.DETAIL.PLANE_INTEGRATION"),
+              icon: "i-lucide-plane",
             },
           ]
         : []),
@@ -987,7 +1141,17 @@ export default {
 
     const canEscalateToJira = computed(() => {
       return (
+        isJiraIntegrationEnabled.value &&
         !props.ticket.jira_issue_key &&
+        (props.ticket.status === "open" ||
+          props.ticket.status === "in_progress")
+      );
+    });
+
+    const canEscalateToPlane = computed(() => {
+      return (
+        isPlaneIntegrationEnabled.value &&
+        !props.ticket.plane_issue_id &&
         (props.ticket.status === "open" ||
           props.ticket.status === "in_progress")
       );
@@ -1247,6 +1411,25 @@ export default {
       }
     };
 
+    const handlePlaneEscalated = async (escalationData) => {
+      try {
+        showEscalateToPlaneModal.value = false;
+
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        await refreshTicket();
+
+        activeTab.value = "plane";
+
+        emit("updated", escalationData);
+        emit("refresh");
+
+        console.log("Ticket successfully escalated to Plane");
+      } catch (error) {
+        console.error("Error handling Plane escalation:", error);
+      }
+    };
+
     const resolveTicket = async () => {
       isUpdating.value = true;
       try {
@@ -1330,6 +1513,7 @@ export default {
       activeTab,
       hasChanges,
       showEscalateToJiraModal,
+      showEscalateToPlaneModal,
       errors,
 
       // Data
@@ -1341,6 +1525,7 @@ export default {
 
       // Computed
       canEscalateToJira,
+      canEscalateToPlane,
       effectiveStatus,
 
       // Methods
@@ -1356,6 +1541,7 @@ export default {
       openJiraIssue,
       showEscalateModal,
       handleEscalated,
+      handlePlaneEscalated,
       resolveTicket,
       formatDate,
     };

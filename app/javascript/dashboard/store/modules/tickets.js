@@ -286,6 +286,20 @@ export const actions = {
     }
   },
 
+  async escalateToPlane({ commit }, { ticketId, planeIssueId, planeIssueKey, planeProjectId }) {
+    commit(types.SET_TICKETS_UI_FLAG, { isUpdating: true });
+    try {
+      const response = await TicketsAPI.escalateToPlane(ticketId, { planeIssueId, planeIssueKey, planeProjectId });
+      commit(types.UPDATE_TICKET, response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error escalating ticket to Plane:', error);
+      throw error;
+    } finally {
+      commit(types.SET_TICKETS_UI_FLAG, { isUpdating: false });
+    }
+  },
+
   async escalate({ commit }, { id, note }) {
     commit(types.SET_TICKETS_UI_FLAG, { isUpdating: true });
     try {
@@ -364,6 +378,20 @@ export const actions = {
     }
   },
 
+  async linkPlaneIssue({ commit }, { ticketId, planeIssueId, planeIssueKey, planeProjectId }) {
+    commit(types.SET_TICKETS_UI_FLAG, { isUpdating: true });
+    try {
+      const response = await TicketsAPI.linkPlaneIssue(ticketId, planeIssueId, planeIssueKey, planeProjectId);
+      commit(types.UPDATE_TICKET, response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error linking Plane issue to ticket:', error);
+      throw error;
+    } finally {
+      commit(types.SET_TICKETS_UI_FLAG, { isUpdating: false });
+    }
+  },
+
   // WebSocket action for real-time ticket updates
   updateTicketFromWebSocket({ commit, state }, ticketData) {
     console.log('Tickets Store: Updating ticket from WebSocket', ticketData);
@@ -383,7 +411,12 @@ export const actions = {
         jira_status: ticketData.jira_status !== undefined ? ticketData.jira_status : existingTicket.jira_status,
         jira_in_progress: ticketData.jira_in_progress !== undefined ? ticketData.jira_in_progress : existingTicket.jira_in_progress,
         escalated_to_jira: ticketData.escalated_to_jira !== undefined ? ticketData.escalated_to_jira : existingTicket.escalated_to_jira,
-        // Preserve other fields that might not be in the WebSocket data
+        plane_issue_id: ticketData.plane_issue_id !== undefined ? ticketData.plane_issue_id : existingTicket.plane_issue_id,
+        plane_issue_key: ticketData.plane_issue_key !== undefined ? ticketData.plane_issue_key : existingTicket.plane_issue_key,
+        plane_project_id: ticketData.plane_project_id !== undefined ? ticketData.plane_project_id : existingTicket.plane_project_id,
+        plane_status: ticketData.plane_status !== undefined ? ticketData.plane_status : existingTicket.plane_status,
+        plane_in_progress: ticketData.plane_in_progress !== undefined ? ticketData.plane_in_progress : existingTicket.plane_in_progress,
+        escalated_to_plane: ticketData.escalated_to_plane !== undefined ? ticketData.escalated_to_plane : existingTicket.escalated_to_plane,
       };
       
       commit(types.UPDATE_TICKET, updatedTicket);

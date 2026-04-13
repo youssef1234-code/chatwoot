@@ -5,8 +5,13 @@ import { useAlert } from 'dashboard/composables';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import JiraAPI from 'dashboard/api/integrations/jira';
 import JiraComments from './JiraComments.vue';
+import JiraLinkedMessagesModal from './JiraLinkedMessagesModal.vue';
 import { parseJiraAPIErrorResponse } from './helpers/apiErrorHelper';
 import { emitter } from 'shared/helpers/mitt';
+import {
+  loadStatusColors,
+  getStatusHexColor,
+} from './helpers/statusColors';
 
 const props = defineProps({
   issue: {
@@ -17,73 +22,56 @@ const props = defineProps({
     type: [Number, String],
     required: true,
   },
+  secondLineProjectKey: {
+    type: String,
+    default: '',
+  },
 });
 
 const emit = defineEmits(['unlink', 'refresh']);
 
 const { t } = useI18n();
 const isRefreshing = ref(false);
+const isEscalating = ref(false);
 const showComments = ref(false);
+const showLinkedMessages = ref(false);
 const issueDetails = ref(props.issue);
+
+const linkedMessageIds = computed(() => issueDetails.value.message_ids || []);
+const hasLinkedMessages = computed(() => linkedMessageIds.value.length > 0);
 
 // Listen for real-time JIRA updates
 const handleJiraStatusUpdate = (data) => {
-  console.log('JIRA JiraIssueItem: Received status update', data);
-  console.log('JIRA JiraIssueItem: Current issue key:', issueKey.value);
-  console.log('JIRA JiraIssueItem: Event issue key:', data.issue_key);
-  console.log('JIRA JiraIssueItem: Current conversation ID:', props.conversationId);
-  console.log('JIRA JiraIssueItem: Event conversation ID:', data.conversation_id);
-  
-  // Update if this event is for this specific issue (JIRA status is global)
-  // Remove conversation ID check since the same issue can be linked to multiple conversations
   if (data.issue_key === issueKey.value) {
-    console.log('JIRA JiraIssueItem: Updating issue status from', issueDetails.value.status, 'to', data.issue_status || data.new_status);
-    
-    // Update the issue status in real-time
     const newStatus = data.issue_status || data.new_status;
     issueDetails.value = {
       ...issueDetails.value,
       status: newStatus,
       summary: data.issue_summary || issueDetails.value.summary
     };
-    console.log('JIRA JiraIssueItem: Updated issue details:', issueDetails.value);
-    
-    // Force reactivity update
     nextTick(() => {
       emit('refresh');
     });
-  } else {
-    console.log('JIRA JiraIssueItem: Ignoring status update for different issue key');
   }
 };
 
 const handleJiraCompletion = (data) => {
-  console.log('JIRA JiraIssueItem: Received completion event', data);
-  // Only update if this event is for this specific issue AND conversation
   if (data.issue_key === issueKey.value && data.conversation_id.toString() === props.conversationId.toString()) {
-    console.log('JIRA JiraIssueItem: Updating issue to completed status');
-    
-    // Update the issue to show it's completed
     const newStatus = data.issue_status || data.new_status;
     issueDetails.value = {
       ...issueDetails.value,
       status: newStatus,
       summary: data.issue_summary || issueDetails.value.summary
     };
-    
-    // Force reactivity update
     nextTick(() => {
       emit('refresh');
     });
-    
-    // Show completion notification
-    useAlert(`🎉 JIRA Issue ${data.issue_key} has been completed!`);
-  } else {
-    console.log('JIRA JiraIssueItem: Ignoring completion event for different issue/conversation');
+    useAlert(`JIRA Issue ${data.issue_key} has been completed!`);
   }
 };
 
-onMounted(() => {
+onMounted(async () => {
+  await loadStatusColors();
   emitter.on('jira:issue-status-updated', handleJiraStatusUpdate);
   emitter.on('jira:issue-completed', handleJiraCompletion);
 });
@@ -111,11 +99,28 @@ const issueStatus = computed(() => issueDetails.value.status);
 const issueAssignee = computed(() => issueDetails.value.assignee || 'Unassigned');
 const issuePriority = computed(() => issueDetails.value.priority || 'No Priority');
 const issueType = computed(() => issueDetails.value.issueType);
+const escalatedTo = computed(() => issueDetails.value.escalated_to);
+const escalatedFrom = computed(() => issueDetails.value.escalated_from);
+const isEscalated = computed(() => !!escalatedTo.value);
+const isEscalatedCopy = computed(() => !!escalatedFrom.value);
+const isSecondLineIssue = computed(() => {
+  if (!props.secondLineProjectKey || !issueKey.value) return false;
+  return issueKey.value.split('-')[0] === props.secondLineProjectKey;
+});
 const lastUpdated = computed(() => {
   if (issueDetails.value.updated) {
     return new Date(issueDetails.value.updated).toLocaleDateString();
   }
   return '';
+});
+
+const statusCustomColor = computed(() => {
+  return getStatusHexColor(issueStatus.value) || '#64748b';
+});
+
+const statusStyle = computed(() => {
+  const hex = statusCustomColor.value;
+  return { backgroundColor: hex, borderColor: hex, color: '#fff' };
 });
 
 const handleUnlink = () => {
@@ -146,6 +151,33 @@ const refreshIssue = async () => {
   }
 };
 
+const escalateIssue = async () => {
+  isEscalating.value = true;
+  try {
+    const response = await JiraAPI.escalateIssue(
+      issueKey.value,
+      props.conversationId
+    );
+    if (response.data) {
+      const newKey = response.data.new_issue_key;
+      const msg = newKey
+        ? `Issue ${issueKey.value} escalated → new issue ${newKey} created in 2nd line`
+        : `Issue ${issueKey.value} escalated to 2nd line successfully`;
+      useAlert(msg);
+      emit('refresh');
+      window.dispatchEvent(new CustomEvent('jira:issues-updated'));
+    }
+  } catch (error) {
+    const errorMessage = parseJiraAPIErrorResponse(
+      error,
+      'Failed to escalate JIRA issue'
+    );
+    useAlert(errorMessage);
+  } finally {
+    isEscalating.value = false;
+  }
+};
+
 const getPriorityColor = (priority) => {
   if (!priority || priority === 'No Priority') return 'bg-gray-600 text-white border-gray-200';
   
@@ -158,50 +190,6 @@ const getPriorityColor = (priority) => {
     'Lowest': 'bg-slate-600 text-white border-slate-200 shadow-slate-100'
   };
   return priorityColors[priority] || 'bg-gray-600 text-white border-gray-200';
-};
-
-const getStatusColor = (status) => {
-  if (!status) return 'bg-gray-600 text-white border-gray-300';
-  
-  const statusLower = status.toLowerCase();
-  console.log('JIRA JiraIssueItem: getStatusColor called with status:', statusLower);
-  const statusColors = {
-    'to do': 'bg-slate-600 text-white border-slate-300',
-    'todo': 'bg-slate-600 text-white border-slate-300',
-    'open': 'bg-slate-600 text-white border-slate-300',
-    'backlog': 'bg-slate-600 text-white border-slate-300',
-    'in progress': 'bg-blue-600 text-black border-blue-300',
-    'in development': 'bg-blue-600 text-white border-blue-300',
-    'development': 'bg-blue-600 text-white border-blue-300',
-    'active': 'bg-blue-600 text-white border-blue-300',
-    'in review': 'bg-amber-600 text-white border-amber-300',
-    'under review': 'bg-amber-600 text-white border-amber-300',
-    'review': 'bg-amber-600 text-white border-amber-300',
-    'testing': 'bg-amber-600 text-white border-amber-300',
-    'qa': 'bg-amber-600 text-white border-amber-300',
-    'done': 'bg-green-600 text-white border-green-300',
-    'closed': 'bg-green-600 text-white border-green-300',
-    'resolved': 'bg-green-600 text-white border-green-300',
-    'completed': 'bg-green-600 text-white border-green-300',
-    'waiting for support': 'bg-red-600 text-white border-red-300',
-    'waiting': 'bg-red-600 text-white border-red-300',
-    'blocked': 'bg-red-600 text-white border-red-300',
-    'on hold': 'bg-red-600 text-white border-red-300'
-  };
-  
-  // Try to find exact match first
-  if (statusColors[statusLower]) {
-    return statusColors[statusLower];
-  }
-  
-  // Try partial matches
-  for (const [key, color] of Object.entries(statusColors)) {
-    if (statusLower.includes(key) || key.includes(statusLower)) {
-      return color;
-    }
-  }
-  
-  return 'bg-gray-500 text-white border-gray-300';
 };
 </script>
 
@@ -240,7 +228,7 @@ const getStatusColor = (status) => {
         <div class="flex flex-wrap items-center gap-2 mb-4">
           <span
             class="px-3 py-1.5 rounded-full text-xs font-medium border shadow-sm"
-            :class="getStatusColor(issueStatus)"
+            :style="statusStyle"
           >
             {{ issueStatus }}
           </span>
@@ -254,6 +242,20 @@ const getStatusColor = (status) => {
             <i class="ri-user-line mr-1" />
             {{ issueAssignee }}
           </div>
+          <span
+            v-if="isEscalated"
+            class="px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-300"
+          >
+            <i class="ri-arrow-up-circle-line mr-1" />
+            Escalated → {{ escalatedTo }}
+          </span>
+          <span
+            v-if="isEscalatedCopy"
+            class="px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 border border-indigo-300"
+          >
+            <i class="ri-arrow-down-circle-line mr-1" />
+            Escalated from {{ escalatedFrom }}
+          </span>
         </div>
 
         <!-- Action buttons -->
@@ -291,7 +293,32 @@ const getStatusColor = (status) => {
             <i class="ri-external-link-line" />
             {{ $t('INTEGRATION.JIRA.VIEW_IN_JIRA') }}
           </NextButton>
+
+          <NextButton
+            v-if="!isEscalated && !isEscalatedCopy && !isSecondLineIssue"
+            size="tiny"
+            variant="ghost"
+            color-scheme="secondary"
+            :is-loading="isEscalating"
+            class="hover:bg-amber-50 hover:text-amber-700"
+            @click="escalateIssue"
+          >
+            <i class="ri-arrow-up-circle-line" />
+            Escalate to 2nd Line
+          </NextButton>
           
+          <NextButton
+            v-if="hasLinkedMessages"
+            size="tiny"
+            variant="ghost"
+            color-scheme="secondary"
+            class="hover:bg-purple-50 hover:text-purple-700"
+            @click="showLinkedMessages = true"
+          >
+            <i class="ri-message-2-line" />
+            Messages ({{ linkedMessageIds.length }})
+          </NextButton>
+
           <NextButton
             v-tooltip="$t('INTEGRATION.JIRA.UNLINK.TITLE')"
             size="tiny"
@@ -304,6 +331,7 @@ const getStatusColor = (status) => {
             {{ $t('INTEGRATION.JIRA.UNLINK.TITLE') }}
           </NextButton>
         </div>
+
       </div>
     </div>
   </div>
@@ -313,6 +341,14 @@ const getStatusColor = (status) => {
     v-if="showComments"
     :issue-key="issueKey"
     @close="showComments = false"
+  />
+
+  <!-- Linked Messages Modal -->
+  <JiraLinkedMessagesModal
+    v-if="showLinkedMessages"
+    :issue-key="issueKey"
+    :conversation-id="conversationId"
+    @close="showLinkedMessages = false"
   />
 </template>
 

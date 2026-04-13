@@ -16,7 +16,7 @@
       @click="$emit('labelClick', label)"
     />
     
-    <!-- JIRA issues as labels (displayed issues based on showAllJiraIssues state) -->
+    <!-- JIRA issues as labels -->
     <woot-label
       v-for="issue in displayedJiraIssues"
       :key="`jira-${issue.key}`"
@@ -38,7 +38,7 @@
       </template>
     </woot-label>
     
-    <!-- Show "+n more" button if there are more JIRA issues and not showing all -->
+    <!-- Show "+n more" button for JIRA issues -->
     <button
       v-if="hasMoreJiraIssues"
       type="button"
@@ -49,12 +49,54 @@
       +{{ remainingJiraCount }} more
     </button>
 
-    <!-- Show "Show less" button if showing all issues and there are more than maxJiraLabels -->
     <button
       v-if="showAllJiraIssues && jiraIssues.length > maxJiraLabels"
       type="button"
       class="inline-flex items-center px-2 py-1 text-xs font-medium text-slate-600 dark:text-slate-400 bg-slate-50/70 dark:bg-slate-800/30 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-md transition-all duration-200 cursor-pointer border border-slate-200/60 dark:border-slate-700/60 hover:border-slate-300 dark:hover:border-slate-600"
       @click="toggleShowAllJiraIssues"
+    >
+      <i class="i-lucide-chevron-up text-xs mr-1"></i>
+      Show less
+    </button>
+
+    <!-- Plane issues as labels -->
+    <woot-label
+      v-for="issue in displayedPlaneIssues"
+      :key="`plane-${issue.key}`"
+      :title="issue.key"
+      :description="issue.name || issue.summary || ''"
+      :color="getPlaneStateColor(issue.state_name, issue.state_color)"
+      variant="smooth"
+      size="small"
+      show-close
+      class="cursor-pointer plane-issue-label"
+      @click="handlePlaneLabelClick(issue, $event)"
+      @remove="unlinkPlaneIssue(issue)"
+    >
+      <template #default>
+        <div class="flex items-center gap-1">
+          <i class="i-lucide-layers text-xs opacity-70"></i>
+          <span class="text-xs font-medium">{{ issue.key }}</span>
+        </div>
+      </template>
+    </woot-label>
+
+    <!-- Show "+n more" button for Plane issues -->
+    <button
+      v-if="hasMorePlaneIssues"
+      type="button"
+      class="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/50 hover:bg-blue-200 dark:hover:bg-blue-800/60 rounded-md transition-all duration-200 cursor-pointer border border-blue-300 dark:border-blue-700 hover:border-blue-400 dark:hover:border-blue-600"
+      @click="toggleShowAllPlaneIssues"
+    >
+      <i class="i-lucide-chevron-down text-xs mr-1"></i>
+      +{{ remainingPlaneCount }} more
+    </button>
+
+    <button
+      v-if="showAllPlaneIssues && planeIssues.length > maxPlaneLabels"
+      type="button"
+      class="inline-flex items-center px-2 py-1 text-xs font-medium text-slate-600 dark:text-slate-400 bg-slate-50/70 dark:bg-slate-800/30 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-md transition-all duration-200 cursor-pointer border border-slate-200/60 dark:border-slate-700/60 hover:border-slate-300 dark:hover:border-slate-600"
+      @click="toggleShowAllPlaneIssues"
     >
       <i class="i-lucide-chevron-up text-xs mr-1"></i>
       Show less
@@ -66,13 +108,16 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted, onUnmounted } from 'vue';
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 import { useMapGetter } from 'dashboard/composables/store';
 import JiraAPI from 'dashboard/api/integrations/jira';
+import { loadStatusColors, getStatusHexColor } from './jira/helpers/statusColors';
+import PlaneAPI from 'dashboard/api/integrations/plane';
 import { parseJiraAPIErrorResponse } from './jira/helpers/apiErrorHelper';
 import { emitter } from 'shared/helpers/mitt';
+import { usePlaneIssues, getPlaneStateColor } from 'dashboard/composables/usePlaneIssues';
 
 const { t } = useI18n();
 
@@ -85,6 +130,10 @@ const props = defineProps({
     type: Number,
     default: 2,
   },
+  maxPlaneLabels: {
+    type: Number,
+    default: 2,
+  },
 });
 
 const emit = defineEmits(['labelClick']);
@@ -92,7 +141,14 @@ const emit = defineEmits(['labelClick']);
 const accountLabels = useMapGetter('labels/getLabels');
 const jiraIssues = ref([]);
 const showAllJiraIssues = ref(false);
+const showAllPlaneIssues = ref(false);
 const maxJiraLabels = computed(() => props.maxJiraLabels);
+const maxPlaneLabels = computed(() => props.maxPlaneLabels);
+
+// Single source of truth for Plane issues — shared with IssuesList/PlaneLinkedIssuesDisplay
+const { issues: planeIssues, removeIssue: removePlaneIssue } = usePlaneIssues(
+  computed(() => props.conversation.id)
+);
 
 // Get complete label objects from the store based on conversation label names
 const conversationLabels = computed(() => {
@@ -110,60 +166,13 @@ const conversationLabels = computed(() => {
   });
 });
 
-// Function to get status-based color for JIRA issues
+// Get status-based color for JIRA issues from shared config
 const getJiraStatusColor = (status) => {
-  if (!status) {
-    console.log('JIRA ConversationLabels: getJiraStatusColor - no status, returning default blue');
-    return '#0052CC'; // Default JIRA blue
-  }
-  
-  const statusLower = status.toLowerCase();
-  console.log('JIRA ConversationLabels: getJiraStatusColor called with status:', statusLower);
-  
-  const statusColors = {
-    'to do': '#64748b',
-    'todo': '#64748b',
-    'open': '#64748b',
-    'backlog': '#64748b',
-    'in progress': '#2563eb',
-    'in development': '#2563eb',
-    'development': '#2563eb',
-    'active': '#2563eb',
-    'in review': '#d97706',
-    'under review': '#d97706',
-    'review': '#d97706',
-    'testing': '#d97706',
-    'qa': '#d97706',
-    'done': '#16a34a',
-    'closed': '#16a34a',
-    'resolved': '#16a34a',
-    'completed': '#16a34a',
-    'waiting for support': '#dc2626',
-    'waiting': '#dc2626',
-    'blocked': '#dc2626',
-    'on hold': '#dc2626'
-  };
-  
-  // Try to find exact match first
-  if (statusColors[statusLower]) {
-    console.log(`JIRA ConversationLabels: Found exact match for '${statusLower}' -> ${statusColors[statusLower]}`);
-    return statusColors[statusLower];
-  }
-  
-  // Try partial matches
-  for (const [key, color] of Object.entries(statusColors)) {
-    if (statusLower.includes(key) || key.includes(statusLower)) {
-      console.log(`JIRA ConversationLabels: Found partial match for '${statusLower}' with '${key}' -> ${color}`);
-      return color;
-    }
-  }
-  
-  console.log(`JIRA ConversationLabels: No match found for '${statusLower}', returning default blue`);
-  return '#0052CC'; // Default JIRA blue
+  return getStatusHexColor(status) || '#64748b';
 };
 
 const hasLabelsOrIssues = computed(() => {
-  return conversationLabels.value.length > 0 || jiraIssues.value.length > 0;
+  return conversationLabels.value.length > 0 || jiraIssues.value.length > 0 || planeIssues.value.length > 0;
 });
 
 const hasMoreJiraIssues = computed(() => {
@@ -248,7 +257,6 @@ const toggleShowAllJiraIssues = () => {
 };
 
 const openAllJiraIssues = () => {
-  // Emit event to open JIRA issues in sidebar or modal
   const event = new CustomEvent('jira:open-all-issues', {
     detail: { conversationId: props.conversation.id }
   });
@@ -261,70 +269,97 @@ const handleJiraIssuesUpdated = () => {
 
 // Handle real-time JIRA status updates
 const handleJiraStatusUpdate = (data) => {
-  console.log('JIRA ConversationLabels: Received status update', data);
-  
-  // Check if any of our JIRA issues match the updated issue
   const issueIndex = jiraIssues.value.findIndex(issue => issue.key === data.issue_key);
-  
   if (issueIndex !== -1) {
-    console.log('JIRA ConversationLabels: Updating issue status in conversation labels', {
-      issueKey: data.issue_key,
-      oldStatus: jiraIssues.value[issueIndex].status,
-      newStatus: data.issue_status || data.new_status,
-      conversationId: props.conversation.id
-    });
-    
-    // Update the status of the specific issue
     jiraIssues.value[issueIndex] = {
       ...jiraIssues.value[issueIndex],
       status: data.issue_status || data.new_status,
       summary: data.issue_summary || jiraIssues.value[issueIndex].summary
     };
-    
-    console.log('JIRA ConversationLabels: Updated issue:', jiraIssues.value[issueIndex]);
-  } else {
-    console.log('JIRA ConversationLabels: Issue not found in current conversation labels', data.issue_key);
   }
 };
 
 const handleJiraCompletion = (data) => {
-  console.log('JIRA ConversationLabels: Received completion event', data);
-  
-  // Find and update the completed issue (regardless of conversation ID since JIRA status is global)
   const issueIndex = jiraIssues.value.findIndex(issue => issue.key === data.issue_key);
-  
   if (issueIndex !== -1) {
-    console.log('JIRA ConversationLabels: Updating completed issue in conversation labels', {
-      issueKey: data.issue_key,
-      oldStatus: jiraIssues.value[issueIndex].status,
-      newStatus: data.issue_status || data.new_status,
-      conversationId: props.conversation.id,
-      eventConversationId: data.conversation_id
-    });
-    
     jiraIssues.value[issueIndex] = {
       ...jiraIssues.value[issueIndex],
       status: data.issue_status || data.new_status,
       summary: data.issue_summary || jiraIssues.value[issueIndex].summary
     };
-    
-    console.log('JIRA ConversationLabels: Updated completed issue:', jiraIssues.value[issueIndex]);
-  } else {
-    console.log('JIRA ConversationLabels: Completed issue not found in current conversation labels', data.issue_key);
   }
 };
 
-onMounted(() => {
+// ---- Plane issue methods ----
+// Colors come from the centralized composable — no local map needed
+const getPlaneStatusColor = (stateName) => getPlaneStateColor(stateName);
+
+const hasMorePlaneIssues = computed(() => {
+  return !showAllPlaneIssues.value && planeIssues.value.length > maxPlaneLabels.value;
+});
+
+const displayedPlaneIssues = computed(() => {
+  return showAllPlaneIssues.value
+    ? planeIssues.value
+    : planeIssues.value.slice(0, maxPlaneLabels.value);
+});
+
+const remainingPlaneCount = computed(() => {
+  return planeIssues.value.length - maxPlaneLabels.value;
+});
+
+const openPlaneIssue = (issue) => {
+  if (issue.url) {
+    window.open(issue.url, '_blank');
+  }
+};
+
+const unlinkPlaneIssue = async (issue) => {
+  try {
+    await PlaneAPI.unlinkIssue(issue.project_id, issue.id, props.conversation.id);
+    removePlaneIssue(issue.id);
+    window.dispatchEvent(new CustomEvent('plane:issues-updated'));
+    useAlert(t('INTEGRATION_SETTINGS.PLANE.UNLINK.SUCCESS'));
+  } catch (error) {
+    console.error('Failed to unlink Plane issue:', error);
+    useAlert(t('INTEGRATION_SETTINGS.PLANE.UNLINK.ERROR'));
+  }
+};
+
+const handlePlaneLabelClick = (issue, event) => {
+  const isCloseButton = event.target.closest('.label-close--button') ||
+                       event.target.closest('.close--icon');
+  if (!isCloseButton) {
+    openPlaneIssue(issue);
+  }
+};
+
+const toggleShowAllPlaneIssues = () => {
+  showAllPlaneIssues.value = !showAllPlaneIssues.value;
+};
+
+// Re-load JIRA issues when conversation changes (DynamicScroller recycles components)
+watch(
+  () => props.conversation.id,
+  (newId, oldId) => {
+    if (newId !== oldId) {
+      jiraIssues.value = [];
+      loadJiraIssues();
+    }
+  }
+);
+
+// Lifecycle — only JIRA needs manual event listeners (Plane is handled by usePlaneIssues)
+onMounted(async () => {
+  await loadStatusColors();
   loadJiraIssues();
   window.addEventListener('jira:issues-updated', handleJiraIssuesUpdated);
-  // Listen for real-time JIRA status updates
   emitter.on('jira:issue-status-updated', handleJiraStatusUpdate);
   emitter.on('jira:issue-completed', handleJiraCompletion);
 });
 
 onUnmounted(() => {
   window.removeEventListener('jira:issues-updated', handleJiraIssuesUpdated);
-  // Clean up real-time event listeners
   emitter.off('jira:issue-status-updated', handleJiraStatusUpdate);
   emitter.off('jira:issue-completed', handleJiraCompletion);
 });

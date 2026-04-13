@@ -3,10 +3,13 @@
 # Table name: jira_issue_links
 #
 #  id                            :bigint           not null, primary key
+#  escalated_from                :string
+#  escalated_to                  :string
 #  issue_key                     :string           not null
 #  last_known_status             :string
 #  last_status_check_at          :datetime
 #  linked_at                     :datetime         not null
+#  message_ids                   :jsonb
 #  webhook_notifications_enabled :boolean          default(TRUE)
 #  created_at                    :datetime         not null
 #  updated_at                    :datetime         not null
@@ -46,7 +49,7 @@ class JiraIssueLink < ApplicationRecord
   scope :with_notifications_enabled, -> { where(webhook_notifications_enabled: true) }
   scope :stale_status_check, -> { where('last_status_check_at IS NULL OR last_status_check_at < ?', 30.minutes.ago) }
 
-  def self.link_issue(conversation, issue_key, comment_id: nil, user: nil)
+  def self.link_issue(conversation, issue_key, comment_id: nil, user: nil, message_ids: [])
     create!(
       conversation: conversation,
       account: conversation.account,
@@ -54,6 +57,7 @@ class JiraIssueLink < ApplicationRecord
       comment_id: comment_id,
       linked_at: Time.current,
       user: user,
+      message_ids: message_ids || [],
       webhook_notifications_enabled: true
     )
   end
@@ -76,10 +80,14 @@ class JiraIssueLink < ApplicationRecord
   end
 
   def update_status!(new_status)
-    update!(
+    attrs = {
       last_known_status: new_status,
       last_status_check_at: Time.current
-    )
+    }
+    # Re-enable webhook notifications when issue moves to a non-final status
+    # so that the next transition to a final status triggers a notification again
+    attrs[:webhook_notifications_enabled] = true unless completed_status?(new_status)
+    update!(attrs)
   end
 
   def status_changed?(new_status)
@@ -89,11 +97,28 @@ class JiraIssueLink < ApplicationRecord
   def completed_status?(status = last_known_status)
     return false if status.blank?
     
-    completion_statuses = ['Done', 'Resolved', 'Closed', 'Complete', 'Completed']
-    completion_statuses.any? { |completion_status| status.downcase.include?(completion_status.downcase) }
+    # Try to use configurable statuses from the account's JIRA integration
+    configured_statuses = configured_final_statuses
+    configured_statuses.any? { |completion_status| status.downcase.include?(completion_status.downcase) }
   end
 
   def needs_status_check?
     last_status_check_at.nil? || last_status_check_at < 30.minutes.ago
+  end
+
+  private
+
+  def configured_final_statuses
+    hook = account&.hooks&.find_by(app_id: 'jira')
+    return %w[Done Resolved Closed Complete Completed] unless hook
+
+    statuses = hook.settings&.dig('final_statuses')
+    if statuses.is_a?(String)
+      statuses.split(',').map(&:strip).reject(&:blank?)
+    elsif statuses.is_a?(Array)
+      statuses.map(&:strip).reject(&:blank?)
+    else
+      %w[Done Resolved Closed Complete Completed Canceled Solved]
+    end
   end
 end

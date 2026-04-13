@@ -371,6 +371,49 @@
               </div>
             </div>
           </div>
+
+          <!-- Plane Filter -->
+          <div class="relative min-w-40">
+            <label class="block text-sm font-medium text-n-slate-10 mb-1">
+              {{ $t('TICKETS.TRACKING.PLANE_FILTER') }}
+            </label>
+            <div class="relative">
+              <button
+                type="button"
+                class="w-full px-3 py-2 border border-n-weak rounded-lg bg-white dark:bg-n-slate-1 text-left focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                @click="showPlaneDropdown = !showPlaneDropdown"
+              >
+                <span v-if="selectedPlaneStatus?.length === 0" class="text-n-slate-9">
+                  {{ $t('TICKETS.TRACKING.PLANE_FILTER') }}
+                </span>
+                <span v-else class="text-n-slate-12">
+                  {{ getPlaneFilterLabel() }}
+                </span>
+                <Icon icon="i-lucide-chevron-down" class="absolute right-2 top-2.5 w-4 h-4" />
+              </button>
+              
+              <div
+                v-if="showPlaneDropdown"
+                v-on-clickaway="() => showPlaneDropdown = false"
+                class="absolute z-10 w-full mt-1 bg-white dark:bg-n-slate-1 border border-n-weak rounded-lg shadow-lg py-1 max-h-60 overflow-y-auto"
+              >
+                <label
+                  v-for="option in planeOptions"
+                  :key="option.value"
+                  class="flex items-center px-3 py-2 hover:bg-n-alpha-1 cursor-pointer"
+                >
+                  <input
+                    v-model="selectedPlaneStatus"
+                    type="radio"
+                    :value="option.value"
+                    name="plane-filter"
+                    class="mr-2 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span class="text-sm text-n-slate-12">{{ option.label }}</span>
+                </label>
+              </div>
+            </div>
+          </div>
                     <!-- Date Range Filter -->
           <div class="relative min-w-48">
             <label class="block text-sm font-medium text-n-slate-10 mb-1">
@@ -530,6 +573,7 @@ export default {
     const selectedAgents = ref([]);
     const selectedOrganizations = ref([]);
     const selectedJiraStatus = ref('');
+    const selectedPlaneStatus = ref('');
     const selectedCategories = ref([]);
     const dateRange = reactive({
       start: '',
@@ -540,6 +584,7 @@ export default {
     const showAgentDropdown = ref(false);
     const showOrganizationDropdown = ref(false);
     const showJiraDropdown = ref(false);
+    const showPlaneDropdown = ref(false);
     const showCategoryDropdown = ref(false);
     const showDetailModal = ref(false);
     const selectedTicket = ref(null);
@@ -596,6 +641,12 @@ export default {
       { label: t('TICKETS.FILTERS.NOT_LINKED_TO_JIRA'), value: 'not_linked' },
     ]);
 
+    const planeOptions = computed(() => [
+      { label: t('TICKETS.FILTERS.ALL'), value: '' },
+      { label: t('TICKETS.FILTERS.LINKED_TO_PLANE'), value: 'linked' },
+      { label: t('TICKETS.FILTERS.NOT_LINKED_TO_PLANE'), value: 'not_linked' },
+    ]);
+
     const currentAccount = computed(() => {
       const accountId = store.getters.getCurrentAccountId;
       const accountFromAccountsStore =
@@ -635,6 +686,7 @@ export default {
              selectedAgents.value.length > 0 ||
              selectedOrganizations.value.length > 0 ||
              selectedJiraStatus.value ||
+             selectedPlaneStatus.value ||
              selectedCategories.value.length > 0 ||
              dateRange.start ||
              dateRange.end ||
@@ -645,6 +697,11 @@ export default {
     const getJiraFilterLabel = () => {
       const option = jiraOptions.value.find(opt => opt.value === selectedJiraStatus.value);
       return option ? option.label : t('TICKETS.TRACKING.JIRA_FILTER');
+    };
+
+    const getPlaneFilterLabel = () => {
+      const option = planeOptions.value.find(opt => opt.value === selectedPlaneStatus.value);
+      return option ? option.label : t('TICKETS.TRACKING.PLANE_FILTER');
     };
 
     const filteredTickets = computed(() => {
@@ -722,6 +779,15 @@ export default {
           filtered = filtered.filter(ticket => ticket.jira_issue_key);
         } else if (selectedJiraStatus.value === 'not_linked') {
           filtered = filtered.filter(ticket => !ticket.jira_issue_key);
+        }
+      }
+
+      // Apply Plane filter
+      if (selectedPlaneStatus.value) {
+        if (selectedPlaneStatus.value === 'linked') {
+          filtered = filtered.filter(ticket => ticket.plane_issue_id);
+        } else if (selectedPlaneStatus.value === 'not_linked') {
+          filtered = filtered.filter(ticket => !ticket.plane_issue_id);
         }
       }
 
@@ -842,6 +908,7 @@ export default {
       selectedAgents.value = [];
       selectedOrganizations.value = [];
       selectedJiraStatus.value = '';
+      selectedPlaneStatus.value = '';
       selectedCategories.value = [];
       dateRange.start = '';
       dateRange.end = '';
@@ -936,6 +1003,7 @@ export default {
       selectedAgents,
       selectedOrganizations,
       selectedJiraStatus,
+      selectedPlaneStatus,
       selectedCategories,
       dateRange,
       showStatusDropdown,
@@ -943,6 +1011,7 @@ export default {
       showAgentDropdown,
       showOrganizationDropdown,
       showJiraDropdown,
+      showPlaneDropdown,
       showCategoryDropdown,
       showDetailModal,
       selectedTicket,
@@ -958,6 +1027,7 @@ export default {
       priorityOptions,
       agentOptions,
       jiraOptions,
+      planeOptions,
       categoryOptions,
       organizationOptions,
       filteredOrganizationOptions,
@@ -972,6 +1042,7 @@ export default {
       clearFilters,
       toggleMyTickets,
       getJiraFilterLabel,
+      getPlaneFilterLabel,
       handleTicketClick,
       closeDetailModal,
       handleTicketUpdate,

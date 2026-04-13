@@ -2,6 +2,10 @@
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import JiraAPI from 'dashboard/api/integrations/jira';
+import {
+  loadStatusColors,
+  getStatusHexColor,
+} from './helpers/statusColors';
 
 const props = defineProps({
   issueKey: {
@@ -17,6 +21,11 @@ const props = defineProps({
 const { t } = useI18n();
 const isLoading = ref(false);
 const issue = ref(null);
+
+const statusCustomColor = computed(() => {
+  if (!issue.value?.status) return null;
+  return getStatusHexColor(issue.value.status);
+});
 
 const statusColor = computed(() => {
   if (!issue.value?.status) return 'bg-gray-600 text-white';
@@ -72,7 +81,10 @@ const openInJira = () => {
   }
 };
 
-onMounted(fetchIssue);
+onMounted(() => {
+  loadStatusColors();
+  fetchIssue();
+});
 </script>
 
 <template>
@@ -93,7 +105,15 @@ onMounted(fetchIssue);
       </span>
       
       <!-- Status Badge -->
-      <span 
+      <span
+        v-if="statusCustomColor"
+        class="px-2.5 py-1 rounded-full text-xs font-medium shadow-sm border text-white"
+        :style="{ backgroundColor: statusCustomColor, borderColor: statusCustomColor }"
+      >
+        {{ issue.status }}
+      </span>
+      <span
+        v-else
         class="px-2.5 py-1 rounded-full text-xs font-medium shadow-sm border"
         :class="statusColor"
       >

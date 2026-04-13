@@ -7,6 +7,9 @@ import NewHook from './NewHook.vue';
 import SingleIntegrationHooks from './SingleIntegrationHooks.vue';
 import MultipleIntegrationHooks from './MultipleIntegrationHooks.vue';
 import JiraWebhookSetup from 'dashboard/components/widgets/jira/JiraWebhookSetup.vue';
+import JiraSettings from 'dashboard/components/widgets/jira/JiraSettings.vue';
+import JiraConnectionForm from 'dashboard/components/widgets/jira/JiraConnectionForm.vue';
+import PlaneWebhookSetup from 'dashboard/components/widgets/plane/PlaneWebhookSetup.vue';
 
 export default {
   components: {
@@ -14,6 +17,9 @@ export default {
     SingleIntegrationHooks,
     MultipleIntegrationHooks,
     JiraWebhookSetup,
+    JiraSettings,
+    JiraConnectionForm,
+    PlaneWebhookSetup,
   },
   props: {
     integrationId: {
@@ -29,12 +35,14 @@ export default {
       isIntegrationMultiple,
       isIntegrationSingle,
       isHookTypeInbox,
+      hasConnectedHooks,
     } = useIntegrationHook(integrationId);
     return {
       integration,
       isIntegrationMultiple,
       isIntegrationSingle,
       isHookTypeInbox,
+      hasConnectedHooks,
     };
   },
   data() {
@@ -74,6 +82,9 @@ export default {
     },
     isJiraIntegration() {
       return this.integrationId === 'jira';
+    },
+    isPlaneIntegration() {
+      return this.integrationId === 'plane';
     },
   },
   methods: {
@@ -117,6 +128,15 @@ export default {
     <div v-if="showIntegrationHooks" class="w-full">
       <!-- JIRA-specific webhook setup -->
       <JiraWebhookSetup v-if="isJiraIntegration" />
+
+      <!-- JIRA settings with dynamic dropdowns (shown after connection) -->
+      <JiraSettings
+        v-if="isJiraIntegration && hasConnectedHooks"
+        :hook-id="integration.hooks[0]?.id"
+      />
+      
+      <!-- Plane-specific webhook setup -->
+      <PlaneWebhookSetup v-if="isPlaneIntegration" />
       
       <div v-if="isIntegrationMultiple">
         <MultipleIntegrationHooks
@@ -137,7 +157,8 @@ export default {
     </div>
 
     <woot-modal v-model:show="showAddHookModal" :on-close="hideAddHookModal">
-      <NewHook :integration-id="integrationId" @close="hideAddHookModal" />
+      <JiraConnectionForm v-if="isJiraIntegration" @close="hideAddHookModal" />
+      <NewHook v-else :integration-id="integrationId" @close="hideAddHookModal" />
     </woot-modal>
 
     <woot-delete-modal

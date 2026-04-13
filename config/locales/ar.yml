@@ -177,9 +177,17 @@ ar:
         added: '%{user_name} أضاف سياسة مستوى الخدمة %{sla_name}'
         removed: '%{user_name} أزال سياسة مستوى الخدمة %{sla_name}'
       linear:
-        issue_created: 'Linear issue %{issue_id} was created by %{user_name}'
-        issue_linked: 'Linear issue %{issue_id} was linked by %{user_name}'
-        issue_unlinked: 'Linear issue %{issue_id} was unlinked by %{user_name}'
+        issue_created: 'تم إنشاء مشكلة Linear %{issue_id} بواسطة %{user_name}'
+        issue_linked: 'تم ربط مشكلة Linear %{issue_id} بواسطة %{user_name}'
+        issue_unlinked: 'تم إلغاء ربط مشكلة Linear %{issue_id} بواسطة %{user_name}'
+      jira:
+        issue_created: 'تم إنشاء مشكلة JIRA %{issue_id} بواسطة %{user_name}'
+        issue_linked: 'تم ربط مشكلة JIRA %{issue_id} بواسطة %{user_name}'
+        issue_unlinked: 'تم إلغاء ربط مشكلة JIRA %{issue_id} بواسطة %{user_name}'
+      plane:
+        issue_created: 'تم إنشاء مشكلة Plane %{issue_id} بواسطة %{user_name}'
+        issue_linked: 'تم ربط مشكلة Plane %{issue_id} بواسطة %{user_name}'
+        issue_unlinked: 'تم إلغاء ربط مشكلة Plane %{issue_id} بواسطة %{user_name}'
       csat:
         not_sent_due_to_messaging_window: 'CSAT survey not sent due to outgoing message restrictions'
       muted: '%{user_name} كتم صوت المحادثة'
@@ -241,6 +249,14 @@ ar:
       name: 'Linear'
       short_description: 'Create and link Linear issues directly from conversations.'
       description: 'إنشاء مشكلات في Linear مباشرة من نافذة المحادثة الخاصة بك. بدلاً من ذلك، قم بربط مشكلات Linear القائمة من أجل عملية تتبع أكثر تبسيطاً وكفاءة.'
+    jira:
+      name: 'JIRA'
+      short_description: 'إنشاء وربط مشكلات JIRA مباشرة من المحادثات.'
+      description: 'إنشاء مشكلات في JIRA مباشرة من نافذة المحادثة الخاصة بك. بدلاً من ذلك، قم بربط مشكلات JIRA القائمة من أجل عملية تتبع أكثر تبسيطاً وكفاءة.'
+    plane:
+      name: 'Plane'
+      short_description: 'إنشاء وربط مشكلات Plane مباشرة من المحادثات.'
+      description: 'إنشاء مشكلات في Plane مباشرة من نافذة المحادثة الخاصة بك. بدلاً من ذلك، قم بربط مشكلات Plane القائمة من أجل عملية تتبع أكثر تبسيطاً وكفاءة.'
     shopify:
       name: 'Shopify'
       short_description: 'Access order details and customer data from your Shopify store.'

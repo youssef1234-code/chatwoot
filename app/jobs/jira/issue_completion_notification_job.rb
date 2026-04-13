@@ -25,13 +25,15 @@ class Jira::IssueCompletionNotificationJob < ApplicationJob
     
     linked_conversations.each do |link|
       conversation = link.conversation
-      linking_agent = link.user
       
       next unless conversation
       next unless link.webhook_notifications_enabled?
       
+      # Get ALL inbox users for this conversation's inbox (not just linking agents)
+      all_inbox_users = get_all_inbox_users(conversation)
+      
       # Create a private automated message in the conversation
-      create_completion_message(conversation, linking_agent, issue_key, issue_data)
+      create_completion_message(conversation, all_inbox_users, issue_key, issue_data)
       
       # Broadcast real-time update to agents
       broadcast_issue_update(conversation, issue_key, issue_data)
@@ -43,12 +45,61 @@ class Jira::IssueCompletionNotificationJob < ApplicationJob
 
   private
 
-  def create_completion_message(conversation, linking_agent, issue_key, issue_data)
+  def get_all_linking_agents(conversation)
+    # Get all unique users who have linked JIRA issues to this conversation
+    jira_agents = JiraIssueLink.where(conversation: conversation)
+                               .where.not(user_id: nil)
+                               .includes(:user)
+                               .map(&:user)
+                               .compact
+                               .uniq
+    
+    # Also include agents who linked Plane issues (if that integration exists)
+    plane_agents = if defined?(PlaneIssueLink)
+                     PlaneIssueLink.where(conversation: conversation)
+                                   .where.not(user_id: nil)
+                                   .includes(:user)
+                                   .map(&:user)
+                                   .compact
+                                   .uniq
+                   else
+                     []
+                   end
+    
+    # Also include the assigned agent if any
+    assigned_agent = conversation.assignee
+    
+    # Combine all and return unique
+    (jira_agents + plane_agents + [assigned_agent].compact).uniq
+  end
+
+  # Get ALL users who are members of the conversation's inbox
+  def get_all_inbox_users(conversation)
+    inbox = conversation.inbox
+    return [] unless inbox
+
+    # Get all inbox members (agents assigned to this inbox)
+    inbox_members = inbox.inbox_members.includes(:user).map(&:user).compact
+
+    # Also include the assigned agent and linking agents
+    linking_agents = get_all_linking_agents(conversation)
+
+    # Include account administrators
+    account_admins = conversation.account.administrators.to_a
+
+    # Combine all users: inbox members + linking agents + account admins
+    all_users = (inbox_members + linking_agents + account_admins).uniq
+
+    Rails.logger.info("JIRA: Notifying #{all_users.count} inbox users for completion (#{inbox_members.count} inbox members, #{linking_agents.count} linking agents, #{account_admins.count} admins)")
+    all_users
+  end
+
+  def create_completion_message(conversation, all_agents, issue_key, issue_data)
     issue_summary = issue_data.dig('fields', 'summary') || 'JIRA Issue'
     issue_status = issue_data.dig('fields', 'status', 'name') || 'Done'
     
     # Create automated private message
-    message_content = build_completion_message_content(issue_key, issue_summary, issue_status, linking_agent)
+    message_content = build_completion_message_content(issue_key, issue_summary, issue_status, all_agents)
     
     # Use the system bot account or create as a private message from the system
     message = conversation.messages.create!(
@@ -77,20 +128,22 @@ class Jira::IssueCompletionNotificationJob < ApplicationJob
     )
   end
 
-  def build_completion_message_content(issue_key, issue_summary, issue_status, linking_agent)
-    # Create proper Chatwoot mention format if linking agent exists
-    agent_mention = if linking_agent
-                      "[#{linking_agent.name}](mention://user/#{linking_agent.id}/#{linking_agent.name.gsub(' ', '%20')})"
-                    else
-                      "a team member"
-                    end
+  def build_completion_message_content(issue_key, issue_summary, issue_status, all_agents)
+    # Create proper Chatwoot mention format for ALL agents
+    agent_mentions = if all_agents.any?
+                       all_agents.map do |agent|
+                         "[#{agent.name}](mention://user/#{agent.id}/#{agent.name.gsub(' ', '%20')})"
+                       end.join(', ')
+                     else
+                       "the team"
+                     end
     
     <<~MESSAGE
       🎉 **JIRA Issue Completed**
       
       The JIRA issue **#{issue_key}: #{issue_summary}** has been marked as **#{issue_status}**.
       
-      This issue was linked to this conversation by #{agent_mention}.
+      Hey #{agent_mentions} - this issue linked to this conversation has been completed.
       
       The development work associated with this conversation has been completed. You may want to follow up with the customer to confirm the resolution.
     MESSAGE

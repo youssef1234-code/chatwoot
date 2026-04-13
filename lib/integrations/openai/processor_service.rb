@@ -98,6 +98,12 @@ class Integrations::Openai::ProcessorService < Integrations::OpenaiBaseService
       instructions << build_priority_mapping_instructions
     end
 
+    if enhancement_options.include?('suggest_issue_type')
+      available_issue_types = ticket_data['available_issue_types'] || %w[Bug Task Story Epic]
+      types_list = available_issue_types.join(', ')
+      instructions << "- Suggest the most appropriate JIRA issue type from these options: #{types_list}. Choose 'Bug' for defects/errors, 'Task' for general work items, 'Story' for feature-related requests."
+    end
+
     if enhancement_options.include?('suggest_category')
       available_categories = ticket_data['available_categories'] || []
       if available_categories.any?
@@ -146,6 +152,8 @@ class Integrations::Openai::ProcessorService < Integrations::OpenaiBaseService
     format_fields << '"description": "enhanced description text"' if enhancement_options.include?('improve_description')
 
     format_fields << '"priority": "urgent|high|medium|low"' if enhancement_options.include?('suggest_priority')
+
+    format_fields << '"issue_type": "suggested issue type"' if enhancement_options.include?('suggest_issue_type')
 
     format_fields << '"category": "suggested category"' if enhancement_options.include?('suggest_category')
 

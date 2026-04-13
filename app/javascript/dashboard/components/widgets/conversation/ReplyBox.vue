@@ -140,6 +140,17 @@ export default {
         this.currentChat.meta.sender.id
       );
     },
+    waParticipants() {
+      try {
+        const raw =
+          this.currentChat?.custom_attributes?.wa_participants_data;
+        if (!raw) return [];
+        const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    },
     shouldShowReplyToMessage() {
       return (
         this.inReplyTo?.id &&
@@ -1200,6 +1211,7 @@ export default {
         :editor-id="editorStateId"
         class="input"
         :is-private="isOnPrivateNote"
+        :wa-participants="waParticipants"
         :placeholder="messagePlaceHolder"
         :update-selection-with="updateEditorSelectionWith"
         :min-height="4"

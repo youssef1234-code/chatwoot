@@ -208,6 +208,10 @@ en:
         issue_created: "JIRA issue %{issue_id} was created by %{user_name}"
         issue_linked: "JIRA issue %{issue_id} was linked by %{user_name}"
         issue_unlinked: "JIRA issue %{issue_id} was unlinked by %{user_name}"
+      plane:
+        issue_created: "Plane issue %{issue_id} was created by %{user_name}"
+        issue_linked: "Plane issue %{issue_id} was linked by %{user_name}"
+        issue_unlinked: "Plane issue %{issue_id} was unlinked by %{user_name}"
       csat:
         not_sent_due_to_messaging_window: "CSAT survey not sent due to outgoing message restrictions"
       nps:
@@ -276,6 +280,10 @@ en:
       name: "JIRA Service Management"
       short_description: "Create and link JIRA issues directly from conversations."
       description: "Create issues in JIRA Service Management directly from your conversation window. Alternatively, link existing JIRA issues for a more streamlined and efficient issue tracking process."
+    plane:
+      name: "Plane"
+      short_description: "Create and link Plane issues directly from conversations."
+      description: "Create issues in Plane directly from your conversation window. Alternatively, link existing Plane issues for a more streamlined and efficient issue tracking process."
     shopify:
       name: "Shopify"
       short_description: "Access order details and customer data from your Shopify store."

@@ -57,6 +57,15 @@
                 {{ ticket.jira_issue_key }}
               </span>
 
+              <!-- Plane Badge -->
+              <span
+                v-if="ticket.plane_issue_id"
+                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
+              >
+                <Icon icon="i-lucide-plane" class="w-3 h-3 mr-1" />
+                {{ $t('TICKETS.PLANE_LINKED') }}
+              </span>
+
               <!-- Ticket ID -->
               <span class="text-xs text-n-slate-9">
                 #{{ ticket.id }}
@@ -134,8 +143,20 @@
                 size="sm"
                 color="amber"
                 @click.stop="escalateToJira(ticket)"
+                :title="$t('TICKETS.ESCALATE_TO_JIRA')"
               >
                 <Icon icon="i-lucide-external-link" class="w-4 h-4" />
+              </NextButton>
+
+              <NextButton
+                v-if="canEscalateToPlane(ticket)"
+                variant="ghost"
+                size="sm"
+                color="indigo"
+                @click.stop="escalateToPlane(ticket)"
+                :title="$t('TICKETS.ESCALATE_TO_PLANE')"
+              >
+                <Icon icon="i-lucide-plane" class="w-4 h-4" />
               </NextButton>
 
               <NextButton
@@ -165,6 +186,8 @@ import NextButton from 'dashboard/components-next/button/Button.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 
 import { useAlert } from 'dashboard/composables';
+import { useFunctionGetter, useMapGetter } from 'dashboard/composables/store';
+import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 
 export default {
   name: 'TicketsListView',
@@ -191,6 +214,26 @@ export default {
     const store = useStore();
     const { t } = useI18n();
     const router = useRouter();
+
+    // Integration availability detection
+    const currentAccountId = useMapGetter('getCurrentAccountId');
+    const isFeatureEnabledonAccount = useMapGetter('accounts/isFeatureEnabledonAccount');
+
+    const jiraIntegration = useFunctionGetter('integrations/getIntegration', 'jira');
+    const isJiraIntegrationEnabled = computed(() => jiraIntegration.value?.enabled || false);
+    const isJiraFeatureEnabled = computed(() => {
+      const fn = isFeatureEnabledonAccount.value;
+      return fn ? fn(currentAccountId.value, FEATURE_FLAGS.JIRA) : false;
+    });
+    const isJiraAvailable = computed(() => isJiraIntegrationEnabled.value || isJiraFeatureEnabled.value);
+
+    const planeIntegration = useFunctionGetter('integrations/getIntegration', 'plane');
+    const isPlaneIntegrationEnabled = computed(() => planeIntegration.value?.enabled || false);
+    const isPlaneFeatureEnabled = computed(() => {
+      const fn = isFeatureEnabledonAccount.value;
+      return fn ? fn(currentAccountId.value, FEATURE_FLAGS.PLANE) : false;
+    });
+    const isPlaneAvailable = computed(() => isPlaneIntegrationEnabled.value || isPlaneFeatureEnabled.value);
 
     // Methods
     const getStatusBadgeClass = (status) => {
@@ -249,7 +292,12 @@ export default {
     };
 
     const canEscalateToJira = (ticket) => {
-      return !ticket.jira_issue_key && 
+      return isJiraIntegrationEnabled.value && !ticket.jira_issue_key && 
+             (ticket.status === 'open' || ticket.status === 'in_progress');
+    };
+
+    const canEscalateToPlane = (ticket) => {
+      return isPlaneIntegrationEnabled.value && !ticket.plane_issue_id && 
              (ticket.status === 'open' || ticket.status === 'in_progress');
     };
 
@@ -290,6 +338,31 @@ export default {
       }
     };
 
+    const escalateToPlane = async (ticket) => {
+      try {
+        const PlaneAPI = await import('dashboard/api/integrations/plane');
+        const response = await PlaneAPI.default.createIssue({
+          name: ticket.title || `Ticket #${ticket.id}`,
+          description_html: ticket.description || 'No description provided',
+          priority: ticket.priority || 'medium',
+        });
+        
+        const issueData = response.data;
+        await store.dispatch('tickets/escalateToPlane', {
+          ticketId: ticket.id,
+          planeIssueId: issueData.id || issueData.issue_id,
+          planeIssueKey: issueData.key || issueData.issue_key || '',
+          planeProjectId: issueData.project_id || '',
+        });
+        
+        emit('ticket-updated');
+        useAlert(t('TICKETS.ESCALATE_TO_PLANE_SUCCESS'));
+      } catch (error) {
+        console.error('Failed to escalate ticket to Plane:', error);
+        useAlert(t('TICKETS.ESCALATE_TO_PLANE_ERROR'));
+      }
+    };
+
     const openConversation = (ticket) => {
       if (ticket.conversation?.id) {
         const accountId = router.currentRoute.value.params.accountId;
@@ -307,8 +380,10 @@ export default {
       formatDate,
       canEnhanceWithAi,
       canEscalateToJira,
+      canEscalateToPlane,
       resolveTicket,
       escalateToJira,
+      escalateToPlane,
       openConversation,
     };
   },

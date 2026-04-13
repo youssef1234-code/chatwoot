@@ -6,12 +6,14 @@ export const DEFAULT_CONVERSATION_SIDEBAR_ITEMS_ORDER = Object.freeze([
   { name: 'macros' },
   { name: 'conversation_info' },
   { name: 'contact_attributes' },
+  { name: 'onboarding_status' },
   { name: 'contact_notes' },
   { name: 'previous_conversation' },
   { name: 'conversation_participants' },
   { name: 'tickets' },
   { name: 'linear_issues' },
   { name: 'jira_issues' },
+  { name: 'plane_issues' },
   { name: 'shopify_orders' },
 ]);
 

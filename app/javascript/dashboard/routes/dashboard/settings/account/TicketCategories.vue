@@ -242,6 +242,10 @@ const saveCategories = async () => {
     return;
   }
 
+  // Deduplicate before saving
+  const deduped = [...new Set(categories.value.filter(c => c && c.trim()))];
+  categories.value = deduped;
+
   isLoading.value = true;
   try {
     await store.dispatch("accounts/update", {

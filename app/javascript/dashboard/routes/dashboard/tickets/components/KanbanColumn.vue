@@ -21,11 +21,13 @@
 
     <!-- Column Content -->
     <div
+      ref="scrollContainer"
       class="flex-1 p-4 space-y-3 overflow-y-auto transition-all duration-300 min-h-32 relative border-2 border-transparent"
       @drop="handleDrop"
       @dragover="handleDragOver"
       @dragenter="handleDragEnter"
       @dragleave="handleDragLeave"
+      @scroll="handleScroll"
       :class="{
         'bg-green-50 border-green-300 border-dashed transform scale-[1.02] shadow-xl':
           isDragOver && isValidDrop,
@@ -75,7 +77,7 @@
         </div>
       </div>
       <!-- Loading State -->
-      <div v-if="isLoading" class="space-y-3">
+      <div v-if="isLoading && tickets.length === 0" class="space-y-3">
         <div
           v-for="n in 3"
           :key="n"
@@ -112,12 +114,35 @@
         @click="$emit('ticket-click', ticket)"
         @ticket-deleted="$emit('ticket-deleted', $event)"
       />
+
+      <!-- Load More Indicator -->
+      <div
+        v-if="hasMore && !isLoading"
+        ref="loadMoreTrigger"
+        class="flex justify-center py-4"
+      >
+        <button
+          class="text-sm text-n-slate-10 hover:text-n-slate-12 flex items-center gap-2"
+          @click="$emit('load-more')"
+        >
+          <Icon icon="i-lucide-chevrons-down" class="w-4 h-4" />
+          Load more
+        </button>
+      </div>
+
+      <!-- Loading More Indicator -->
+      <div
+        v-if="isLoading && tickets.length > 0"
+        class="flex justify-center py-4"
+      >
+        <Icon icon="i-lucide-loader-2" class="w-5 h-5 animate-spin text-n-slate-10" />
+      </div>
     </div>
   </div>
 </template>
 
 <script>
-import { ref } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
 import Icon from "dashboard/components-next/icon/Icon.vue";
 import TicketCard from "./TicketCard.vue";
@@ -154,8 +179,12 @@ export default {
       type: Function,
       default: () => true,
     },
+    hasMore: {
+      type: Boolean,
+      default: false,
+    },
   },
-  emits: ["ticket-move", "ticket-click", "ticket-deleted"],
+  emits: ["ticket-move", "ticket-click", "ticket-deleted", "load-more"],
   setup(props, { emit }) {
     const { t } = useI18n();
     const { draggedTicket, isDragging } = useDragState();
@@ -163,6 +192,54 @@ export default {
     // State
     const isDragOver = ref(false);
     const isValidDrop = ref(true);
+    const scrollContainer = ref(null);
+    const loadMoreTrigger = ref(null);
+    let intersectionObserver = null;
+
+    // Infinite scroll with Intersection Observer
+    const setupIntersectionObserver = () => {
+      if (!loadMoreTrigger.value || !props.hasMore) return;
+
+      intersectionObserver = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting && props.hasMore && !props.isLoading) {
+            emit('load-more');
+          }
+        },
+        {
+          root: scrollContainer.value,
+          threshold: 0.1,
+        }
+      );
+
+      if (loadMoreTrigger.value) {
+        intersectionObserver.observe(loadMoreTrigger.value);
+      }
+    };
+
+    // Handle scroll for infinite scroll fallback
+    const handleScroll = (event) => {
+      const element = event.target;
+      const { scrollTop, scrollHeight, clientHeight } = element;
+      
+      // Load more when user is near the bottom (within 100px)
+      if (scrollHeight - scrollTop - clientHeight < 100) {
+        if (props.hasMore && !props.isLoading) {
+          emit('load-more');
+        }
+      }
+    };
+
+    onMounted(() => {
+      // Setup intersection observer after mount
+      setTimeout(setupIntersectionObserver, 100);
+    });
+
+    onUnmounted(() => {
+      if (intersectionObserver) {
+        intersectionObserver.disconnect();
+      }
+    });
 
     const canAcceptTicket = (ticket) => {
       if (!ticket) return false;
@@ -316,6 +393,7 @@ export default {
         orange: "bg-orange-500",
         green: "bg-green-500",
         red: "bg-red-500",
+        purple: "bg-purple-500",
       };
       return colorMap[color] || "bg-gray-500";
     };
@@ -336,6 +414,8 @@ export default {
       isDragOver,
       isValidDrop,
       draggedTicket,
+      scrollContainer,
+      loadMoreTrigger,
 
       // Methods
       getStatusColor,
@@ -343,6 +423,7 @@ export default {
       handleDragEnter,
       handleDragLeave,
       handleDrop,
+      handleScroll,
       canAcceptTicket,
       getDragHintText,
     };

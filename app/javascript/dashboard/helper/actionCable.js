@@ -36,9 +36,12 @@ class ActionCableConnector extends BaseActionCableConnector {
       'copilot.message.created': this.onCopilotMessageCreated,
       'jira_issue_completed': this.onJiraIssueCompleted,
       'jira_issue_status_updated': this.onJiraIssueStatusUpdated,
+      'jira_issue_deleted': this.onJiraIssueDeleted,
       'ticket_updated': this.onTicketUpdated,
       'ticket_created': this.onTicketCreated,
       'ticket_deleted': this.onTicketDeleted,
+      'plane_issue_state_updated': this.onPlaneIssueStateUpdated,
+      'plane_issue_completed': this.onPlaneIssueCompleted,
     };
   }
 
@@ -235,6 +238,42 @@ class ActionCableConnector extends BaseActionCableConnector {
       console.log('JIRA ActionCable: Triggering issues refresh for current conversation');
       window.dispatchEvent(new CustomEvent('jira:issues-updated'));
     }
+  };
+
+  onJiraIssueDeleted = data => {
+    this.app.$store.dispatch('notifications/show', {
+      message: `JIRA Issue ${data.issue_key} was deleted from JIRA`,
+      type: 'warning',
+    });
+
+    emitter.emit('jira:issue-deleted', data);
+
+    // Always dispatch refresh event so all components update in real-time
+    window.dispatchEvent(new CustomEvent('jira:issues-updated'));
+  };
+
+  onPlaneIssueStateUpdated = data => {
+    console.log('Plane ActionCable: Received issue state update event', data);
+
+    // Dispatch event for real-time status updates in PlaneIssueItem
+    emitter.emit('plane:issue-status-updated', data);
+
+    // Always dispatch refresh event so all components (including contact panel) update
+    window.dispatchEvent(new CustomEvent('plane:issues-updated'));
+  };
+
+  onPlaneIssueCompleted = data => {
+    // Show notification to user about Plane issue completion
+    this.app.$store.dispatch('notifications/show', {
+      message: `Plane Issue ${data.issue_key} has been completed!`,
+      type: 'success',
+    });
+
+    // Dispatch event for components to react to
+    emitter.emit('plane:issue-completed', data);
+
+    // Always dispatch refresh event
+    window.dispatchEvent(new CustomEvent('plane:issues-updated'));
   };
 
   onTicketUpdated = data => {

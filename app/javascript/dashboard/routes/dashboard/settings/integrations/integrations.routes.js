@@ -9,6 +9,7 @@ import Slack from './Slack.vue';
 import SettingsContent from '../Wrapper.vue';
 import Linear from './Linear.vue';
 import Jira from './Jira.vue';
+import Plane from './Plane.vue';
 import Shopify from './Shopify.vue';
 
 export default {
@@ -95,6 +96,14 @@ export default {
           path: 'jira',
           name: 'settings_integrations_jira',
           component: Jira,
+          meta: {
+            permissions: ['administrator'],
+          },
+        },
+        {
+          path: 'plane',
+          name: 'settings_integrations_plane',
+          component: Plane,
           meta: {
             permissions: ['administrator'],
           },

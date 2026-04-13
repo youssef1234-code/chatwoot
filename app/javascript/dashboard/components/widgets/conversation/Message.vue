@@ -262,7 +262,15 @@ export default {
       };
     },
     createdAt() {
-      return this.contentAttributes.external_created_at || this.data.created_at;
+      const ext = this.contentAttributes.external_created_at;
+      if (ext) {
+        if (typeof ext === 'number') return ext;
+        if (typeof ext === 'string') {
+          const parsed = Date.parse(ext);
+          if (!isNaN(parsed)) return Math.floor(parsed / 1000);
+        }
+      }
+      return this.data.created_at;
     },
     isBubble() {
       return [0, 1, 3].includes(this.data.message_type);
@@ -356,6 +364,9 @@ export default {
       if (this.isOutgoing || this.isTemplate) {
         return true;
       }
+      if (this.isIncoming && this.isGroupMessage) {
+        return true;
+      }
       return this.isATweet && this.isIncoming && this.sender;
     },
     senderNameForAvatar() {
@@ -363,7 +374,38 @@ export default {
         const { name = this.$t('CONVERSATION.BOT') } = this.sender || {};
         return name;
       }
+      if (this.isIncoming && this.isGroupMessage && this.sender.name) {
+        return this.sender.name;
+      }
       return '';
+    },
+    isGroupMessage() {
+      const ca = this.data.content_attributes || {};
+      return !!ca.wa_group_id;
+    },
+    groupSenderName() {
+      if (!this.isGroupMessage || !this.isIncoming) return '';
+      return this.sender.name || this.contentAttributes.wa_sender_name || '';
+    },
+    groupSenderColor() {
+      if (!this.groupSenderName) return '';
+      const colors = [
+        '#e17076', '#7bc862', '#6ec9cb', '#e4ae52',
+        '#65aadd', '#ee7aae', '#a695e7', '#6bc76b',
+        '#e47272', '#69bfaf', '#dba050', '#c48af6',
+      ];
+      // Deterministic hash from sender name so color persists across refreshes
+      const name = this.groupSenderName;
+      let hash = 0;
+      for (let i = 0; i < name.length; i++) {
+        hash = ((hash << 5) - hash + name.charCodeAt(i)) | 0;
+      }
+      return colors[Math.abs(hash) % colors.length];
+    },
+    groupSenderContactLink() {
+      if (!this.sender.id) return '';
+      const accountId = this.$route.params.accountId;
+      return `/app/accounts/${accountId}/contacts/${this.sender.id}`;
     },
     isEmailContentType() {
       return this.contentType === CONTENT_TYPES.INCOMING_EMAIL;
@@ -545,6 +587,21 @@ export default {
         />
       </div>
       <div :class="bubbleClass" @contextmenu="openContextMenu($event)">
+        <router-link
+          v-if="groupSenderName && groupSenderContactLink"
+          class="group-sender-name"
+          :style="{ color: groupSenderColor }"
+          :to="groupSenderContactLink"
+        >
+          {{ groupSenderName }}
+        </router-link>
+        <div
+          v-else-if="groupSenderName"
+          class="group-sender-name"
+          :style="{ color: groupSenderColor }"
+        >
+          {{ groupSenderName }}
+        </div>
         <!-- Quick Reply Button (appears on hover for incoming messages) -->
         <div v-if="!data.private && inboxSupportsReplyTo.outgoing && (isIncoming || isOutgoing)" class="quick-reply-button">
           <NextButton
@@ -646,7 +703,19 @@ export default {
         v-tooltip.left="tooltipForSender"
         class="sender--info"
       >
+        <router-link
+          v-if="isGroupMessage && isIncoming && groupSenderContactLink"
+          :to="groupSenderContactLink"
+          class="group-sender-avatar"
+        >
+          <woot-thumbnail
+            :src="sender.thumbnail"
+            :username="senderNameForAvatar"
+            size="24px"
+          />
+        </router-link>
         <woot-thumbnail
+          v-else
           :src="sender.thumbnail"
           :username="senderNameForAvatar"
           size="16px"
@@ -785,6 +854,25 @@ export default {
   .sender--available-name {
     @apply text-xs ml-1;
   }
+}
+
+.group-sender-name {
+  @apply text-xs font-semibold px-4 pt-2 pb-0 truncate no-underline;
+  max-width: 240px;
+  display: block;
+  cursor: pointer;
+}
+
+.group-sender-name:hover {
+  text-decoration: underline;
+}
+
+.group-sender-avatar {
+  @apply inline-flex;
+}
+
+li.left .sender--info {
+  @apply order-first mr-1;
 }
 
 .message-failed--alert {

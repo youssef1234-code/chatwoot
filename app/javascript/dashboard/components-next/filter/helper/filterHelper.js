@@ -17,6 +17,8 @@ export const CONVERSATION_ATTRIBUTES = {
   LAST_ACTIVITY_AT: 'last_activity_at',
   JIRA_LINKED_ISSUES: 'jira_linked_issues',
   JIRA_ISSUE_KEY: 'jira_issue_key',
+  PLANE_LINKED_ISSUES: 'plane_linked_issues',
+  PLANE_ISSUE_KEY: 'plane_issue_key',
 };
 
 export const CONTACT_ATTRIBUTES = {

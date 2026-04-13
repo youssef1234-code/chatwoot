@@ -96,10 +96,12 @@ export default {
       :style="{ background: color }"
       class="label-color-dot flex-shrink-0"
     />
-    <span v-if="!href" class="whitespace-nowrap text-ellipsis overflow-hidden">
-      {{ title }}
-    </span>
-    <a v-else :href="href" :style="anchorStyle">{{ title }}</a>
+    <slot>
+      <span v-if="!href" class="whitespace-nowrap text-ellipsis overflow-hidden">
+        {{ title }}
+      </span>
+      <a v-else :href="href" :style="anchorStyle">{{ title }}</a>
+    </slot>
     <button
       v-if="showClose"
       class="label-close--button p-0"

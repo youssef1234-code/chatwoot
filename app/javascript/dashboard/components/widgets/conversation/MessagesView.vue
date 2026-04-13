@@ -15,7 +15,7 @@ import Banner from 'dashboard/components/ui/Banner.vue';
 import PinnedMessagesBar from 'dashboard/modules/conversations/components/PinnedMessagesBar.vue';
 import StarredMessagesModal from 'dashboard/modules/conversations/components/StarredMessagesModal.vue';
 import MessageSelectionToolbar from 'dashboard/components/MessageSelectionToolbar.vue';
-import CreateTicketModal from 'dashboard/components/tickets/CreateTicketModal.vue';
+import CreateOrLinkIssue from './jira/CreateOrLinkIssue.vue';
 
 
 // stores and apis
@@ -53,7 +53,7 @@ export default {
     PinnedMessagesBar,
     StarredMessagesModal,
     MessageSelectionToolbar,
-    CreateTicketModal,
+    CreateOrLinkIssue,
   },
   mixins: [inboxMixin],
   props: {
@@ -184,10 +184,13 @@ export default {
     },
     getMessages() {
       const messages = this.currentChat.messages || [];
+      const sorted = [...messages].sort(
+        (a, b) => a.created_at - b.created_at
+      );
       if (this.isAWhatsAppChannel) {
-        return filterDuplicateSourceMessages(messages);
+        return filterDuplicateSourceMessages(sorted);
       }
-      return messages;
+      return sorted;
     },
     readMessages() {
       return getReadMessages(
@@ -660,12 +663,23 @@ export default {
       // Clear selection and exit selection mode
       this.clearMessageSelection();
     },
+    // Build description from selected messages for JIRA issue
+    selectedMessagesDescription() {
+      const messages = this.currentChat?.messages || [];
+      return this.selectedMessages
+        .map(id => messages.find(m => m.id === id))
+        .filter(Boolean)
+        .map(msg => {
+          const attrs = msg.content_attributes || {};
+          const role = attrs.wa_sender_role || attrs.waSenderRole;
+          const sender = role || (msg.message_type === 0 ? 'Customer' : 'Agent');
+          const name = attrs.wa_team_member_name || attrs.waTeamMemberName || msg.sender?.name || attrs.wa_sender_name || 'Unknown';
+          return `${name} (${sender}): ${msg.content || ''}`;
+        })
+        .join('\n\n');
+    },
     // Modal handlers
     openCreateTicketModal() {
-      console.log('=== OPENING CREATE TICKET MODAL ===');
-      console.log('Current chat ID:', this.currentChat?.id);
-      console.log('Current chat display_id:', this.currentChat?.display_id);
-      console.log('Selected messages:', this.selectedMessages);
       this.showCreateTicketModal = true;
     },
     openLinkToExistingModal() {
@@ -677,9 +691,9 @@ export default {
     closeLinkToExistingModal() {
       this.showLinkToExistingModal = false;
     },
-    onTicketCreatedFromModal(ticket) {
+    onTicketCreatedFromModal() {
       this.closeCreateTicketModal();
-      this.onTicketCreated(ticket);
+      this.clearMessageSelection();
     },
     onMessagesLinkedFromModal(ticket) {
       this.closeLinkToExistingModal();
@@ -846,20 +860,17 @@ export default {
       @link-to-existing="openLinkToExistingModal"
     />
     
-    <!-- Create Ticket Modal -->
-    <Modal
+    <!-- Create/Link JIRA Issue Modal -->
+    <CreateOrLinkIssue
       v-if="showCreateTicketModal"
-      :show="showCreateTicketModal"
-      :on-close="closeCreateTicketModal"
-      :close-on-backdrop-click="false"
-    >
-      <CreateTicketModal
-        :conversation-id="currentChat.id"
-        :selected-message-ids="selectedMessages"
-        @close="closeCreateTicketModal"
-        @created="onTicketCreatedFromModal"
-      />
-    </Modal>
+      :conversation-id="currentChat.id"
+      :title="`Conversation #${currentChat.id}`"
+      :description="selectedMessagesDescription()"
+      :selected-message-ids="selectedMessages"
+      @close="closeCreateTicketModal"
+      @issue-created="onTicketCreatedFromModal"
+      @issue-linked="onTicketCreatedFromModal"
+    />
   
   </div>
 </template>

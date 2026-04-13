@@ -94,8 +94,9 @@ class Api::V1::Accounts::ContactsController < Api::V1::Accounts::BaseController
   end
 
   def update
-    @contact.assign_attributes(contact_update_params)
+    @contact.assign_attributes(contact_update_params.except(:avatar))
     @contact.save!
+    @contact.avatar.attach(contact_update_params[:avatar]) if contact_update_params[:avatar].present?
     process_avatar_from_url
   end
 

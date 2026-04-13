@@ -74,18 +74,9 @@ function validateAndSubmit() {
     return;
   }
 
-  // Create transformed filters for backend but keep original for frontend
-  const transformedFilters = filters.value.map(filter => {
-    // Transform jira_linked_issues boolean values to presence operators
-    if (filter.attributeKey === 'jira_linked_issues') {
-      return {
-        ...filter,
-        filterOperator: filter.values?.id === true ? 'is_present' : 'is_not_present',
-        values: [] // Clear values since presence operators don't need them
-      };
-    }
-    return filter;
-  });
+  // Filters are submitted as-is — jira_linked_issues / plane_linked_issues
+  // now only expose is_present / is_not_present operators (no value input)
+  const transformedFilters = filters.value;
 
   // Store original filters (not transformed) in the store for UI consistency
   store.dispatch(

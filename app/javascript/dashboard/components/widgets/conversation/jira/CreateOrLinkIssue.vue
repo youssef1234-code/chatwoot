@@ -18,6 +18,10 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  selectedMessageIds: {
+    type: Array,
+    default: () => [],
+  },
   showHeader: {
     type: Boolean,
     default: true,
@@ -92,6 +96,7 @@ const conversationTitle = computed(() => {
         :conversation-id="conversationId"
         :title="title"
         :description="description"
+        :selected-message-ids="selectedMessageIds"
         @close="handleClose"
         @issue-created="handleIssueCreated"
       />
@@ -99,6 +104,7 @@ const conversationTitle = computed(() => {
         v-if="isLinkTabActive"
         :conversation-id="conversationId"
         :title="conversationTitle"
+        :selected-message-ids="selectedMessageIds"
         @close="handleClose"
         @issue-linked="handleIssueLinked"
       />
@@ -140,6 +146,7 @@ const conversationTitle = computed(() => {
             :conversation-id="conversationId"
             :title="title"
             :description="description"
+            :selected-message-ids="selectedMessageIds"
             @close="handleClose"
             @issue-created="handleIssueCreated"
           />
@@ -147,6 +154,7 @@ const conversationTitle = computed(() => {
             v-if="isLinkTabActive"
             :conversation-id="conversationId"
             :title="conversationTitle"
+            :selected-message-ids="selectedMessageIds"
             @close="handleClose"
             @issue-linked="handleIssueLinked"
           />

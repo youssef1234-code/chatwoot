@@ -1,4 +1,74 @@
 {
+  "INTEGRATION": {
+    "JIRA": {
+      "ASSIGNEE": "المكلَّف",
+      "REFRESH": "تحديث",
+      "VIEW_IN_JIRA": "عرض في JIRA",
+      "UPDATED": "تم التحديث",
+      "ISSUE_REFRESHED": "تم تحديث حالة المشكلة",
+      "REFRESH_ERROR": "فشل تحديث حالة المشكلة",
+      "LINKED_ISSUES_COUNT": "{count} مشكلة مرتبطة",
+      "ISSUE_NOT_FOUND": "المشكلة غير موجودة",
+      "UNLINK": {
+        "TITLE": "إلغاء الربط",
+        "SUCCESS": "تم إلغاء ربط المشكلة بنجاح",
+        "ERROR": "حدث خطأ أثناء إلغاء ربط المشكلة، الرجاء المحاولة مرة أخرى"
+      },
+      "COMMENTS": {
+        "TITLE": "التعليقات",
+        "SUBTITLE": "إضافة وعرض التعليقات لهذه المشكلة",
+        "ADD_COMMENT": "إضافة تعليق",
+        "VIEW_ALL": "عرض جميع التعليقات",
+        "PLACEHOLDER": "أضف تعليق...",
+        "INPUT_LABEL": "أضف تعليقك",
+        "SUBMIT": "إضافة تعليق",
+        "CANCEL": "إلغاء",
+        "LOADING": "جار تحميل التعليقات...",
+        "LOAD_ERROR": "فشل تحميل التعليقات",
+        "ADD_SUCCESS": "تمت إضافة التعليق بنجاح",
+        "ADD_ERROR": "فشل إضافة التعليق",
+        "NO_COMMENTS": "لا توجد تعليقات بعد",
+        "NO_COMMENTS_DESC": "كن أول من يضيف تعليق لهذه المشكلة",
+        "POSTING_AS": "النشر كـ",
+        "CHATWOOT_AGENT": "وكيل Chatwoot"
+      },
+      "ATTACHMENTS": {
+        "TITLE": "المرفقات",
+        "ADD_ATTACHMENT": "إضافة مرفق",
+        "UPLOAD": "رفع ملف",
+        "UPLOADING": "جار الرفع...",
+        "UPLOAD_SUCCESS": "تم رفع الملف بنجاح",
+        "UPLOAD_ERROR": "فشل رفع الملف",
+        "MAX_SIZE": "الحد الأقصى لحجم الملف: 10 ميغابايت",
+        "SUPPORTED_FORMATS": "الصيغ المدعومة: JPG، PNG، PDF، DOC، DOCX"
+      }
+    },
+    "PLANE": {
+      "ASSIGNEE": "المكلَّف",
+      "REFRESH": "تحديث",
+      "VIEW_IN_PLANE": "عرض في Plane",
+      "UPDATED": "تم التحديث",
+      "ISSUE_REFRESHED": "تم تحديث حالة المشكلة",
+      "REFRESH_ERROR": "فشل تحديث حالة المشكلة",
+      "LINKED_ISSUES_COUNT": "{count} مشكلة مرتبطة",
+      "ISSUE_NOT_FOUND": "المشكلة غير موجودة",
+      "UNLINK": {
+        "TITLE": "إلغاء الربط",
+        "SUCCESS": "تم إلغاء ربط المشكلة بنجاح",
+        "ERROR": "حدث خطأ أثناء إلغاء ربط المشكلة، الرجاء المحاولة مرة أخرى"
+      },
+      "ATTACHMENTS": {
+        "TITLE": "المرفقات",
+        "ADD_ATTACHMENT": "إضافة مرفق",
+        "UPLOAD": "رفع ملف",
+        "UPLOADING": "جار الرفع...",
+        "UPLOAD_SUCCESS": "تم رفع الملف بنجاح",
+        "UPLOAD_ERROR": "فشل رفع الملف",
+        "MAX_SIZE": "الحد الأقصى لحجم الملف: 10 ميغابايت",
+        "SUPPORTED_FORMATS": "الصيغ المدعومة: JPG، PNG، PDF، DOC، DOCX"
+      }
+    }
+  },
   "INTEGRATION_SETTINGS": {
     "SHOPIFY": {
       "DELETE": {
@@ -330,6 +400,303 @@
         "AGENT_DESCRIPTION": "Linear workspace is not connected. Request your administrator to connect a workspace to use this integration.",
         "DESCRIPTION": "Linear workspace is not connected. Click the button below to connect your workspace to use this integration.",
         "BUTTON_TEXT": "Connect Linear workspace"
+      }
+    },
+    "JIRA": {
+      "ADD_OR_LINK_BUTTON": "إنشاء/ربط مشكلة JIRA",
+      "LOADING": "جلب مشكلات JIRA...",
+      "LOADING_ERROR": "حدث خطأ أثناء جلب مشكلات JIRA، الرجاء المحاولة مرة أخرى",
+      "CREATE": "إنشاء",
+      "CANCEL": "إلغاء",
+      "LINK": {
+        "SEARCH": "البحث عن المشكلات",
+        "SELECT": "اختر مشكلة",
+        "TITLE": "الرابط",
+        "EMPTY_LIST": "لم يتم العثور على مشكلات JIRA",
+        "LOADING": "جار التحميل",
+        "ERROR": "حدث خطأ أثناء جلب مشكلات JIRA، الرجاء المحاولة مرة أخرى",
+        "LINK_SUCCESS": "تم ربط المشكلة بنجاح",
+        "LINK_ERROR": "حدث خطأ أثناء ربط المشكلة، الرجاء المحاولة مرة أخرى",
+        "LINK_TITLE": "محادثة (#{conversationId}) مع {name}"
+      },
+      "ADD_OR_LINK": {
+        "TITLE": "إنشاء/ربط مشكلة JIRA",
+        "DESCRIPTION": "إنشاء مشكلات JIRA من المحادثات، أو ربط المشكلات الموجودة للتتبع السلس.",
+        "FORM": {
+          "SUMMARY": {
+            "LABEL": "الملخص",
+            "PLACEHOLDER": "أدخل ملخص المشكلة",
+            "REQUIRED_ERROR": "الملخص مطلوب"
+          },
+          "DESCRIPTION": {
+            "LABEL": "الوصف",
+            "PLACEHOLDER": "أدخل الوصف"
+          },
+          "PROJECT": {
+            "LABEL": "المشروع",
+            "PLACEHOLDER": "اختر مشروع",
+            "SEARCH": "البحث عن مشروع",
+            "REQUIRED_ERROR": "المشروع مطلوب"
+          },
+          "ISSUE_TYPE": {
+            "LABEL": "نوع المشكلة",
+            "PLACEHOLDER": "اختر نوع المشكلة",
+            "SEARCH": "البحث عن نوع المشكلة",
+            "REQUIRED_ERROR": "نوع المشكلة مطلوب"
+          },
+          "ASSIGNEE": {
+            "LABEL": "المكلَّف",
+            "PLACEHOLDER": "اختر المكلَّف",
+            "SEARCH": "البحث عن المكلَّف"
+          },
+          "PRIORITY": {
+            "LABEL": "الأولوية",
+            "PLACEHOLDER": "اختر الأولوية",
+            "SEARCH": "البحث عن أولوية"
+          },
+          "LABELS": {
+            "LABEL": "الوسوم",
+            "PLACEHOLDER": "اختر وسوم",
+            "SEARCH": "البحث عن وسوم"
+          }
+        },
+        "CREATE_SUCCESS": "تم إنشاء المشكلة بنجاح",
+        "CREATE_ERROR": "حدث خطأ أثناء إنشاء المشكلة، الرجاء المحاولة مرة أخرى",
+        "LOADING_PROJECTS_ERROR": "حدث خطأ أثناء جلب المشاريع، الرجاء المحاولة مرة أخرى",
+        "LOADING_PROJECT_ENTITIES_ERROR": "حدث خطأ أثناء جلب كيانات المشروع، الرجاء المحاولة مرة أخرى"
+      },
+      "ISSUE": {
+        "STATUS": "الحالة",
+        "PRIORITY": "الأولوية",
+        "ASSIGNEE": "المكلَّف",
+        "LABELS": "الوسوم",
+        "CREATED_AT": "تم الإنشاء في {createdAt}",
+        "ISSUE_TYPE": "نوع المشكلة",
+        "UPDATED": "تم التحديث",
+        "REFRESH": "تحديث",
+        "VIEW_IN_JIRA": "عرض في JIRA",
+        "UNLINK_ISSUE": "إلغاء ربط المشكلة",
+        "ISSUE_REFRESHED": "تم تحديث حالة المشكلة",
+        "REFRESH_ERROR": "فشل تحديث حالة المشكلة",
+        "ISSUE_NOT_FOUND": "المشكلة غير موجودة"
+      },
+      "UNLINK": {
+        "TITLE": "إلغاء الربط",
+        "SUCCESS": "تم إلغاء ربط المشكلة بنجاح",
+        "ERROR": "حدث خطأ أثناء إلغاء ربط المشكلة، الرجاء المحاولة مرة أخرى"
+      },
+      "COMMENTS": {
+        "TITLE": "التعليقات",
+        "SUBTITLE": "إضافة وعرض التعليقات لهذه المشكلة",
+        "ADD_COMMENT": "إضافة تعليق",
+        "VIEW_ALL": "عرض جميع التعليقات",
+        "PLACEHOLDER": "أضف تعليق...",
+        "INPUT_LABEL": "أضف تعليقك",
+        "SUBMIT": "إضافة تعليق",
+        "CANCEL": "إلغاء",
+        "LOADING": "جار تحميل التعليقات...",
+        "LOAD_ERROR": "فشل تحميل التعليقات",
+        "ADD_SUCCESS": "تمت إضافة التعليق بنجاح",
+        "ADD_ERROR": "فشل إضافة التعليق",
+        "NO_COMMENTS": "لا توجد تعليقات بعد",
+        "NO_COMMENTS_DESC": "كن أول من يضيف تعليق لهذه المشكلة",
+        "POSTING_AS": "النشر كـ",
+        "CHATWOOT_AGENT": "وكيل Chatwoot"
+      },
+      "ATTACHMENTS": {
+        "TITLE": "المرفقات",
+        "ADD_ATTACHMENT": "إضافة مرفق",
+        "UPLOAD": "رفع ملف",
+        "UPLOADING": "جار الرفع...",
+        "UPLOAD_SUCCESS": "تم رفع الملف بنجاح",
+        "UPLOAD_ERROR": "فشل رفع الملف",
+        "MAX_SIZE": "الحد الأقصى لحجم الملف: 10 ميغابايت",
+        "SUPPORTED_FORMATS": "الصيغ المدعومة: JPG، PNG، PDF، DOC، DOCX"
+      },
+      "NO_LINKED_ISSUES": "لم يتم العثور على مشكلات مرتبطة",
+      "MORE_ISSUES": "المزيد",
+      "VIEW_ALL": "عرض جميع مشكلات JIRA",
+      "SHOW_LESS": "عرض أقل",
+      "UNLINK_ISSUE": "إلغاء ربط المشكلة",
+      "DELETE": {
+        "TITLE": "هل أنت متأكد من حذف التكامل؟",
+        "MESSAGE": "هل أنت متأكد من حذف التكامل؟",
+        "CONFIRM": "نعم، احذف",
+        "CANCEL": "إلغاء"
+      },
+      "CTA": {
+        "TITLE": "الاتصال بـ JIRA",
+        "AGENT_DESCRIPTION": "مساحة عمل JIRA غير متصلة. اطلب من المسؤول الاتصال بمساحة العمل لاستخدام هذا التكامل.",
+        "DESCRIPTION": "مساحة عمل JIRA غير متصلة. انقر على الزر أدناه لربط مساحة العمل الخاصة بك لاستخدام هذا التكامل.",
+        "BUTTON_TEXT": "ربط مساحة عمل JIRA"
+      },
+      "SETUP": {
+        "TITLE": "الاتصال بـ JIRA",
+        "DESCRIPTION": "أدخل رابط موقع JIRA الخاص بك لربط مساحة العمل مع Chatwoot.",
+        "SITE_URL_LABEL": "رابط موقع JIRA",
+        "SITE_URL_PLACEHOLDER": "https://your-company.atlassian.net",
+        "SITE_URL_HELP": "أدخل رابط موقع JIRA Cloud (مثال: company.atlassian.net)",
+        "SITE_URL_REQUIRED": "رابط موقع JIRA مطلوب",
+        "INVALID_URL": "الرجاء إدخال رابط صالح",
+        "INVALID_JIRA_URL": "الرجاء إدخال رابط JIRA/Atlassian صالح",
+        "OAUTH_INFO_TITLE": "مصادقة OAuth",
+        "OAUTH_INFO_TEXT": "انقر على اتصال لتتم إعادة توجيهك إلى JIRA للمصادقة الآمنة. يجب أن يكون مسؤول JIRA قد قام بتهيئة OAuth لهذا العمل.",
+        "CONNECT": "الاتصال بـ JIRA",
+        "CANCEL": "إلغاء",
+        "CONNECTION_FAILED": "فشل الاتصال بـ JIRA. الرجاء التحقق من الرابط والمحاولة مرة أخرى."
+      },
+      "WEBHOOK_SETUP": {
+        "TITLE": "تحديثات المشكلات في الوقت الفعلي",
+        "DESCRIPTION": "قم بتهيئة webhooks لتلقي إشعارات في الوقت الفعلي عند تحديث أو إكمال مشكلات JIRA.",
+        "WEBHOOK_URL": "رابط Webhook",
+        "COPY": "نسخ",
+        "COPIED_SUCCESS": "تم نسخ رابط Webhook إلى الحافظة!",
+        "INSTRUCTIONS_TITLE": "تعليمات الإعداد:",
+        "STEP_1": "اذهب إلى إعدادات مشروع JIRA → Webhooks",
+        "STEP_2": "انقر على 'إنشاء Webhook'",
+        "STEP_3": "الصق رابط Webhook أعلاه",
+        "STEP_4": "اختر أحداث 'تم تحديث المشكلة' و 'تم نقل المشكلة'",
+        "STEP_5": "احفظ تهيئة Webhook",
+        "NOTE_TITLE": "مهم:",
+        "NOTE_DESCRIPTION": "توفر Webhooks تحديثات في الوقت الفعلي. بدون webhooks، سيتم التحقق من تغييرات الحالة بشكل دوري."
+      }
+    },
+    "PLANE": {
+      "ADD_OR_LINK_BUTTON": "إنشاء/ربط مشكلة Plane",
+      "LOADING": "جلب مشكلات Plane...",
+      "LOADING_ERROR": "حدث خطأ أثناء جلب مشكلات Plane، الرجاء المحاولة مرة أخرى",
+      "CREATE": "إنشاء",
+      "CANCEL": "إلغاء",
+      "LINK": {
+        "SEARCH": "البحث عن المشكلات",
+        "SELECT": "اختر مشكلة",
+        "TITLE": "الرابط",
+        "EMPTY_LIST": "لم يتم العثور على مشكلات Plane",
+        "LOADING": "جار التحميل",
+        "ERROR": "حدث خطأ أثناء جلب مشكلات Plane، الرجاء المحاولة مرة أخرى",
+        "LINK_SUCCESS": "تم ربط المشكلة بنجاح",
+        "LINK_ERROR": "حدث خطأ أثناء ربط المشكلة، الرجاء المحاولة مرة أخرى",
+        "LINK_TITLE": "محادثة (#{conversationId}) مع {name}"
+      },
+      "ADD_OR_LINK": {
+        "TITLE": "إنشاء/ربط مشكلة Plane",
+        "DESCRIPTION": "إنشاء مشكلات Plane من المحادثات، أو ربط المشكلات الموجودة للتتبع السلس.",
+        "FORM": {
+          "NAME": {
+            "LABEL": "الاسم",
+            "PLACEHOLDER": "أدخل اسم المشكلة",
+            "REQUIRED_ERROR": "الاسم مطلوب"
+          },
+          "DESCRIPTION": {
+            "LABEL": "الوصف",
+            "PLACEHOLDER": "أدخل الوصف"
+          },
+          "PROJECT": {
+            "LABEL": "المشروع",
+            "PLACEHOLDER": "اختر مشروع",
+            "SEARCH": "البحث عن مشروع",
+            "REQUIRED_ERROR": "المشروع مطلوب"
+          },
+          "STATE": {
+            "LABEL": "الحالة",
+            "PLACEHOLDER": "اختر الحالة",
+            "SEARCH": "البحث عن حالة"
+          },
+          "ASSIGNEE": {
+            "LABEL": "المكلَّف",
+            "PLACEHOLDER": "اختر المكلَّف",
+            "SEARCH": "البحث عن المكلَّف"
+          },
+          "PRIORITY": {
+            "LABEL": "الأولوية",
+            "PLACEHOLDER": "اختر الأولوية",
+            "SEARCH": "البحث عن أولوية"
+          },
+          "LABELS": {
+            "LABEL": "الوسوم",
+            "PLACEHOLDER": "اختر وسوم",
+            "SEARCH": "البحث عن وسوم"
+          }
+        },
+        "CREATE_SUCCESS": "تم إنشاء المشكلة بنجاح",
+        "CREATE_ERROR": "حدث خطأ أثناء إنشاء المشكلة، الرجاء المحاولة مرة أخرى",
+        "LOADING_PROJECTS_ERROR": "حدث خطأ أثناء جلب المشاريع، الرجاء المحاولة مرة أخرى",
+        "LOADING_PROJECT_ENTITIES_ERROR": "حدث خطأ أثناء جلب كيانات المشروع، الرجاء المحاولة مرة أخرى"
+      },
+      "ISSUE": {
+        "STATUS": "الحالة",
+        "PRIORITY": "الأولوية",
+        "ASSIGNEE": "المكلَّف",
+        "LABELS": "الوسوم",
+        "CREATED_AT": "تم الإنشاء في {createdAt}",
+        "STATE": "الحالة",
+        "UPDATED": "تم التحديث",
+        "REFRESH": "تحديث",
+        "VIEW_IN_PLANE": "عرض في Plane",
+        "UNLINK_ISSUE": "إلغاء ربط المشكلة",
+        "ISSUE_REFRESHED": "تم تحديث حالة المشكلة",
+        "REFRESH_ERROR": "فشل تحديث حالة المشكلة",
+        "ISSUE_NOT_FOUND": "المشكلة غير موجودة"
+      },
+      "UNLINK": {
+        "TITLE": "إلغاء الربط",
+        "SUCCESS": "تم إلغاء ربط المشكلة بنجاح",
+        "ERROR": "حدث خطأ أثناء إلغاء ربط المشكلة، الرجاء المحاولة مرة أخرى"
+      },
+      "ATTACHMENTS": {
+        "TITLE": "المرفقات",
+        "ADD_ATTACHMENT": "إضافة مرفق",
+        "UPLOAD": "رفع ملف",
+        "UPLOADING": "جار الرفع...",
+        "UPLOAD_SUCCESS": "تم رفع الملف بنجاح",
+        "UPLOAD_ERROR": "فشل رفع الملف",
+        "MAX_SIZE": "الحد الأقصى لحجم الملف: 10 ميغابايت",
+        "SUPPORTED_FORMATS": "الصيغ المدعومة: JPG، PNG، PDF، DOC، DOCX"
+      },
+      "NO_LINKED_ISSUES": "لم يتم العثور على مشكلات مرتبطة",
+      "MORE_ISSUES": "المزيد",
+      "VIEW_ALL": "عرض جميع مشكلات Plane",
+      "SHOW_LESS": "عرض أقل",
+      "UNLINK_ISSUE": "إلغاء ربط المشكلة",
+      "DELETE": {
+        "TITLE": "هل أنت متأكد من حذف التكامل؟",
+        "MESSAGE": "هل أنت متأكد من حذف التكامل؟",
+        "CONFIRM": "نعم، احذف",
+        "CANCEL": "إلغاء"
+      },
+      "CTA": {
+        "TITLE": "الاتصال بـ Plane",
+        "AGENT_DESCRIPTION": "مساحة عمل Plane غير متصلة. اطلب من المسؤول الاتصال بمساحة العمل لاستخدام هذا التكامل.",
+        "DESCRIPTION": "مساحة عمل Plane غير متصلة. انقر على الزر أدناه لربط مساحة العمل الخاصة بك لاستخدام هذا التكامل.",
+        "BUTTON_TEXT": "ربط مساحة عمل Plane"
+      },
+      "SETUP": {
+        "TITLE": "الاتصال بـ Plane",
+        "DESCRIPTION": "أدخل تفاصيل API الخاصة بـ Plane لربط مساحة العمل مع Chatwoot.",
+        "API_URL_LABEL": "رابط API لـ Plane",
+        "API_URL_PLACEHOLDER": "https://api.plane.so",
+        "API_KEY_LABEL": "مفتاح API",
+        "API_KEY_PLACEHOLDER": "أدخل مفتاح API الخاص بـ Plane",
+        "WORKSPACE_SLUG_LABEL": "معرّف مساحة العمل",
+        "WORKSPACE_SLUG_PLACEHOLDER": "your-workspace-slug",
+        "CONNECT": "الاتصال بـ Plane",
+        "CANCEL": "إلغاء",
+        "CONNECTION_FAILED": "فشل الاتصال بـ Plane. الرجاء التحقق من بيانات الاعتماد والمحاولة مرة أخرى."
+      },
+      "WEBHOOK_SETUP": {
+        "TITLE": "تحديثات المشكلات في الوقت الفعلي",
+        "DESCRIPTION": "قم بتهيئة webhooks لتلقي إشعارات في الوقت الفعلي عند تحديث أو إكمال مشكلات Plane.",
+        "WEBHOOK_URL": "رابط Webhook",
+        "COPY": "نسخ",
+        "COPIED_SUCCESS": "تم نسخ رابط Webhook إلى الحافظة!",
+        "INSTRUCTIONS_TITLE": "تعليمات الإعداد:",
+        "STEP_1": "اذهب إلى إعدادات مساحة عمل Plane → Webhooks",
+        "STEP_2": "انقر على 'إنشاء Webhook'",
+        "STEP_3": "الصق رابط Webhook أعلاه",
+        "STEP_4": "اختر أحداث 'المشكلة'",
+        "STEP_5": "احفظ تهيئة Webhook",
+        "NOTE_TITLE": "مهم:",
+        "NOTE_DESCRIPTION": "توفر Webhooks تحديثات في الوقت الفعلي. بدون webhooks، سيتم التحقق من تغييرات الحالة بشكل دوري."
       }
     }
   },

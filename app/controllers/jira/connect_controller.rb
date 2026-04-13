@@ -9,9 +9,16 @@ class Jira::ConnectController < ApplicationController
     site_url = GlobalConfigService.load('JIRA_SITE_URL', nil)
     email = GlobalConfigService.load('JIRA_EMAIL', nil)
     api_token = GlobalConfigService.load('JIRA_API_TOKEN', nil)
+    deployment_type = GlobalConfigService.load('JIRA_DEPLOYMENT_TYPE', 'data_center')
     
-    if site_url.blank? || email.blank? || api_token.blank?
+    if site_url.blank? || api_token.blank?
       render json: { error: 'JIRA credentials not configured. Please contact your administrator.' }, status: :unprocessable_entity
+      return
+    end
+
+    # Cloud requires email for Basic auth; Data Center uses PAT with Bearer auth
+    if deployment_type == 'cloud' && email.blank?
+      render json: { error: 'JIRA email is required for Cloud deployments.' }, status: :unprocessable_entity
       return
     end
     
@@ -22,8 +29,8 @@ class Jira::ConnectController < ApplicationController
       return
     end
     
-    # Create or update JIRA hook with API token authentication
-    result = create_jira_hook(account_id, site_url, email, api_token)
+    # Create or update JIRA hook with appropriate authentication
+    result = create_jira_hook(account_id, site_url, email, api_token, deployment_type)
     
     if result[:success]
       render json: { 
@@ -44,7 +51,7 @@ class Jira::ConnectController < ApplicationController
     @account = Current.account
   end
 
-  def create_jira_hook(account_id, site_url, email, api_token)
+  def create_jira_hook(account_id, site_url, email, api_token, deployment_type)
     begin
       account = Account.find(account_id)
       
@@ -52,17 +59,26 @@ class Jira::ConnectController < ApplicationController
       existing_hook = account.hooks.find_by(app_id: 'jira')
       existing_hook&.destroy!
       
-      # Create hook with API token credentials
+      # Build settings based on deployment type
+      settings = {
+        site_url: site_url,
+        api_token: api_token,
+        deployment_type: deployment_type
+      }
+
+      if deployment_type == 'data_center'
+        settings[:auth_type] = 'personal_access_token'
+      else
+        settings[:email] = email
+        settings[:auth_type] = 'api_token'
+      end
+
+      # Create hook with credentials
       hook = account.hooks.create!(
         app_id: 'jira',
         status: 'enabled',
         reference_id: site_url,
-        settings: {
-          site_url: site_url,
-          email: email,
-          api_token: api_token,
-          auth_type: 'api_token'
-        }
+        settings: settings
       )
       
       # Test the connection

@@ -69,6 +69,8 @@ module Filters::FilterHelper
       # Handle special JIRA filters
       if query_hash[:attribute_key] == 'jira_issue_key'
         jira_issue_key_filter_query(query_hash, current_index)
+      elsif query_hash[:attribute_key] == 'plane_issue_key'
+        plane_issue_key_filter_query(query_hash, current_index)
       else
         default_filter(query_hash, filter_operator_value)
       end
@@ -95,6 +97,8 @@ module Filters::FilterHelper
     case attribute_key
     when 'jira_linked_issues'
       jira_filter_query(query_hash, current_index)
+    when 'plane_linked_issues'
+      plane_filter_query(query_hash, current_index)
     else
       # Handle other boolean filters if needed
       default_filter(query_hash, @filter_values["value_#{current_index}"])
@@ -132,6 +136,40 @@ module Filters::FilterHelper
     when 'does_not_contain'
       @filter_values["value_#{current_index}"] = "%#{query_hash['values'][0]}%"
       "NOT EXISTS (SELECT 1 FROM jira_issue_links WHERE jira_issue_links.conversation_id = #{table_name}.id AND jira_issue_links.issue_key ILIKE :value_#{current_index}) #{query_operator}"
+    end
+  end
+
+  def plane_filter_query(query_hash, current_index)
+    table_name = filter_config[:table_name]
+    query_operator = query_hash[:query_operator]
+    
+    plane_relation_query = "SELECT 1 FROM plane_issue_links WHERE plane_issue_links.conversation_id = #{table_name}.id"
+    
+    case query_hash[:filter_operator]
+    when 'is_present'
+      "EXISTS (#{plane_relation_query}) #{query_operator}"
+    when 'is_not_present'
+      "NOT EXISTS (#{plane_relation_query}) #{query_operator}"
+    end
+  end
+
+  def plane_issue_key_filter_query(query_hash, current_index)
+    table_name = filter_config[:table_name]
+    query_operator = query_hash[:query_operator]
+    
+    @filter_values["value_#{current_index}"] = filter_values(query_hash)
+    
+    case query_hash[:filter_operator]
+    when 'equal_to'
+      "EXISTS (SELECT 1 FROM plane_issue_links WHERE plane_issue_links.conversation_id = #{table_name}.id AND plane_issue_links.issue_key = :value_#{current_index}) #{query_operator}"
+    when 'not_equal_to'
+      "NOT EXISTS (SELECT 1 FROM plane_issue_links WHERE plane_issue_links.conversation_id = #{table_name}.id AND plane_issue_links.issue_key = :value_#{current_index}) #{query_operator}"
+    when 'contains'
+      @filter_values["value_#{current_index}"] = "%#{query_hash['values'][0]}%"
+      "EXISTS (SELECT 1 FROM plane_issue_links WHERE plane_issue_links.conversation_id = #{table_name}.id AND plane_issue_links.issue_key ILIKE :value_#{current_index}) #{query_operator}"
+    when 'does_not_contain'
+      @filter_values["value_#{current_index}"] = "%#{query_hash['values'][0]}%"
+      "NOT EXISTS (SELECT 1 FROM plane_issue_links WHERE plane_issue_links.conversation_id = #{table_name}.id AND plane_issue_links.issue_key ILIKE :value_#{current_index}) #{query_operator}"
     end
   end
 

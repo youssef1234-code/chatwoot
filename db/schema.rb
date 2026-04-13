@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_08_29_160856) do
+ActiveRecord::Schema[7.1].define(version: 2026_04_13_210000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -783,6 +783,9 @@ ActiveRecord::Schema[7.1].define(version: 2025_08_29_160856) do
     t.string "last_known_status"
     t.datetime "last_status_check_at"
     t.boolean "webhook_notifications_enabled", default: true
+    t.jsonb "message_ids", default: []
+    t.string "escalated_to"
+    t.string "escalated_from"
     t.index ["account_id"], name: "index_jira_issue_links_on_account_id"
     t.index ["conversation_id", "issue_key"], name: "index_jira_issue_links_on_conversation_id_and_issue_key", unique: true
     t.index ["conversation_id"], name: "index_jira_issue_links_on_conversation_id"
@@ -942,6 +945,31 @@ ActiveRecord::Schema[7.1].define(version: 2025_08_29_160856) do
     t.index ["contact_id"], name: "index_nps_survey_responses_on_contact_id"
     t.index ["conversation_id"], name: "index_nps_survey_responses_on_conversation_id"
     t.index ["message_id"], name: "index_nps_survey_responses_on_message_id", unique: true
+  end
+
+  create_table "plane_issue_links", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "conversation_id", null: false
+    t.bigint "user_id"
+    t.string "project_id", null: false
+    t.string "issue_id", null: false
+    t.string "issue_key", null: false
+    t.string "link_id"
+    t.datetime "linked_at", null: false
+    t.string "last_known_state"
+    t.datetime "last_state_check_at"
+    t.boolean "webhook_notifications_enabled", default: true
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_plane_issue_links_on_account_id"
+    t.index ["conversation_id", "issue_id"], name: "index_plane_issue_links_on_conversation_id_and_issue_id", unique: true
+    t.index ["conversation_id"], name: "index_plane_issue_links_on_conversation_id"
+    t.index ["issue_id"], name: "index_plane_issue_links_on_issue_id"
+    t.index ["issue_key"], name: "index_plane_issue_links_on_issue_key"
+    t.index ["last_state_check_at"], name: "index_plane_issue_links_on_last_state_check_at"
+    t.index ["project_id"], name: "index_plane_issue_links_on_project_id"
+    t.index ["user_id"], name: "index_plane_issue_links_on_user_id"
+    t.index ["webhook_notifications_enabled"], name: "index_plane_issue_links_on_webhook_notifications_enabled"
   end
 
   create_table "platform_app_permissibles", force: :cascade do |t|
@@ -1132,6 +1160,11 @@ ActiveRecord::Schema[7.1].define(version: 2025_08_29_160856) do
     t.boolean "jira_in_progress"
     t.string "category"
     t.boolean "is_feature_request", default: false, null: false
+    t.string "plane_issue_id"
+    t.string "plane_issue_key"
+    t.string "plane_project_id"
+    t.string "plane_state"
+    t.boolean "plane_in_progress"
     t.index ["account_id"], name: "index_tickets_on_account_id"
     t.index ["assigned_agent_id"], name: "index_tickets_on_assigned_agent_id"
     t.index ["category"], name: "index_tickets_on_category"
@@ -1140,6 +1173,9 @@ ActiveRecord::Schema[7.1].define(version: 2025_08_29_160856) do
     t.index ["created_by_id"], name: "index_tickets_on_created_by_id"
     t.index ["is_feature_request"], name: "index_tickets_on_is_feature_request"
     t.index ["jira_issue_key"], name: "index_tickets_on_jira_issue_key"
+    t.index ["plane_issue_id"], name: "index_tickets_on_plane_issue_id"
+    t.index ["plane_issue_key"], name: "index_tickets_on_plane_issue_key"
+    t.index ["plane_project_id"], name: "index_tickets_on_plane_project_id"
     t.index ["priority"], name: "index_tickets_on_priority"
     t.index ["status"], name: "index_tickets_on_status"
   end
@@ -1220,6 +1256,9 @@ ActiveRecord::Schema[7.1].define(version: 2025_08_29_160856) do
   add_foreign_key "nps_survey_responses", "conversations"
   add_foreign_key "nps_survey_responses", "messages"
   add_foreign_key "nps_survey_responses", "users", column: "assigned_agent_id"
+  add_foreign_key "plane_issue_links", "accounts"
+  add_foreign_key "plane_issue_links", "conversations"
+  add_foreign_key "plane_issue_links", "users"
   add_foreign_key "ticket_messages", "messages"
   add_foreign_key "ticket_messages", "tickets"
   add_foreign_key "tickets", "accounts"

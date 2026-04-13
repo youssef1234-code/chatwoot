@@ -64,79 +64,92 @@ export default {
       const sortedMessages = messages.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
       const recentMessages = sortedMessages.slice(0, 10);
       
-      // Check the recent messages for any pending survey responses
-      return recentMessages.some(message => {
-        // Check for unanswered CSAT surveys
-        if (message.content_type === 'input_csat') {
-          const submittedValues = message.content_attributes?.submitted_values;
-          const csatResponse = submittedValues?.csat_survey_response;
-          
-          // If no rating provided at all, survey is pending
-          if (!csatResponse?.rating) {
-            return true;
-          }
-          
-          // If rating 1-3 provided but no feedback, survey is pending
-          if (csatResponse.rating <= 3 && !csatResponse.feedback_message) {
-            return true;
-          }
-        }
-        
-        // Check for unanswered NPS surveys
-        if (message.content_type === 'input_nps') {
-          const submittedValues = message.content_attributes?.submitted_values;
-          const npsResponse = submittedValues?.nps_survey_response;
-          
-          // If no rating provided at all, survey is pending
-          if (npsResponse?.rating === undefined || npsResponse?.rating === null) {
-            return true;
-          }
-          
-          // If rating 0-8 provided but no feedback, survey is pending
-          if (npsResponse.rating <= 8 && !npsResponse.feedback_message) {
-            return true;
-          }
-        }
-        
+      // Find the LAST (most recent) survey message in the recent messages
+      // Only that one should be required to be answered
+      const lastSurveyMessage = recentMessages.find(message => 
+        message.content_type === 'input_csat' || message.content_type === 'input_nps'
+      );
+      
+      // If no survey found in recent messages, no pending feedback
+      if (!lastSurveyMessage) {
         return false;
-      });
+      }
+      
+      // Check if the LAST survey is unanswered
+      if (lastSurveyMessage.content_type === 'input_csat') {
+        const submittedValues = lastSurveyMessage.content_attributes?.submitted_values;
+        const csatResponse = submittedValues?.csat_survey_response;
+        
+        // If no rating provided at all, survey is pending
+        if (!csatResponse?.rating) {
+          return true;
+        }
+        
+        // If rating 1-3 provided but no feedback, survey is pending
+        if (csatResponse.rating <= 3 && !csatResponse.feedback_message) {
+          return true;
+        }
+      }
+      
+      if (lastSurveyMessage.content_type === 'input_nps') {
+        const submittedValues = lastSurveyMessage.content_attributes?.submitted_values;
+        const npsResponse = submittedValues?.nps_survey_response;
+        
+        // If no rating provided at all, survey is pending
+        if (npsResponse?.rating === undefined || npsResponse?.rating === null) {
+          return true;
+        }
+        
+        // If rating 0-8 provided but no feedback, survey is pending
+        if (npsResponse.rating <= 8 && !npsResponse.feedback_message) {
+          return true;
+        }
+      }
+      
+      return false;
     },
     isMessageSendingDisabled() {
       return this.hideReplyBox || (this.responseMandatory && this.hasPendingSurveyFeedback);
     },
     disabledMessage() {
       if (this.responseMandatory && this.hasPendingSurveyFeedback) {
-        // Check what type of survey is pending - only check the last 10 messages
+        // Check what type of survey is pending - only check the LAST survey in recent 10 messages
         const messages = Object.values(this.allMessages || {});
         
         // Sort messages by timestamp to get the most recent ones first
         const sortedMessages = messages.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
         const recentMessages = sortedMessages.slice(0, 10);
         
-        // Check recent messages for pending surveys and return appropriate message
-        for (const message of recentMessages) {
-          if (message.content_type === 'input_csat') {
-            const submittedValues = message.content_attributes?.submitted_values;
-            const csatResponse = submittedValues?.csat_survey_response;
-            
-            if (!csatResponse?.rating) {
-              return this.$t('CSAT_RATING_REQUIRED') || 'Please provide a rating to continue';
-            }
-            if (csatResponse.rating <= 3 && !csatResponse.feedback_message) {
-              return this.$t('CSAT_FEEDBACK_REQUIRED') || 'Please provide feedback for your rating to continue';
-            }
-          }
+        // Find the LAST (most recent) survey message
+        const lastSurveyMessage = recentMessages.find(message => 
+          message.content_type === 'input_csat' || message.content_type === 'input_nps'
+        );
+        
+        if (!lastSurveyMessage) {
+          return this.$t('SURVEY_FEEDBACK_REQUIRED') || 'Please complete the survey before sending new messages';
+        }
+        
+        if (lastSurveyMessage.content_type === 'input_csat') {
+          const submittedValues = lastSurveyMessage.content_attributes?.submitted_values;
+          const csatResponse = submittedValues?.csat_survey_response;
           
-          if (message.content_type === 'input_nps') {
-            const submittedValues = message.content_attributes?.submitted_values;
-            const npsResponse = submittedValues?.nps_survey_response;
-            
-            if (npsResponse?.rating === undefined || npsResponse?.rating === null) {
-              return this.$t('NPS_RATING_REQUIRED') || 'Please provide a rating to continue';
-            }
-            if (npsResponse.rating <= 8 && !npsResponse.feedback_message) {
-              return this.$t('NPS_FEEDBACK_REQUIRED') || 'Please provide feedback for your rating to continue';
-            }
+          if (!csatResponse?.rating) {
+            return this.$t('CSAT_RATING_REQUIRED') || 'Please provide a rating to continue';
+          }
+          if (csatResponse.rating <= 3 && !csatResponse.feedback_message) {
+            return this.$t('CSAT_FEEDBACK_REQUIRED') || 'Please provide feedback for your rating to continue';
+          }
+        }
+        
+        if (lastSurveyMessage.content_type === 'input_nps') {
+          const submittedValues = lastSurveyMessage.content_attributes?.submitted_values;
+          const npsResponse = submittedValues?.nps_survey_response;
+          
+          if (npsResponse?.rating === undefined || npsResponse?.rating === null) {
+            return this.$t('NPS_RATING_REQUIRED') || 'Please provide a rating to continue';
+          }
+          if (npsResponse.rating <= 8 && !npsResponse.feedback_message) {
+            return this.$t('NPS_FEEDBACK_REQUIRED') || 'Please provide feedback for your rating to continue';
           }
         }
         

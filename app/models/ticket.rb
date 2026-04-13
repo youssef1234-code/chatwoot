@@ -10,6 +10,9 @@
 #  jira_in_progress   :boolean
 #  jira_issue_key     :string
 #  jira_status        :string
+#  plane_in_progress  :boolean
+#  plane_issue_key    :string
+#  plane_state        :string
 #  priority           :integer          default("medium"), not null
 #  resolved_at        :datetime
 #  status             :integer          default("open"), not null
@@ -21,6 +24,8 @@
 #  contact_id         :bigint
 #  conversation_id    :bigint           not null
 #  created_by_id      :bigint           not null
+#  plane_issue_id     :string
+#  plane_project_id   :string
 #
 # Indexes
 #
@@ -32,6 +37,9 @@
 #  index_tickets_on_created_by_id       (created_by_id)
 #  index_tickets_on_is_feature_request  (is_feature_request)
 #  index_tickets_on_jira_issue_key      (jira_issue_key)
+#  index_tickets_on_plane_issue_id      (plane_issue_id)
+#  index_tickets_on_plane_issue_key     (plane_issue_key)
+#  index_tickets_on_plane_project_id    (plane_project_id)
 #  index_tickets_on_priority            (priority)
 #  index_tickets_on_status              (status)
 #
@@ -53,6 +61,7 @@ class Ticket < ApplicationRecord
 
   has_many :ticket_messages, dependent: :destroy
   has_one :jira_issue_link, foreign_key: :conversation_id, primary_key: :conversation_id
+  has_one :plane_issue_link, foreign_key: :conversation_id, primary_key: :conversation_id
 
   validates :title, presence: true, length: { maximum: 255 }
   validates :description, length: { maximum: 5000 }
@@ -65,7 +74,9 @@ class Ticket < ApplicationRecord
     in_progress: 1,
     escalated: 2,
     resolved: 3,
-    closed: 4
+    closed: 4,
+    already_working: 5,
+    bad_config: 6
   }
 
   enum priority: {
@@ -155,7 +166,61 @@ class Ticket < ApplicationRecord
   end
 
   def can_be_escalated?
-    !escalated_to_jira? && (open? || in_progress?)
+    !escalated_to_jira? && !escalated_to_plane? && (open? || in_progress?)
+  end
+
+  def escalated_to_plane?
+    plane_issue_id.present? || plane_issue_link.present?
+  end
+
+  def escalate_to_plane!(plane_issue_id, plane_issue_key, plane_project_id)
+    update!(
+      status: :escalated,
+      plane_issue_id: plane_issue_id,
+      plane_issue_key: plane_issue_key,
+      plane_project_id: plane_project_id
+    )
+  end
+
+  def plane_url
+    return nil unless plane_issue_id.present? && plane_project_id.present?
+
+    plane_hook = account.hooks.find_by(app_id: 'plane')
+    return nil unless plane_hook&.settings&.dig('base_url') && plane_hook&.settings&.dig('workspace_slug')
+
+    "#{plane_hook.settings['base_url']}/#{plane_hook.settings['workspace_slug']}/projects/#{plane_project_id}/issues/#{plane_issue_id}"
+  end
+
+  def plane_in_progress?
+    # First check if we have a stored plane_in_progress flag (from webhook updates)
+    return read_attribute(:plane_in_progress) if has_attribute?(:plane_in_progress) && !read_attribute(:plane_in_progress).nil?
+    
+    # Fallback to checking plane_state if no stored flag
+    return false unless plane_state.present?
+
+    # Common Plane state values that indicate work in progress
+    in_progress_states = [
+      'in progress', 'in-progress', 'doing', 'active', 'working', 'started'
+    ]
+
+    in_progress_states.any? { |state| plane_state.downcase.include?(state) }
+  end
+
+  def plane_state
+    # First check if we have a stored plane_state (from webhook updates)
+    stored_state = read_attribute(:plane_state)
+    return stored_state if stored_state.present?
+    
+    # Fallback to plane_issue_link state
+    plane_issue_link&.last_known_state
+  end
+
+  def mark_already_working!
+    update!(status: :already_working)
+  end
+
+  def mark_bad_config!
+    update!(status: :bad_config)
   end
 
   def duration_to_resolve

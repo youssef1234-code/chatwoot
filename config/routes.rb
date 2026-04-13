@@ -131,6 +131,7 @@ Rails.application.routes.draw do
               resources :assignments, only: [:create]
               resources :labels, only: %i[create index]
               resource :participants, only: %i[show create update destroy]
+              resource :contact_participants, only: %i[show]
               resource :direct_uploads, only: [:create]
               resource :draft_messages, only: %i[show update destroy]
             end
@@ -152,12 +153,21 @@ Rails.application.routes.draw do
           end
 
           resources :tickets do
+            collection do
+              get :analytics
+              get :kanban
+            end
             member do
               get :messages
               post :escalate_to_jira
+              post :escalate_to_plane
+              post :link_jira_issue
+              post :link_plane_issue
               post :escalate
               post :resolve
               post :close
+              post :mark_already_working
+              post :mark_bad_config
               post :add_messages
               post :remove_messages
               post :enhance_with_ai
@@ -311,15 +321,46 @@ Rails.application.routes.draw do
                 get :project_metadata
                 get :get_issue
                 get :get_comments
+                get :get_settings
+                get :get_statuses
+                patch :update_settings
+                post :add_comment
+                post :add_attachment
+                post :upload_message_attachments
+                post :create_issue
+                post :link_issue
+                post :unlink_issue
+                post :escalate_issue
+                post :transcribe_audio
+                get :search_issue
+                get :linked_issues
+                get :issue_messages
+              end
+              resources :webhooks, only: %i[index create], controller: 'jira/webhooks'
+            end
+            resource :plane, controller: 'plane', only: [] do
+              collection do
+                delete :destroy
+                get :test_connection
+                get :webhook_secret_status
+                post :update_webhook_secret
+                get :projects
+                get :project_metadata
+                get :get_issue
+                get :get_comments
                 post :add_comment
                 post :add_attachment
                 post :create_issue
                 post :link_issue
                 post :unlink_issue
-                get :search_issue
+                post :update_issue
+                get :search_issues
                 get :linked_issues
+                get :plane_statuses
+                get :plane_settings
+                post :update_plane_settings
               end
-              resources :webhooks, only: %i[index create], controller: 'jira/webhooks'
+              resources :webhooks, only: %i[index create], controller: 'plane/webhooks'
             end
           end
           resources :working_hours, only: [:update]
@@ -343,6 +384,10 @@ Rails.application.routes.draw do
 
       namespace :integrations do
         resources :webhooks, only: [:create]
+        
+        namespace :orchestrator do
+          resources :webhooks, only: %i[index create]
+        end
       end
 
       resource :profile, only: %i[show update] do

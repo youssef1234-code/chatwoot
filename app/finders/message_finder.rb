@@ -32,16 +32,37 @@ class MessageFinder
     end
   end
 
+  # Resolve the created_at timestamp of a cursor message ID.
+  # When IDs are non-monotonic with created_at (e.g. media messages inserted
+  # after text messages during bulk sync), ID-based filtering drops messages.
+  # Using created_at for both filtering and ordering keeps pagination consistent.
+  def cursor_timestamp(message_id)
+    @conversation.messages.where(id: message_id).pick(:created_at)
+  end
+
   def messages_after(after_id)
-    messages.reorder('created_at asc').where('id > ?', after_id).limit(100)
+    ts = cursor_timestamp(after_id)
+    return messages.reorder('created_at asc').where('id > ?', after_id).limit(100) unless ts
+
+    messages.reorder('created_at asc').where('created_at > ? OR (created_at = ? AND id > ?)', ts, ts, after_id).limit(100)
   end
 
   def messages_before(before_id)
-    messages.reorder('created_at desc').where('id < ?', before_id).limit(20).reverse
+    ts = cursor_timestamp(before_id)
+    return messages.reorder('created_at desc').where('id < ?', before_id).limit(20).reverse unless ts
+
+    messages.reorder('created_at desc').where('created_at < ? OR (created_at = ? AND id < ?)', ts, ts, before_id).limit(20).reverse
   end
 
   def messages_between(after_id, before_id)
-    messages.reorder('created_at asc').where('id >= ? AND id < ?', after_id, before_id).limit(1000)
+    after_ts = cursor_timestamp(after_id)
+    before_ts = cursor_timestamp(before_id)
+    return messages.reorder('created_at asc').where('id >= ? AND id < ?', after_id, before_id).limit(1000) unless after_ts && before_ts
+
+    messages.reorder('created_at asc')
+            .where('(created_at > ? OR (created_at = ? AND id >= ?)) AND (created_at < ? OR (created_at = ? AND id < ?))',
+                   after_ts, after_ts, after_id, before_ts, before_ts, before_id)
+            .limit(1000)
   end
 
   def messages_latest

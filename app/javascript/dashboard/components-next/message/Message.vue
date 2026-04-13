@@ -143,7 +143,7 @@ const showBackgroundHighlight = ref(false);
 const showContextMenu = ref(false);
 const { t } = useI18n();
 const route = useRoute();
-console.log("Message component initialized with props:", props);
+
 /**
  * Computes the message variant based on props
  * @type {import('vue').ComputedRef<'user'|'agent'|'activity'|'private'|'bot'|'template'>}
@@ -237,7 +237,7 @@ const flexOrientationClass = computed(() => {
 
 const gridClass = computed(() => {
   const map = {
-    [ORIENTATION.LEFT]: "grid grid-cols-1fr",
+    [ORIENTATION.LEFT]: isGroupMessage.value ? "grid grid-cols-[24px_1fr]" : "grid grid-cols-1fr",
     [ORIENTATION.RIGHT]: "grid grid-cols-[1fr_24px]",
   };
 
@@ -246,7 +246,10 @@ const gridClass = computed(() => {
 
 const gridTemplate = computed(() => {
   const map = {
-    [ORIENTATION.LEFT]: `
+    [ORIENTATION.LEFT]: isGroupMessage.value ? `
+      "avatar bubble"
+      "spacer meta"
+    ` : `
       "bubble"
       "meta"
     `,
@@ -267,9 +270,58 @@ const shouldGroupWithNext = computed(() => {
 
 const shouldShowAvatar = computed(() => {
   if (props.messageType === MESSAGE_TYPES.ACTIVITY) return false;
+  // Show avatar for incoming group messages (WhatsApp groups)
+  if (orientation.value === ORIENTATION.LEFT && isGroupMessage.value) return true;
   if (orientation.value === ORIENTATION.LEFT) return false;
 
   return true;
+});
+
+// ─── WhatsApp Group Message Support ───
+
+const isGroupMessage = computed(() => {
+  const ca = props.contentAttributes || {};
+  return !!(ca.waGroupId || ca.wa_group_id);
+});
+
+const groupSenderName = computed(() => {
+  if (!isGroupMessage.value || props.messageType !== MESSAGE_TYPES.INCOMING) return '';
+  return props.sender?.name || props.contentAttributes?.waSenderName || props.contentAttributes?.wa_sender_name || '';
+});
+
+const groupSenderColor = computed(() => {
+  const name = groupSenderName.value;
+  if (!name) return '';
+  const colors = [
+    '#e17076', '#7bc862', '#6ec9cb', '#e4ae52',
+    '#65aadd', '#ee7aae', '#a695e7', '#6bc76b',
+    '#e47272', '#69bfaf', '#dba050', '#c48af6',
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = ((hash << 5) - hash + name.charCodeAt(i)) | 0;
+  }
+  return colors[Math.abs(hash) % colors.length];
+});
+
+const groupSenderContactLink = computed(() => {
+  if (!props.sender?.id) return '';
+  const accountId = route.params.accountId;
+  return `/app/accounts/${accountId}/contacts/${props.sender.id}`;
+});
+
+// Override createdAt: prefer external_created_at (the real WA send time)
+const effectiveCreatedAt = computed(() => {
+  const ca = props.contentAttributes || {};
+  const ext = ca.externalCreatedAt ?? ca.external_created_at;
+  if (ext) {
+    if (typeof ext === 'number') return ext;
+    if (typeof ext === 'string') {
+      const parsed = Date.parse(ext);
+      if (!isNaN(parsed)) return Math.floor(parsed / 1000);
+    }
+  }
+  return props.createdAt;
 });
 
 const componentToRender = computed(() => {
@@ -511,6 +563,7 @@ onMounted(setupHighlightTimer);
 
 provideMessageContext({
   ...toRefs(props),
+  createdAt: effectiveCreatedAt,
   isPrivate: computed(() => props.private),
   variant,
   orientation,
@@ -533,6 +586,7 @@ provideMessageContext({
         'bg-n-alpha-1': showBackgroundHighlight,
         'selection-mode-active': props.isSelectionMode,
         'selected-message': props.isSelectionMode && props.isSelected,
+        'mt-5': isGroupMessage && groupSenderName && !shouldGroupWithNext,
       },
     ]"
     @click="handleMessageClick"
@@ -554,8 +608,26 @@ provideMessageContext({
         gridTemplateAreas: gridTemplate,
       }"
     >
+      <!-- Avatar for incoming group messages (left side) -->
       <div
-        v-if="!shouldGroupWithNext && shouldShowAvatar"
+        v-if="!shouldGroupWithNext && shouldShowAvatar && orientation === ORIENTATION.LEFT && isGroupMessage"
+        class="[grid-area:avatar] flex items-end"
+      >
+        <router-link
+          v-if="groupSenderContactLink"
+          :to="groupSenderContactLink"
+        >
+          <Avatar :name="sender?.name || ''" :src="sender?.thumbnail || ''" :size="24" />
+        </router-link>
+        <Avatar v-else :name="sender?.name || ''" :src="sender?.thumbnail || ''" :size="24" />
+      </div>
+      <div
+        v-else-if="shouldGroupWithNext && orientation === ORIENTATION.LEFT && isGroupMessage"
+        class="[grid-area:avatar] w-6"
+      />
+      <!-- Avatar for outgoing messages (right side) -->
+      <div
+        v-if="!shouldGroupWithNext && shouldShowAvatar && orientation === ORIENTATION.RIGHT"
         v-tooltip.left-end="avatarTooltip"
         class="[grid-area:avatar] flex items-end"
       >
@@ -570,6 +642,13 @@ provideMessageContext({
         }"
         @contextmenu="openContextMenu($event)"
       >
+        <!-- Group sender name above bubble -->
+        <div v-if="groupSenderName && !shouldGroupWithNext" class="absolute -top-5 left-0 text-xs font-semibold truncate max-w-[200px]" :style="{ color: groupSenderColor }">
+          <router-link v-if="groupSenderContactLink" :to="groupSenderContactLink" :style="{ color: groupSenderColor }">
+            {{ groupSenderName }}
+          </router-link>
+          <span v-else>{{ groupSenderName }}</span>
+        </div>
         <!-- Quick Reply Button for incoming messages -->
         <button
           v-if="!props.private"

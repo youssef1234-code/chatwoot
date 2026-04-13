@@ -7,8 +7,7 @@
         :title="issue.key"
         :description="issue.summary || issue.title || ''"
         show-close
-        color="var(--color-primary)"
-        variant="smooth"
+        :bg-color="getIssueColor(issue)"
         class="max-w-[calc(100%-0.5rem)] cursor-pointer"
         @click="handleJiraLabelClick(issue, $event)"
         @remove="unlinkIssue(issue.key)"
@@ -50,11 +49,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 import JiraAPI from 'dashboard/api/integrations/jira';
 import { parseJiraAPIErrorResponse } from './helpers/apiErrorHelper';
+import { loadStatusColors, getStatusHexColor } from './helpers/statusColors';
 
 const props = defineProps({
   conversationId: {
@@ -63,13 +63,18 @@ const props = defineProps({
   },
 });
 
+const getIssueColor = (issue) => {
+  const status = issue.status;
+  if (!status) return '#64748b';
+  return getStatusHexColor(status) || '#64748b';
+};
+
 const { t } = useI18n();
 const linkedIssues = ref([]);
 const isLoading = ref(false);
 const showAll = ref(false);
 
 const hasLinkedIssues = computed(() => {
-  console.log('JiraLinkedIssuesDisplay - hasLinkedIssues computed:', linkedIssues.value.length > 0, linkedIssues.value);
   return linkedIssues.value.length > 0;
 });
 
@@ -87,14 +92,14 @@ const remainingCount = computed(() =>
   linkedIssues.value.length - displayedIssues.value.length
 );
 
-const loadLinkedIssues = async () => {
-  isLoading.value = true;
+const loadLinkedIssues = async (isInitialLoad = false) => {
+  if (isInitialLoad) isLoading.value = true;
   try {
     const response = await JiraAPI.getLinkedIssues(props.conversationId);
     linkedIssues.value = response.data || [];
   } catch (error) {
     console.error('Failed to load linked JIRA issues:', error);
-    linkedIssues.value = [];
+    if (isInitialLoad) linkedIssues.value = [];
   } finally {
     isLoading.value = false;
   }
@@ -154,13 +159,26 @@ const showLessIssues = () => {
   showAll.value = false;
 };
 
+// Re-load when conversation changes (sidebar switches)
+watch(
+  () => props.conversationId,
+  (newId, oldId) => {
+    if (newId !== oldId) {
+      linkedIssues.value = [];
+      showAll.value = false;
+      loadLinkedIssues(true);
+    }
+  }
+);
+
 // Listen for updates from other JIRA components
 const handleJiraIssuesUpdated = () => {
   loadLinkedIssues();
 };
 
-onMounted(() => {
-  loadLinkedIssues();
+onMounted(async () => {
+  await loadStatusColors();
+  loadLinkedIssues(true);
   window.addEventListener('jira:issues-updated', handleJiraIssuesUpdated);
 });
 

@@ -18,6 +18,7 @@ class Messages::MessageBuilder
 
   def perform
     @message = @conversation.messages.build(message_params)
+    merge_extra_content_attributes
     process_attachments
     process_emails
     @message.save!
@@ -98,6 +99,16 @@ class Messages::MessageBuilder
     email_string.gsub(/\s+/, '').split(',')
   end
 
+  # Merge API-supplied content_attributes (e.g. wa_group_id, wa_sender_name)
+  # into the message's content_attributes column so custom channel data is persisted.
+  def merge_extra_content_attributes
+    extra = content_attributes
+    return if extra.blank?
+
+    existing = @message.content_attributes || {}
+    @message.content_attributes = existing.merge(extra)
+  end
+
   def validate_email_addresses(all_emails)
     all_emails&.each do |email|
       raise StandardError, 'Invalid email address' unless email.match?(URI::MailTo::EMAIL_REGEXP)
@@ -113,11 +124,31 @@ class Messages::MessageBuilder
   end
 
   def sender
-    message_type == 'outgoing' ? (message_sender || @user) : @conversation.contact
+    if message_type == 'outgoing'
+      message_sender || @user
+    elsif @params[:sender_id].present? && @params[:sender_type] == 'Contact'
+      Contact.find_by(id: @params[:sender_id], account_id: @conversation.account_id) || @conversation.contact
+    else
+      @conversation.contact
+    end
   end
 
   def external_created_at
     @params[:external_created_at].present? ? { external_created_at: @params[:external_created_at] } : {}
+  end
+
+  # Set the real created_at column from external_created_at so message ordering
+  # and display timestamps reflect the original send time, not the sync time.
+  def created_at_from_external
+    ext = @params[:external_created_at]
+    return {} unless ext.present?
+
+    # Form-data uploads send timestamps as strings (e.g. "1703000000").
+    # Convert string-encoded Unix timestamps to numeric before Time.at.
+    ext = ext.to_f if ext.is_a?(String) && ext.match?(/\A\d+(\.\d+)?\z/)
+
+    ts = ext.is_a?(Numeric) ? Time.at(ext) : (Time.parse(ext.to_s) rescue nil)
+    ts ? { created_at: ts } : {}
   end
 
   def automation_rule_id
@@ -151,6 +182,6 @@ class Messages::MessageBuilder
       in_reply_to: @in_reply_to,
       echo_id: @params[:echo_id],
       source_id: @params[:source_id]
-    }.merge(external_created_at).merge(automation_rule_id).merge(campaign_id).merge(template_params)
+    }.merge(external_created_at).merge(created_at_from_external).merge(automation_rule_id).merge(campaign_id).merge(template_params)
   end
 end

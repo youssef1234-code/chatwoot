@@ -75,6 +75,7 @@ export const mutations = {
     if (data.length) {
       const [chat] = _state.allConversations.filter(c => c.id === id);
       chat.messages.unshift(...data);
+      chat.messages.sort((a, b) => a.created_at - b.created_at);
     }
   },
   [types.SET_ALL_ATTACHMENTS](_state, { id, data }) {
@@ -190,6 +191,7 @@ export const mutations = {
       chat.messages[pendingMessageIndex] = message;
     } else {
       chat.messages.push(message);
+      chat.messages.sort((a, b) => a.created_at - b.created_at);
       chat.timestamp = message.created_at;
       const { conversation: { unread_count: unreadCount = 0 } = {} } = message;
       chat.unread_count = unreadCount;

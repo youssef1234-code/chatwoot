@@ -27,16 +27,21 @@ const props = defineProps({
 const { t } = useI18n();
 const isLoading = ref(false);
 const linkedIssues = ref([]);
+const secondLineProjectKey = ref('');
 const shouldShowCreateModal = ref(false);
 
 const hasIssues = computed(() => linkedIssues.value.length > 0);
 
-const loadLinkedIssues = async () => {
-  isLoading.value = true;
-  linkedIssues.value = [];
+const loadLinkedIssues = async (isInitialLoad = false) => {
+  if (isInitialLoad) {
+    isLoading.value = true;
+    linkedIssues.value = [];
+  }
   try {
     const response = await JiraAPI.getLinkedIssues(props.conversationId);
-    linkedIssues.value = response.data || [];
+    const payload = response.data || {};
+    linkedIssues.value = payload.issues || payload || [];
+    secondLineProjectKey.value = payload.second_line_project_key || '';
   } catch (error) {
     // Silent fail - not critical for UX
     console.error('Failed to load linked JIRA issues:', error);
@@ -72,85 +77,57 @@ const openCreateModal = () => {
 
 const closeCreateModal = () => {
   shouldShowCreateModal.value = false;
-  loadLinkedIssues();
-  
-  // Emit event for other components to update
-  window.dispatchEvent(new CustomEvent('jira:issues-updated'));
 };
 
 // Event listener for opening create modal from header button
 const handleJiraCreateLink = (event) => {
-  console.log('JIRA IssuesList: Received jira:open-create-link event', {
-    eventDetail: event.detail,
-    currentConversationId: props.conversationId,
-    matches: event.detail && event.detail.conversationId.toString() === props.conversationId.toString()
-  });
-  
   if (event.detail && event.detail.conversationId.toString() === props.conversationId.toString()) {
-    console.log('JIRA IssuesList: Opening create modal for conversation', props.conversationId);
     openCreateModal();
-  } else {
-    console.log('JIRA IssuesList: Ignoring event for different conversation');
   }
+};
+
+// Listen for link/unlink/create events from other components
+const handleJiraIssuesUpdated = () => {
+  loadLinkedIssues(false);
 };
 
 // Listen for real-time JIRA updates
 const handleJiraStatusUpdate = (data) => {
-  console.log('JIRA IssuesList: Received status update', data);
-  console.log('JIRA IssuesList: Current conversation ID:', props.conversationId);
-  console.log('JIRA IssuesList: Event conversation ID:', data.conversation_id);
-  console.log('JIRA IssuesList: Event issue key:', data.issue_key);
-  
-  // Check if the updated issue is in our current conversation's issue list
   const hasIssueInCurrentConversation = linkedIssues.value.some(issue => issue.key === data.issue_key);
   
-  console.log('JIRA IssuesList: Issue in current conversation?', hasIssueInCurrentConversation);
-  console.log('JIRA IssuesList: Conversation ID match?', data.conversation_id.toString() === props.conversationId.toString());
-  
-  // Refresh if this conversation is involved OR if the issue is in our current list
   if (data.conversation_id.toString() === props.conversationId.toString() || hasIssueInCurrentConversation) {
-    console.log('JIRA IssuesList: Refreshing issues for conversation', props.conversationId);
-    // Small delay to ensure backend updates are complete before fetching
     setTimeout(() => {
-      loadLinkedIssues();
+      loadLinkedIssues(false);
     }, 100);
-  } else {
-    console.log('JIRA IssuesList: Ignoring event - not for current conversation and issue not in list');
   }
 };
 
 const handleJiraCompletion = (data) => {
-  console.log('JIRA IssuesList: Received completion event', data);
-  // Only update if this event is specifically for the current conversation
   if (data.conversation_id.toString() === props.conversationId.toString()) {
-    console.log('JIRA IssuesList: Refreshing issues for completed issue');
-    // Small delay to ensure backend updates are complete before fetching
     setTimeout(() => {
-      loadLinkedIssues();
+      loadLinkedIssues(false);
     }, 100);
-  } else {
-    console.log('JIRA IssuesList: Ignoring completion event for different conversation');
   }
 };
 
 watch(
   () => props.conversationId,
   () => {
-    loadLinkedIssues();
+    loadLinkedIssues(true);
   }
 );
 
 onMounted(() => {
-  console.log('JIRA IssuesList: Component mounted for conversation', props.conversationId);
-  loadLinkedIssues();
+  loadLinkedIssues(true);
   window.addEventListener('jira:open-create-link', handleJiraCreateLink);
+  window.addEventListener('jira:issues-updated', handleJiraIssuesUpdated);
   emitter.on('jira:issue-status-updated', handleJiraStatusUpdate);
   emitter.on('jira:issue-completed', handleJiraCompletion);
-  console.log('JIRA IssuesList: Event listeners registered');
 });
 
 onUnmounted(() => {
   window.removeEventListener('jira:open-create-link', handleJiraCreateLink);
+  window.removeEventListener('jira:issues-updated', handleJiraIssuesUpdated);
   emitter.off('jira:issue-status-updated', handleJiraStatusUpdate);
   emitter.off('jira:issue-completed', handleJiraCompletion);
 });
@@ -184,6 +161,7 @@ onUnmounted(() => {
         :key="issue.key"
         :issue="issue"
         :conversation-id="props.conversationId"
+        :second-line-project-key="secondLineProjectKey"
         @unlink="unlinkIssue"
         @refresh="loadLinkedIssues"
       />

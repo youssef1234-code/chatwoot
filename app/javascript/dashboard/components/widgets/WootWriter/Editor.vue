@@ -14,6 +14,7 @@ import {
 import CannedResponse from '../conversation/CannedResponse.vue';
 import KeyboardEmojiSelector from './keyboardEmojiSelector.vue';
 import TagAgents from '../conversation/TagAgents.vue';
+import TagParticipants from '../conversation/TagParticipants.vue';
 import VariableList from '../conversation/VariableList.vue';
 
 import { useEmitter } from 'dashboard/composables/emitter';
@@ -67,6 +68,7 @@ const props = defineProps({
   placeholder: { type: String, default: '' },
   disabled: { type: Boolean, default: false },
   isPrivate: { type: Boolean, default: false },
+  waParticipants: { type: Array, default: () => [] },
   enableSuggestions: { type: Boolean, default: true },
   overrideLineBreaks: { type: Boolean, default: false },
   updateSelectionWith: { type: String, default: '' },
@@ -220,7 +222,7 @@ const plugins = computed(() => {
       trigger: '@',
       showMenu: showUserMentions,
       searchTerm: mentionSearchKey,
-      isAllowed: () => props.isPrivate,
+      isAllowed: () => props.isPrivate || props.waParticipants.length > 0,
     }),
     createSuggestionPlugin({
       trigger: '/',
@@ -683,6 +685,12 @@ useEmitter(BUS_EVENTS.INSERT_INTO_RICH_EDITOR, insertContentIntoEditor);
       v-if="showUserMentions && isPrivate"
       :search-key="mentionSearchKey"
       @select-agent="content => insertSpecialContent('mention', content)"
+    />
+    <TagParticipants
+      v-if="showUserMentions && !isPrivate && waParticipants.length > 0"
+      :search-key="mentionSearchKey"
+      :participants="waParticipants"
+      @select-participant="p => insertSpecialContent('mention', { id: p.wa_id, name: p.name })"
     />
     <CannedResponse
       v-if="shouldShowCannedResponses"

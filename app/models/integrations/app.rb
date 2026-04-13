@@ -1,6 +1,7 @@
 class Integrations::App
   include Linear::IntegrationHelper
   include Jira::IntegrationHelper
+  include Plane::IntegrationHelper
   attr_accessor :params
 
   def initialize(params)
@@ -46,6 +47,8 @@ class Integrations::App
       build_linear_action
     when 'jira'
       build_jira_action
+    when 'plane'
+      build_plane_action
     else
       params[:action]
     end
@@ -61,6 +64,9 @@ class Integrations::App
       GlobalConfigService.load('JIRA_SITE_URL', nil).present? && 
       GlobalConfigService.load('JIRA_EMAIL', nil).present? && 
       GlobalConfigService.load('JIRA_API_TOKEN', nil).present?
+    when 'plane'
+      # Plane is always available - configuration is done at account level
+      true
     when 'shopify'
       account.feature_enabled?('shopify_integration') && GlobalConfigService.load('SHOPIFY_CLIENT_ID', nil).present?
     when 'leadsquared'
@@ -86,6 +92,12 @@ class Integrations::App
     # For JIRA, we'll handle connection directly without OAuth redirect
     # The frontend will show a connection form instead
     '/jira/connect'
+  end
+
+  def build_plane_action
+    # For Plane, we'll handle connection directly via API key
+    # The frontend will show a connection form instead
+    '/plane/connect'
   end
 
   def enabled?(account)

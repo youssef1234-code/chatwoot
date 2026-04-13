@@ -3,10 +3,12 @@ import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import { useAlert } from 'dashboard/composables';
+import { useFunctionGetter, useMapGetter } from 'dashboard/composables/store';
 import { useAdmin } from 'dashboard/composables/useAdmin';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import EditTicketModal from 'dashboard/components/tickets/EditTicketModal.vue';
 import EscalateToJiraModal from 'dashboard/components/tickets/EscalateToJiraModal.vue';
+import EscalateToPlaneModal from 'dashboard/components/tickets/EscalateToPlaneModal.vue';
 import ViewTicketMessagesModal from 'dashboard/components/tickets/ViewTicketMessagesModal.vue';
 import DeleteTicketConfirmationModal from 'dashboard/components/tickets/DeleteTicketConfirmationModal.vue';
 import { formatDate } from 'shared/helpers/DateHelper';
@@ -31,9 +33,21 @@ const { isAdmin } = useAdmin();
 const isUpdating = ref(false);
 const isDeleting = ref(false);
 const showEditModal = ref(false);
-const showEscalateModal = ref(false);
+const showEscalateJiraModal = ref(false);
+const showEscalatePlaneModal = ref(false);
 const showViewMessagesModal = ref(false);
 const showDeleteConfirmation = ref(false);
+
+// Integration checks
+const jiraIntegration = useFunctionGetter('integrations/getIntegration', 'jira');
+const isJiraEnabled = computed(() => {
+  return !!jiraIntegration.value?.enabled;
+});
+
+const planeIntegration = useFunctionGetter('integrations/getIntegration', 'plane');
+const isPlaneEnabled = computed(() => {
+  return !!planeIntegration.value?.enabled;
+});
 
 // Check if current user is administrator and not a custom role
 const currentUser = computed(() => store.getters.getCurrentUser);
@@ -45,7 +59,9 @@ const ticketDescription = computed(() => props.ticket.description || '');
 const ticketStatus = computed(() => props.ticket.status || 'open');
 const ticketPriority = computed(() => props.ticket.priority || 'medium');
 const isResolved = computed(() => ticketStatus.value === 'resolved' || ticketStatus.value === 'closed');
-const isEscalated = computed(() => ticketStatus.value === 'escalated' || props.ticket.jira_issue_key);
+const isEscalatedToJira = computed(() => !!props.ticket.jira_issue_key);
+const isEscalatedToPlane = computed(() => !!props.ticket.plane_issue_id);
+const isEscalated = computed(() => ticketStatus.value === 'escalated' || isEscalatedToJira.value || isEscalatedToPlane.value);
 
 const createdAt = computed(() => {
   if (props.ticket.created_at) {
@@ -107,17 +123,30 @@ const onTicketUpdated = () => {
   closeEditModal();
 };
 
-const openEscalateModal = () => {
-  showEscalateModal.value = true;
+const openEscalateJiraModal = () => {
+  showEscalateJiraModal.value = true;
 };
 
-const closeEscalateModal = () => {
-  showEscalateModal.value = false;
+const closeEscalateJiraModal = () => {
+  showEscalateJiraModal.value = false;
 };
 
-const onTicketEscalated = () => {
+const onTicketEscalatedToJira = () => {
   emit('refresh');
-  closeEscalateModal();
+  closeEscalateJiraModal();
+};
+
+const openEscalatePlaneModal = () => {
+  showEscalatePlaneModal.value = true;
+};
+
+const closeEscalatePlaneModal = () => {
+  showEscalatePlaneModal.value = false;
+};
+
+const onTicketEscalatedToPlane = () => {
+  emit('refresh');
+  closeEscalatePlaneModal();
 };
 
 const openViewMessagesModal = () => {
@@ -194,6 +223,9 @@ const handleTicketDeleted = (data) => {
 };
 
 onMounted(() => {
+  // Ensure integrations are loaded for conditional escalation buttons
+  store.dispatch('integrations/get', 'jira');
+  store.dispatch('integrations/get', 'plane');
   // Listen for ticket updates
   emitter.on('tickets:ticket-updated', handleTicketUpdate);
   emitter.on('jira:ticket-auto-resolved', handleTicketUpdate);
@@ -274,6 +306,15 @@ onUnmounted(() => {
             <i class="ri-external-link-line text-xs"></i>
             {{ ticket.jira_issue_key }}
           </button>
+          
+          <!-- Plane Issue Badge -->
+          <span
+            v-if="ticket.plane_issue_id"
+            class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full"
+          >
+            <i class="ri-plane-line text-xs"></i>
+            {{ $t('TICKETS.PLANE_LINKED') }}
+          </span>
         </div>
 
         <!-- Action buttons -->
@@ -292,15 +333,27 @@ onUnmounted(() => {
           </NextButton>
           
           <NextButton
-            v-if="!isEscalated && !isResolved"
+            v-if="isJiraEnabled && !isEscalatedToJira && !isResolved"
             size="tiny"
             variant="ghost"
             color-scheme="secondary"
             class="hover:bg-orange-50 hover:text-orange-700"
-            @click="openEscalateModal"
+            @click="openEscalateJiraModal"
           >
             <i class="ri-external-link-line" />
             {{ $t('TICKETS.ESCALATE_TO_JIRA') }}
+          </NextButton>
+          
+          <NextButton
+            v-if="isPlaneEnabled && !isEscalatedToPlane && !isResolved"
+            size="tiny"
+            variant="ghost"
+            color-scheme="secondary"
+            class="hover:bg-indigo-50 hover:text-indigo-700"
+            @click="openEscalatePlaneModal"
+          >
+            <i class="ri-plane-line" />
+            {{ $t('TICKETS.ESCALATE_TO_PLANE') }}
           </NextButton>
           
           <NextButton
@@ -352,10 +405,17 @@ onUnmounted(() => {
     />
     
     <EscalateToJiraModal
-      v-if="showEscalateModal"
+      v-if="showEscalateJiraModal"
       :ticket="ticket"
-      @close="closeEscalateModal"
-      @escalated="onTicketEscalated"
+      @close="closeEscalateJiraModal"
+      @escalated="onTicketEscalatedToJira"
+    />
+    
+    <EscalateToPlaneModal
+      v-if="showEscalatePlaneModal"
+      :ticket="ticket"
+      @close="closeEscalatePlaneModal"
+      @escalated="onTicketEscalatedToPlane"
     />
     
         <ViewTicketMessagesModal

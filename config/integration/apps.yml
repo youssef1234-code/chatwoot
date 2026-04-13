@@ -76,13 +76,31 @@ jira:
       'properties': {
         'site_url': { 'type': 'string' },
         'email': { 'type': 'string' },
-        'api_token': { 'type': 'string' }
+        'api_token': { 'type': 'string' },
+        'auth_type': { 'type': 'string' },
+        'deployment_type': { 'type': 'string', 'enum': ['cloud', 'data_center'] },
+        'first_line_project_key': { 'type': 'string' },
+        'second_line_project_key': { 'type': 'string' },
+        'final_statuses': { 'type': 'array', 'items': { 'type': 'string' } },
+        'service_desk_enabled': { 'type': 'boolean' },
+        'status_color_mapping': { 'type': 'object', 'additionalProperties': { 'type': 'string' } }
       },
-      'required': ['site_url', 'email', 'api_token'],
+      'required': ['site_url', 'api_token'],
       'additionalProperties': false
     }
   settings_form_schema:
     [
+      {
+        'label': 'Deployment Type',
+        'type': 'select',
+        'name': 'deployment_type',
+        'options': [
+          { 'label': 'Jira Cloud', 'value': 'cloud' },
+          { 'label': 'Jira Data Center', 'value': 'data_center' }
+        ],
+        'value': 'data_center',
+        'validationName': 'Deployment Type'
+      },
       {
         'label': 'Jira Site URL',
         'type': 'text',
@@ -91,18 +109,85 @@ jira:
         'validationName': 'Site URL'
       },
       {
-        'label': 'Jira Email',
+        'label': 'Jira Email (Cloud only)',
         'type': 'text',
         'name': 'email',
-        'validation': 'required|email',
+        'validation': 'email',
         'validationName': 'Email'
       },
       {
-        'label': 'Jira API Token',
+        'label': 'Jira API Token / Personal Access Token',
         'type': 'password',
         'name': 'api_token',
         'validation': 'required',
         'validationName': 'API Token'
+      }
+    ]
+plane:
+  id: plane
+  logo: plane.png
+  i18n_key: plane
+  action: /plane
+  hook_type: account
+  allow_multiple_hooks: false
+  settings_json_schema:
+    {
+      'type': 'object',
+      'properties': {
+        'api_url': { 'type': 'string' },
+        'web_url': { 'type': 'string' },
+        'api_key': { 'type': 'string' },
+        'workspace_slug': { 'type': 'string' },
+        'webhook_secret': { 'type': 'string' },
+        'done_statuses': { 'type': 'array', 'items': { 'type': 'string' } },
+        'status_colors': { 'type': 'object' },
+        'auto_resolve_conversation': { 'type': 'boolean' },
+        'mention_config': {
+          'type': 'object',
+          'properties': {
+            'issue_creator': { 'type': 'boolean' },
+            'assignee': { 'type': 'boolean' },
+            'participating_agents': { 'type': 'boolean' },
+            'inbox_members': { 'type': 'boolean' },
+            'static_emails': { 'type': 'array', 'items': { 'type': 'string' } }
+          },
+          'additionalProperties': false
+        }
+      },
+      'required': ['api_url', 'api_key', 'workspace_slug'],
+      'additionalProperties': false
+    }
+  settings_form_schema:
+    [
+      {
+        'label': 'Plane API URL',
+        'type': 'text',
+        'name': 'api_url',
+        'validation': 'required|url',
+        'validationName': 'API URL',
+        'placeholder': 'https://api.plane.so'
+      },
+      {
+        'label': 'Plane Web URL',
+        'type': 'text',
+        'name': 'web_url',
+        'validation': 'url',
+        'validationName': 'Web URL',
+        'placeholder': 'https://app.plane.so (leave empty to use API URL)'
+      },
+      {
+        'label': 'Workspace Slug',
+        'type': 'text',
+        'name': 'workspace_slug',
+        'validation': 'required',
+        'validationName': 'Workspace Slug'
+      },
+      {
+        'label': 'API Key',
+        'type': 'password',
+        'name': 'api_key',
+        'validation': 'required',
+        'validationName': 'API Key'
       }
     ]
 slack:

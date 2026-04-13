@@ -191,6 +191,7 @@ import Modal from "dashboard/components/Modal.vue";
 import Button from "dashboard/components-next/button/Button.vue";
 import Icon from "dashboard/components-next/icon/Icon.vue";
 import OpenaiAPI from "dashboard/api/integrations/openapi";
+import JiraAPI from "dashboard/api/integrations/jira";
 import { useStoreGetters, useStore } from "dashboard/composables/store";
 
 const getters = useStoreGetters();
@@ -247,8 +248,8 @@ const currentAccount = computed(() => {
 // Get available categories from account settings
 const availableCategories = computed(() => {
   const categories = currentAccount.value?.settings?.ticket_categories || [];
-  console.log('Available categories computed:', categories);
-  return categories;
+  // Filter out empty/blank entries and deduplicate
+  return [...new Set(categories.filter(c => c && c.trim()))];
 });
 
 const selectedMessagesPreview = computed(() => {
@@ -348,13 +349,48 @@ const generateTitleAndDescriptionWithAI = async () => {
       throw new Error(t("TICKETS.AI_ENHANCEMENT.NO_MESSAGES_ERROR"));
     }
 
-    // Format messages for AI
+    // Transcribe untranscribed audio messages before AI generation
+    const audioMessageIds = selectedMessages
+      .filter(msg =>
+        (msg.attachments || []).some(
+          a => a.file_type === 'audio' && !a.transcribed_text
+        )
+      )
+      .map(msg => msg.id);
+
+    if (audioMessageIds.length > 0) {
+      try {
+        const transcribeResponse = await JiraAPI.transcribeAudio(audioMessageIds);
+        const transcriptions = transcribeResponse.data?.transcriptions || {};
+        selectedMessages.forEach(msg => {
+          (msg.attachments || []).forEach(a => {
+            if (a.file_type === 'audio' && !a.transcribed_text && transcriptions[a.id]) {
+              a.transcribed_text = transcriptions[a.id];
+            }
+          });
+        });
+      } catch {
+        // Continue without transcriptions if it fails
+      }
+    }
+
+    // Format messages for AI (include audio transcriptions)
     const messagesContent = selectedMessages
       .map((message) => {
         const sender = message.message_type === 0 ? "Customer" : "Agent";
         const senderName = message.sender?.name || "Unknown";
-        return `${sender} (${senderName}): ${message.content}`;
+        let text = message.content || '';
+        const audioTranscriptions = (message.attachments || [])
+          .filter(a => a.file_type === 'audio' && a.transcribed_text)
+          .map(a => `[Audio transcription: ${a.transcribed_text}]`);
+        if (audioTranscriptions.length > 0) {
+          text = text
+            ? `${text}\n${audioTranscriptions.join('\n')}`
+            : audioTranscriptions.join('\n');
+        }
+        return text ? `${sender} (${senderName}): ${text}` : '';
       })
+      .filter(m => m.trim())
       .join("\n\n");
 
     // Generate with AI - always generate fresh content from messages

@@ -49,6 +49,8 @@ class Api::V1::Accounts::Integrations::Jira::WebhooksController < Api::V1::Accou
         else
           Rails.logger.info("JIRA Webhook: No tickets linked to issue #{issue_key}, but completion notifications may still be sent")
         end
+      elsif webhook_event == 'jira:issue_deleted' && issue_data.present?
+        handle_issue_deleted(issue_data['key'])
       end
 
       render json: { status: 'success', message: 'Webhook processed successfully' }
@@ -76,6 +78,59 @@ class Api::V1::Accounts::Integrations::Jira::WebhooksController < Api::V1::Accou
     jira_link = JiraIssueLink.find_by(issue_key: issue_key)&.account
 
     ticket_link || jira_link
+  end
+
+  def handle_issue_deleted(issue_key)
+    return if issue_key.blank?
+
+    Rails.logger.info("JIRA Webhook: Issue #{issue_key} was deleted from JIRA")
+
+    # Find all links for this issue across all accounts
+    links = JiraIssueLink.where(issue_key: issue_key).includes(:conversation, :account)
+
+    if links.empty?
+      Rails.logger.info("JIRA Webhook: No links found for deleted issue #{issue_key}")
+      return
+    end
+
+    links.each do |link|
+      conversation = link.conversation
+      next unless conversation
+
+      # Create an activity message informing about the deletion
+      begin
+        conversation.messages.create!(
+          content: "⚠️ **JIRA Issue Deleted**\n\nThe linked JIRA issue **#{issue_key}** has been deleted from JIRA. The link has been automatically removed.",
+          message_type: :activity,
+          private: true,
+          sender: nil,
+          account: link.account,
+          inbox: conversation.inbox,
+          content_type: 'text'
+        )
+      rescue StandardError => e
+        Rails.logger.error("JIRA Webhook: Failed to create deletion activity message: #{e.message}")
+      end
+
+      # Broadcast update so frontend refreshes
+      begin
+        tokens = user_tokens_for_conversation(conversation)
+        ActionCableBroadcastJob.perform_later(
+          tokens,
+          'jira_issue_deleted',
+          { conversation_id: conversation.id, issue_key: issue_key, account_id: link.account_id }
+        )
+      rescue StandardError => e
+        Rails.logger.error("JIRA Webhook: Failed to broadcast deletion event: #{e.message}")
+      end
+    end
+
+    # Remove all links for this issue
+    count = links.destroy_all.length
+    Rails.logger.info("JIRA Webhook: Removed #{count} links for deleted issue #{issue_key}")
+
+    # Also clear the jira_issue_key on any tickets
+    Ticket.where(jira_issue_key: issue_key).update_all(jira_issue_key: nil, jira_status: nil, jira_in_progress: false)
   end
 
   def find_accounts_for_issue(issue_key)
@@ -117,9 +172,22 @@ class Api::V1::Accounts::Integrations::Jira::WebhooksController < Api::V1::Accou
   end
 
   def completed_status?(status)
-    # Define which statuses indicate completion
-    completion_statuses = %w[Done Resolved Closed Complete Completed]
-    completion_statuses.any? { |completion_status| status.downcase.include?(completion_status.downcase) }
+    # Use configurable final statuses from the integration settings
+    # Fall back to defaults if no configuration found
+    account = find_account_for_issue_from_context
+    if account
+      processor = Integrations::Jira::ProcessorService.new(account: account)
+      return processor.completed_status?(status)
+    end
+
+    # Default completion statuses as fallback
+    default_completion_statuses = %w[Done Resolved Closed Complete Completed Canceled Solved]
+    default_completion_statuses.any? { |completion_status| status.downcase.include?(completion_status.downcase) }
+  end
+
+  def find_account_for_issue_from_context
+    # Try to find account from the current route params or from the webhook data
+    Account.find_by(id: params[:account_id])
   end
 
   def update_issue_status_from_webhook(issue_key, new_status, account_id)

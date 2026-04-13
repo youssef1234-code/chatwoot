@@ -345,13 +345,17 @@
       "CONVERSATION_INFO": "Conversation Information",
       "CONTACT_NOTES": "Contact Notes",
       "CONTACT_ATTRIBUTES": "Contact Attributes",
+      "ONBOARDING_STATUS": "Onboarding Status",
       "PREVIOUS_CONVERSATION": "Previous Conversations",
       "MACROS": "Macros",
       "TICKETS": "Linked Tickets",
       "LINEAR_ISSUES": "Linked Linear Issues",
       "JIRA_ISSUES": "Linked JIRA Issues",
-      "SHOPIFY_ORDERS": "Shopify Orders"
+      "PLANE_ISSUES": "Linked Plane Issues",
+      "SHOPIFY_ORDERS": "Shopify Orders",
+      "GROUP_MEMBERS": "Group Members"
     },
+    "NO_GROUP_MEMBERS": "No group members found",
     "SHOPIFY": {
       "ORDER_ID": "Order #{id}",
       "ERROR": "Error loading orders",
@@ -436,5 +440,10 @@
   },
   "GALLERY_VIEW": {
     "ERROR_DOWNLOADING": "Unable to download attachment. Please try again"
+  },
+  "ONBOARDING": {
+    "NO_COMPANY_SLUG": "No company associated with this contact",
+    "NO_ONBOARDING": "No active onboarding found for this customer",
+    "LOADING_ERROR": "Failed to load onboarding status"
   }
 }

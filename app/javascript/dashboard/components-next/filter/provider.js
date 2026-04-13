@@ -212,13 +212,11 @@ export function useConversationFilterContext() {
       value: CONVERSATION_ATTRIBUTES.JIRA_LINKED_ISSUES,
       attributeName: t('FILTER.ATTRIBUTES.JIRA_LINKED_ISSUES'),
       label: t('FILTER.ATTRIBUTES.JIRA_LINKED_ISSUES'),
-      inputType: 'booleanSelect',
-      options: [
-        { id: true, name: t('FILTER.ATTRIBUTES.JIRA_LINKED_ISSUES_TRUE') },
-        { id: false, name: t('FILTER.ATTRIBUTES.JIRA_LINKED_ISSUES_FALSE') },
-      ],
+      inputType: 'plainText',
       dataType: 'text',
-      filterOperators: presenceOperators.value,
+      filterOperators: presenceOperators.value.filter(
+        op => op.value === 'is_present' || op.value === 'is_not_present'
+      ),
       attributeModel: 'standard',
     },
     {
@@ -226,6 +224,28 @@ export function useConversationFilterContext() {
       value: CONVERSATION_ATTRIBUTES.JIRA_ISSUE_KEY,
       attributeName: t('FILTER.ATTRIBUTES.JIRA_ISSUE_KEY'),
       label: t('FILTER.ATTRIBUTES.JIRA_ISSUE_KEY'),
+      inputType: 'plainText',
+      dataType: 'text',
+      filterOperators: equalityOperators.value,
+      attributeModel: 'standard',
+    },
+    {
+      attributeKey: CONVERSATION_ATTRIBUTES.PLANE_LINKED_ISSUES,
+      value: CONVERSATION_ATTRIBUTES.PLANE_LINKED_ISSUES,
+      attributeName: t('FILTER.ATTRIBUTES.PLANE_LINKED_ISSUES'),
+      label: t('FILTER.ATTRIBUTES.PLANE_LINKED_ISSUES'),
+      inputType: 'plainText',
+      dataType: 'text',
+      filterOperators: presenceOperators.value.filter(
+        op => op.value === 'is_present' || op.value === 'is_not_present'
+      ),
+      attributeModel: 'standard',
+    },
+    {
+      attributeKey: CONVERSATION_ATTRIBUTES.PLANE_ISSUE_KEY,
+      value: CONVERSATION_ATTRIBUTES.PLANE_ISSUE_KEY,
+      attributeName: t('FILTER.ATTRIBUTES.PLANE_ISSUE_KEY'),
+      label: t('FILTER.ATTRIBUTES.PLANE_ISSUE_KEY'),
       inputType: 'plainText',
       dataType: 'text',
       filterOperators: equalityOperators.value,

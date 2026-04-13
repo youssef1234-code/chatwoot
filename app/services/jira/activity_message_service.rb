@@ -17,6 +17,13 @@ class Jira::ActivityMessageService
                 "JIRA issue #{issue_data[:key]} was linked by #{user.name}"
               when :issue_unlinked
                 "JIRA issue #{issue_data[:key]} was unlinked by #{user.name}"
+              when :issue_escalated
+                new_key = issue_data[:new_key]
+                if new_key
+                  "JIRA issue #{issue_data[:key]} was escalated to #{issue_data[:target_project]} → new issue #{new_key} created by #{user.name}"
+                else
+                  "JIRA issue #{issue_data[:key]} was escalated to #{issue_data[:target_project]} by #{user.name}"
+                end
               else
                 "JIRA action performed by #{user.name}"
               end

@@ -359,6 +359,7 @@ export default {
       <ConversationLabels 
         :conversation="chat" 
         :max-jira-labels="2"
+        :max-plane-labels="2"
         class="mt-0.5 mx-2 mb-0"
         @label-click="onLabelClick"
       >

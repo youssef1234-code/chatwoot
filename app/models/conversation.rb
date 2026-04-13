@@ -131,6 +131,7 @@ class Conversation < ApplicationRecord
   has_many :attachments, through: :messages
   has_many :reporting_events, dependent: :destroy_async
   has_many :jira_issue_links, dependent: :destroy_async
+  has_many :plane_issue_links, dependent: :destroy_async
   has_many :tickets, dependent: :destroy_async
 
   before_save :ensure_snooze_until_reset

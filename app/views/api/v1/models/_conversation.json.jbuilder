@@ -27,3 +27,9 @@ json.jira_issue_links conversation.jira_issue_links do |link|
   json.linked_at link.linked_at
   json.comment_id link.comment_id
 end
+json.plane_issue_links conversation.plane_issue_links do |link|
+  json.issue_key link.issue_key
+  json.linked_at link.linked_at
+  json.issue_id link.issue_id
+  json.project_id link.project_id
+end

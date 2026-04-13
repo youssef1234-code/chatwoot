@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAlert, useTrack } from 'dashboard/composables';
+import { useStore } from 'vuex';
 import JiraAPI from 'dashboard/api/integrations/jira';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
@@ -20,11 +21,56 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  selectedMessageIds: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 const emit = defineEmits(['close', 'issue-linked']);
 
 const { t } = useI18n();
+const store = useStore();
+
+const currentChat = computed(() => store.getters.getSelectedChat);
+const excludedMessageAttachmentIds = ref(new Set());
+
+// Attachments from selected messages (flattened)
+const messageAttachments = computed(() => {
+  if (!props.selectedMessageIds || props.selectedMessageIds.length === 0) return [];
+  const conversation = currentChat.value;
+  const allMessages = conversation?.messages || [];
+  return props.selectedMessageIds
+    .map(id => allMessages.find(m => m.id === id))
+    .filter(Boolean)
+    .flatMap(msg => (msg.attachments || []).filter(a => a.file_type !== 'audio'))
+    .filter(a => !excludedMessageAttachmentIds.value.has(a.id));
+});
+
+const removeMessageAttachment = (attId) => {
+  excludedMessageAttachmentIds.value = new Set([...excludedMessageAttachmentIds.value, attId]);
+};
+
+const getAttachmentName = (att) => {
+  if (att.data_url) {
+    try {
+      const url = new URL(att.data_url, window.location.origin);
+      const parts = url.pathname.split('/');
+      const last = parts[parts.length - 1];
+      if (last && last.includes('.')) return decodeURIComponent(last);
+    } catch (e) { /* fallback */ }
+  }
+  const ext = att.extension ? `.${att.extension}` : '';
+  return `${att.file_type || 'file'}${ext}`;
+};
+
+const formatFileSize = (bytes) => {
+  if (!bytes || bytes === 0) return '';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
 
 const issues = ref([]);
 const selectedOption = ref({});
@@ -89,7 +135,32 @@ const linkIssue = async () => {
   const { key: issueKey } = selectedOption.value;
   try {
     isLinking.value = true;
-    await JiraAPI.linkIssue(props.conversationId, issueKey, props.title);
+    await JiraAPI.linkIssue(props.conversationId, issueKey, props.title, props.selectedMessageIds);
+
+    // Upload non-audio attachments from selected messages (skip fully excluded)
+    if (props.selectedMessageIds && props.selectedMessageIds.length > 0) {
+      const conversation = currentChat.value;
+      const allMessages = conversation?.messages || [];
+      const excluded = excludedMessageAttachmentIds.value;
+      const msgsWithAttachments = props.selectedMessageIds
+        .map(id => allMessages.find(m => m.id === id))
+        .filter(Boolean)
+        .filter(msg =>
+          (msg.attachments || []).some(a => a.file_type !== 'audio' && !excluded.has(a.id))
+        );
+      if (msgsWithAttachments.length > 0) {
+        try {
+          await JiraAPI.uploadMessageAttachments(
+            issueKey,
+            props.conversationId,
+            msgsWithAttachments.map(m => m.id)
+          );
+        } catch (uploadErr) {
+          console.error('Failed to upload message attachments:', uploadErr);
+        }
+      }
+    }
+
     useAlert(t('INTEGRATION_SETTINGS.JIRA.LINK.LINK_SUCCESS'));
     
     // Emit event for escalation workflow
@@ -180,6 +251,33 @@ const getStatusColor = (status) => {
         <p class="text-xs text-slate-500 dark:text-slate-400">
           {{ $t('INTEGRATION_SETTINGS.JIRA.LINK.EMPTY_LIST') }}
         </p>
+      </div>
+
+      <!-- Attachments from Selected Messages (same format as manual uploads) -->
+      <div v-if="messageAttachments.length > 0" class="mt-4 space-y-2">
+        <label class="block text-sm font-medium text-n-slate-12">
+          <i class="ri-attachment-line mr-1" />
+          Attachments ({{ messageAttachments.length }})
+        </label>
+        <div
+          v-for="att in messageAttachments"
+          :key="'msg-' + att.id"
+          class="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-700 rounded"
+        >
+          <div class="flex items-center gap-2">
+            <fluent-icon icon="document" size="14" class="text-slate-500 dark:text-slate-400" />
+            <span class="text-sm text-slate-900 dark:text-slate-100 truncate">{{ getAttachmentName(att) }}</span>
+            <span v-if="att.file_size" class="text-xs text-slate-500 dark:text-slate-400">({{ formatFileSize(att.file_size) }})</span>
+          </div>
+          <button
+            type="button"
+            class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-lg leading-none font-bold px-1"
+            title="Remove"
+            @click="removeMessageAttachment(att.id)"
+          >
+            ×
+          </button>
+        </div>
       </div>
     </div>
 

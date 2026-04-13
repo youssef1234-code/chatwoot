@@ -106,6 +106,16 @@
           class="min-w-40"
         />
 
+        <!-- Plane Filter -->
+        <NextSelect
+          v-model="selectedPlaneStatus"
+          :label="$t('TICKETS.TRACKING.PLANE_FILTER')"
+          name="plane"
+          :options="planeOptions"
+          :placeholder="$t('TICKETS.TRACKING.PLANE_FILTER')"
+          class="min-w-40"
+        />
+
         <!-- Date Range Filter -->
         <NextButton
           variant="outline"
@@ -194,6 +204,7 @@ export default {
     const selectedAgent = ref('');
     const selectedCategory = ref('');
     const selectedJiraStatus = ref('');
+    const selectedPlaneStatus = ref('');
     const showDatePicker = ref(false);
     const isAiEnhancementEnabled = ref(false);
     const showAiModal = ref(false);
@@ -260,8 +271,14 @@ export default {
       { label: t('TICKETS.FILTERS.NOT_LINKED_TO_JIRA'), value: 'not_linked' },
     ]);
 
+    const planeOptions = computed(() => [
+      { label: t('TICKETS.FILTERS.ALL'), value: '' },
+      { label: t('TICKETS.FILTERS.LINKED_TO_PLANE'), value: 'linked' },
+      { label: t('TICKETS.FILTERS.NOT_LINKED_TO_PLANE'), value: 'not_linked' },
+    ]);
+
     const hasActiveFilters = computed(() => {
-      return selectedStatus.value || selectedPriority.value || selectedAgent.value || selectedCategory.value || selectedJiraStatus.value || searchQuery.value;
+      return selectedStatus.value || selectedPriority.value || selectedAgent.value || selectedCategory.value || selectedJiraStatus.value || selectedPlaneStatus.value || searchQuery.value;
     });
 
     const filteredTickets = computed(() => {
@@ -343,6 +360,15 @@ export default {
         }
       }
 
+      // Apply Plane filter
+      if (selectedPlaneStatus.value) {
+        if (selectedPlaneStatus.value === 'linked') {
+          filtered = filtered.filter(ticket => ticket.plane_issue_id);
+        } else if (selectedPlaneStatus.value === 'not_linked') {
+          filtered = filtered.filter(ticket => !ticket.plane_issue_id);
+        }
+      }
+
       // Sort by ID in descending order (newest first)
       return filtered.sort((a, b) => b.id - a.id);
     });
@@ -375,6 +401,7 @@ export default {
       selectedAgent.value = '';
       selectedCategory.value = '';
       selectedJiraStatus.value = '';
+      selectedPlaneStatus.value = '';
     };
 
     const toggleAiEnhancement = async () => {
@@ -479,6 +506,7 @@ export default {
       selectedAgent,
       selectedCategory,
       selectedJiraStatus,
+      selectedPlaneStatus,
       showDatePicker,
       isAiEnhancementEnabled,
       showAiModal,
@@ -493,6 +521,7 @@ export default {
       agentOptions,
       categoryOptions,
       jiraOptions,
+      planeOptions,
       hasActiveFilters,
       filteredTickets,
       

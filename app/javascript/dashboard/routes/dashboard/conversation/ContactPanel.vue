@@ -11,6 +11,7 @@ import AccordionItem from 'dashboard/components/Accordion/AccordionItem.vue';
 import ContactConversations from './ContactConversations.vue';
 import ConversationAction from './ConversationAction.vue';
 import ConversationParticipant from './ConversationParticipant.vue';
+import GroupMembers from './GroupMembers.vue';
 import ContactInfo from './contact/ContactInfo.vue';
 import ContactNotes from './contact/ContactNotes.vue';
 import ConversationInfo from './ConversationInfo.vue';
@@ -23,6 +24,9 @@ import LinearIssuesList from 'dashboard/components/widgets/conversation/linear/I
 import LinearSetupCTA from 'dashboard/components/widgets/conversation/linear/LinearSetupCTA.vue';
 import JiraIssuesList from 'dashboard/components/widgets/conversation/jira/IssuesList.vue';
 import JiraSetupCTA from 'dashboard/components/widgets/conversation/jira/JiraSetupCTA.vue';
+import PlaneIssuesList from 'dashboard/components/widgets/conversation/plane/IssuesList.vue';
+import PlaneSetupCTA from 'dashboard/components/widgets/conversation/plane/PlaneSetupCTA.vue';
+import OnboardingStatus from 'dashboard/components/widgets/conversation/onboarding/OnboardingStatus.vue';
 import TicketsAndFeatureRequestsList from 'dashboard/components/widgets/conversation/tickets/TicketsAndFeatureRequestsList.vue';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 
@@ -90,6 +94,20 @@ const isJiraFeatureEnabled = isFeatureEnabledonAccount.value(
   FEATURE_FLAGS.JIRA
 );
 
+const planeIntegration = useFunctionGetter(
+  'integrations/getIntegration',
+  'plane'
+);
+
+const isPlaneIntegrationEnabled = computed(
+  () => planeIntegration.value?.enabled || false
+);
+
+const isPlaneFeatureEnabled = isFeatureEnabledonAccount.value(
+  currentAccountId.value,
+  FEATURE_FLAGS.PLANE
+);
+
 const store = useStore();
 const currentChat = useMapGetter('getSelectedChat');
 const conversationId = computed(() => props.conversationId);
@@ -145,6 +163,7 @@ onMounted(() => {
   // Load integrations to ensure integration states are available
   store.dispatch('integrations/get', 'linear');
   store.dispatch('integrations/get', 'jira');
+  store.dispatch('integrations/get', 'plane');
 });
 </script>
 
@@ -201,6 +220,18 @@ onMounted(() => {
                 :inbox-id="inboxId"
               />
             </AccordionItem>
+            <AccordionItem
+              :title="$t('CONVERSATION_SIDEBAR.ACCORDION.GROUP_MEMBERS')"
+              :is-open="isContactSidebarItemOpen('is_group_members_open')"
+              compact
+              @toggle="
+                value =>
+                  toggleSidebarUIState('is_group_members_open', value)
+              "
+              class="mt-3"
+            >
+              <GroupMembers :conversation-id="conversationId" />
+            </AccordionItem>
           </div>
           <div v-else-if="element.name === 'conversation_info'">
             <AccordionItem
@@ -234,6 +265,22 @@ onMounted(() => {
                 :empty-state-message="
                   $t('CONVERSATION_CUSTOM_ATTRIBUTES.NO_RECORDS_FOUND')
                 "
+              />
+            </AccordionItem>
+          </div>
+          <div v-else-if="element.name === 'onboarding_status'">
+            <AccordionItem
+              :title="$t('CONVERSATION_SIDEBAR.ACCORDION.ONBOARDING_STATUS')"
+              :is-open="isContactSidebarItemOpen('is_onboarding_status_open')"
+              compact
+              @toggle="
+                value =>
+                  toggleSidebarUIState('is_onboarding_status_open', value)
+              "
+            >
+              <OnboardingStatus
+                :contact="contact"
+                :conversation-id="conversationId"
               />
             </AccordionItem>
           </div>
@@ -299,7 +346,7 @@ onMounted(() => {
           </div>
           <div
             v-else-if="
-              element.name === 'jira_issues' && isJiraFeatureEnabled
+              element.name === 'jira_issues' && (isJiraIntegrationEnabled || isJiraFeatureEnabled)
             "
           >
             <AccordionItem
@@ -312,6 +359,23 @@ onMounted(() => {
             >
               <JiraSetupCTA v-if="!isJiraIntegrationEnabled" />
               <JiraIssuesList v-else :conversation-id="conversationId" />
+            </AccordionItem>
+          </div>
+          <div
+            v-else-if="
+              element.name === 'plane_issues' && (isPlaneFeatureEnabled || isPlaneIntegrationEnabled)
+            "
+          >
+            <AccordionItem
+              :title="$t('CONVERSATION_SIDEBAR.ACCORDION.PLANE_ISSUES')"
+              :is-open="isContactSidebarItemOpen('is_plane_issues_open')"
+              compact
+              @toggle="
+                value => toggleSidebarUIState('is_plane_issues_open', value)
+              "
+            >
+              <PlaneSetupCTA v-if="!isPlaneIntegrationEnabled" />
+              <PlaneIssuesList v-else :conversation-id="conversationId" />
             </AccordionItem>
           </div>
           <div

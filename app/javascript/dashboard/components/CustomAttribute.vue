@@ -282,7 +282,7 @@ export default {
         </a>
         <p
           v-else
-          class="group-hover:bg-n-slate-3 group-hover:dark:bg-n-solid-3 inline-block rounded-sm mb-0 break-all py-0.5 px-1"
+          class="group-hover:bg-n-slate-3 group-hover:dark:bg-n-solid-3 inline-block rounded-sm mb-0 break-all py-0.5 px-1 whitespace-pre-wrap"
         >
           {{ displayValue }}
         </p>

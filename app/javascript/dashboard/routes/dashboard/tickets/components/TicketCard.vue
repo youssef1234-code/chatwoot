@@ -178,6 +178,19 @@
       </div>
     </div>
 
+    <!-- Plane Integration -->
+    <div
+      v-if="ticket.plane_issue_id"
+      class="mb-3 p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded border border-indigo-200 dark:border-indigo-800"
+    >
+      <div class="flex items-center gap-2">
+        <Icon icon="i-lucide-plane" class="w-4 h-4 text-indigo-600" />
+        <span class="text-sm font-medium text-indigo-800 dark:text-indigo-200">
+          {{ $t('TICKETS.PLANE_LINKED') }}
+        </span>
+      </div>
+    </div>
+
     <!-- Conversation Link -->
     <div class="mb-3">
       <div class="flex items-center gap-2 text-sm text-n-slate-9">

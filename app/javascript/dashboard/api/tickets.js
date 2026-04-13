@@ -109,10 +109,40 @@ class TicketsAPI extends ApiClient {
     return axios.get(`${this.url}/stats`);
   }
 
+  // Kanban board with cursor-based pagination
+  async getKanban(params = {}) {
+    return axios.get(`${this.url}/kanban`, { params });
+  }
+
+  // New status actions
+  async escalateToPlane(ticketId, { planeIssueId, planeIssueKey, planeProjectId }) {
+    return axios.post(`${this.url}/${ticketId}/escalate_to_plane`, {
+      plane_issue_id: planeIssueId,
+      plane_issue_key: planeIssueKey,
+      plane_project_id: planeProjectId,
+    });
+  }
+
+  async markAlreadyWorking(ticketId) {
+    return axios.post(`${this.url}/${ticketId}/mark_already_working`);
+  }
+
+  async markBadConfig(ticketId) {
+    return axios.post(`${this.url}/${ticketId}/mark_bad_config`);
+  }
+
   async linkJiraIssue(ticketId, jiraIssueKey, jiraUrl) {
     return axios.post(`${this.url}/${ticketId}/link_jira_issue`, {
       jira_issue_key: jiraIssueKey,
       jira_url: jiraUrl,
+    });
+  }
+
+  async linkPlaneIssue(ticketId, planeIssueId, planeIssueKey, planeProjectId) {
+    return axios.post(`${this.url}/${ticketId}/link_plane_issue`, {
+      plane_issue_id: planeIssueId,
+      plane_issue_key: planeIssueKey,
+      plane_project_id: planeProjectId,
     });
   }
 

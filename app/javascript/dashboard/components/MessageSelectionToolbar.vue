@@ -25,10 +25,10 @@
         <ButtonV4
           size="sm"
           variant="primary"
-          icon="i-lucide-ticket"
+          icon="i-lucide-plus"
           @click="openCreateTicketModal"
         >
-          {{ $t('TICKETS.CREATE_TICKET') }}
+          {{ $t('INTEGRATION_SETTINGS.JIRA.ADD_OR_LINK_BUTTON') }}
         </ButtonV4>
         
         <!-- <ButtonV4

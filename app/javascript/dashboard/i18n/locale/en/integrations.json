@@ -245,7 +245,10 @@
       "LIST": {
         "404": "There are no dashboard apps configured on this account yet",
         "LOADING": "Fetching dashboard apps...",
-        "TABLE_HEADER": { "NAME": "Name", "ENDPOINT": "Endpoint" },
+        "TABLE_HEADER": {
+          "NAME": "Name",
+          "ENDPOINT": "Endpoint"
+        },
         "EDIT_TOOLTIP": "Edit app",
         "DELETE_TOOLTIP": "Delete app"
       },
@@ -378,7 +381,7 @@
       "ADD_OR_LINK_BUTTON": "Create/Link JIRA Issue",
       "LOADING": "Fetching JIRA issues...",
       "LOADING_ERROR": "There was an error fetching the JIRA issues, please try again",
-      "CREATE": "Create",
+      "CREATE": "Create Jira Issue",
       "CANCEL": "Cancel",
       "LINK": {
         "SEARCH": "Search issues",
@@ -392,7 +395,7 @@
         "LINK_TITLE": "Conversation (#{conversationId}) with {name}"
       },
       "ADD_OR_LINK": {
-        "TITLE": "Create/link JIRA issue",
+        "TITLE": "Create/Link JIRA Issue",
         "DESCRIPTION": "Create JIRA issues from conversations, or link existing ones for seamless tracking.",
         "FORM": {
           "TITLE": {
@@ -435,6 +438,12 @@
             "LABEL": "Environment",
             "PLACEHOLDER": "Select environment",
             "SEARCH": "Search environment"
+          },
+          "CATEGORY": {
+            "LABEL": "Category",
+            "PLACEHOLDER": "Select category",
+            "SEARCH": "Search category",
+            "REQUIRED_ERROR": "Category is required"
           },
           "LABELS": {
             "LABEL": "Labels",
@@ -543,6 +552,182 @@
         "STEP_5": "Save the webhook configuration",
         "NOTE_TITLE": "Important:",
         "NOTE_DESCRIPTION": "Webhooks provide real-time updates. Without webhooks, status changes will be checked periodically."
+      }
+    },
+    "PLANE": {
+      "ADD_OR_LINK_BUTTON": "Create/Link Plane Issue",
+      "LOADING": "Fetching Plane issues...",
+      "LOADING_ERROR": "There was an error fetching the Plane issues, please try again",
+      "CREATE": "Create",
+      "CANCEL": "Cancel",
+      "LINK": {
+        "SEARCH": "Search issues",
+        "SELECT": "Select issue",
+        "TITLE": "Link",
+        "EMPTY_LIST": "No Plane issues found",
+        "LOADING": "Loading",
+        "ERROR": "There was an error fetching the Plane issues, please try again",
+        "LINK_SUCCESS": "Issue linked successfully",
+        "LINK_ERROR": "There was an error linking the issue, please try again",
+        "LINK_TITLE": "Conversation (#{conversationId}) with {name}"
+      },
+      "ADD_OR_LINK": {
+        "TITLE": "Create/link Plane issue",
+        "DESCRIPTION": "Create Plane issues from conversations, or link existing ones for seamless tracking.",
+        "FORM": {
+          "NAME": {
+            "LABEL": "Name",
+            "PLACEHOLDER": "Enter issue name",
+            "REQUIRED_ERROR": "Name is required"
+          },
+          "DESCRIPTION": {
+            "LABEL": "Description",
+            "PLACEHOLDER": "Enter description"
+          },
+          "PROJECT": {
+            "LABEL": "Project",
+            "PLACEHOLDER": "Select project",
+            "SEARCH": "Search project",
+            "REQUIRED_ERROR": "Project is required"
+          },
+          "STATE": {
+            "LABEL": "State",
+            "PLACEHOLDER": "Select state",
+            "SEARCH": "Search state"
+          },
+          "ASSIGNEE": {
+            "LABEL": "Assignee",
+            "PLACEHOLDER": "Select assignee",
+            "SEARCH": "Search assignee"
+          },
+          "PRIORITY": {
+            "LABEL": "Priority",
+            "PLACEHOLDER": "Select priority",
+            "SEARCH": "Search priority"
+          },
+          "LABELS": {
+            "LABEL": "Labels",
+            "PLACEHOLDER": "Select labels",
+            "SEARCH": "Search labels"
+          }
+        },
+        "CREATE_SUCCESS": "Issue created successfully",
+        "CREATE_ERROR": "There was an error creating the issue, please try again",
+        "LOADING_PROJECTS_ERROR": "There was an error fetching the projects, please try again",
+        "LOADING_PROJECT_ENTITIES_ERROR": "There was an error fetching the project entities, please try again"
+      },
+      "ISSUE": {
+        "STATUS": "Status",
+        "PRIORITY": "Priority",
+        "ASSIGNEE": "Assignee",
+        "LABELS": "Labels",
+        "CREATED_AT": "Created at {createdAt}",
+        "STATE": "State",
+        "UPDATED": "Updated",
+        "REFRESH": "Refresh",
+        "VIEW_IN_PLANE": "View in Plane",
+        "UNLINK_ISSUE": "Unlink issue",
+        "ISSUE_REFRESHED": "Issue status refreshed",
+        "REFRESH_ERROR": "Failed to refresh issue status",
+        "ISSUE_NOT_FOUND": "Issue not found"
+      },
+      "UNLINK": {
+        "TITLE": "Unlink",
+        "SUCCESS": "Issue unlinked successfully",
+        "ERROR": "There was an error unlinking the issue, please try again"
+      },
+      "ATTACHMENTS": {
+        "TITLE": "Attachments",
+        "ADD_ATTACHMENT": "Add Attachment",
+        "UPLOAD": "Upload File",
+        "UPLOADING": "Uploading...",
+        "UPLOAD_SUCCESS": "File uploaded successfully",
+        "UPLOAD_ERROR": "Failed to upload file",
+        "MAX_SIZE": "Maximum file size: 10MB",
+        "SUPPORTED_FORMATS": "Supported formats: JPG, PNG, PDF, DOC, DOCX"
+      },
+      "COMMENTS": {
+        "BUTTON": "Comments",
+        "TITLE": "Issue Comments",
+        "SUBTITLE": "View and add comments to this Plane issue",
+        "LOADING": "Loading comments...",
+        "LOAD_ERROR": "Failed to load comments",
+        "NO_COMMENTS": "No comments yet",
+        "NO_COMMENTS_DESC": "Be the first to add a comment to this issue.",
+        "PLACEHOLDER": "Write a comment...",
+        "INPUT_LABEL": "Add Comment",
+        "ADD_SUCCESS": "Comment added successfully",
+        "ADD_ERROR": "Failed to add comment",
+        "POSTING_AS": "Posting as",
+        "CHATWOOT_AGENT": "Chatwoot Agent",
+        "CANCEL": "Cancel",
+        "SUBMIT": "Add Comment"
+      },
+      "EDIT": {
+        "BUTTON": "Edit",
+        "TITLE": "Edit Issue",
+        "SUBTITLE": "Update issue details in Plane",
+        "LOAD_ERROR": "Failed to load issue details",
+        "SAVE": "Save Changes",
+        "SAVE_SUCCESS": "Issue updated successfully",
+        "SAVE_ERROR": "Failed to update issue"
+      },
+      "NO_LINKED_ISSUES": "No linked issues found",
+      "MORE_ISSUES": "more",
+      "VIEW_ALL": "View all Plane issues",
+      "SHOW_LESS": "Show less",
+      "UNLINK_ISSUE": "Unlink issue",
+      "DELETE": {
+        "TITLE": "Are you sure you want to delete the integration?",
+        "MESSAGE": "Are you sure you want to delete the integration?",
+        "CONFIRM": "Yes, delete",
+        "CANCEL": "Cancel"
+      },
+      "CTA": {
+        "TITLE": "Connect to Plane",
+        "AGENT_DESCRIPTION": "Plane workspace is not connected. Request your administrator to connect a workspace to use this integration.",
+        "DESCRIPTION": "Plane workspace is not connected. Click the button below to connect your workspace to use this integration.",
+        "BUTTON_TEXT": "Connect Plane workspace"
+      },
+      "SETUP": {
+        "TITLE": "Connect to Plane",
+        "DESCRIPTION": "Enter your Plane API details to connect your workspace with Chatwoot.",
+        "API_URL_LABEL": "Plane API URL",
+        "API_URL_PLACEHOLDER": "https://api.plane.so",
+        "API_KEY_LABEL": "API Key",
+        "API_KEY_PLACEHOLDER": "Enter your Plane API key",
+        "WORKSPACE_SLUG_LABEL": "Workspace Slug",
+        "WORKSPACE_SLUG_PLACEHOLDER": "your-workspace-slug",
+        "CONNECT": "Connect to Plane",
+        "CANCEL": "Cancel",
+        "CONNECTION_FAILED": "Failed to connect to Plane. Please check your credentials and try again."
+      },
+      "WEBHOOK_SETUP": {
+        "TITLE": "Real-time Issue Updates",
+        "DESCRIPTION": "Configure webhooks to receive real-time notifications when Plane issues are updated or completed.",
+        "WEBHOOK_URL": "Webhook URL",
+        "COPY": "Copy",
+        "COPIED_SUCCESS": "Webhook URL copied to clipboard!",
+        "INSTRUCTIONS_TITLE": "Setup Instructions:",
+        "STEP_1": "Go to your Plane workspace settings → Webhooks",
+        "STEP_2": "Click 'Create Webhook'",
+        "STEP_3": "Paste the webhook URL above",
+        "STEP_4": "Select 'Issue' events",
+        "STEP_5": "Save the webhook configuration",
+        "NOTE_TITLE": "Important:",
+        "NOTE_DESCRIPTION": "Webhooks provide real-time updates. Without webhooks, status changes will be checked periodically.",
+        "SECRET_LABEL": "Webhook Secret",
+        "SECRET_DESCRIPTION": "Set a secret to verify that incoming webhooks are genuinely from Plane. Paste the same secret you configured in Plane's webhook settings.",
+        "SECRET_PLACEHOLDER": "Enter webhook secret...",
+        "SECRET_PLACEHOLDER_CONFIGURED": "Secret is set (enter new value to replace)",
+        "SAVE_SECRET": "Save",
+        "SAVING": "Saving...",
+        "REMOVE_SECRET": "Remove",
+        "SECRET_CONFIGURED": "Webhook secret is configured",
+        "SECRET_SAVED": "Webhook secret saved successfully",
+        "SECRET_REMOVED": "Webhook secret removed",
+        "SECRET_SAVE_ERROR": "Failed to save webhook secret",
+        "SECRET_EMPTY_ERROR": "Please enter a webhook secret"
       }
     }
   },
@@ -732,7 +917,6 @@
         "SUCCESS_MESSAGE": "The document has been successfully deleted",
         "ERROR_MESSAGE": "There was an error deleting the document, please try again."
       },
-
       "OPTIONS": {
         "VIEW_RELATED_RESPONSES": "View Related Responses",
         "DELETE_DOCUMENT": "Delete Document"
@@ -801,7 +985,6 @@
           "PLACEHOLDER": "Enter the answer here",
           "ERROR": "Please provide a valid answer."
         },
-
         "ASSISTANT": {
           "LABEL": "Assistant",
           "PLACEHOLDER": "Select an assistant",

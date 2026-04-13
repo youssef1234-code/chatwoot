@@ -17,6 +17,20 @@ class Integrations::Jira::ProcessorService
     end
   end
 
+  def statuses
+    response = jira_client.statuses
+
+    if response.is_a?(Hash) && (response[:error] || response['error'])
+      return { error: response[:error] || response['error'] }
+    end
+
+    if response.is_a?(Array)
+      { data: response }
+    else
+      { error: 'Unexpected response format from JIRA' }
+    end
+  end
+
   def project_metadata(project_key)
     response = jira_client.project_metadata(project_key)
     
@@ -53,7 +67,7 @@ class Integrations::Jira::ProcessorService
     }
   end
 
-  def link_issue(conversation_data, issue_key, title, user: nil)
+  def link_issue(conversation_data, issue_key, title, user: nil, message_ids: [])
     begin
       # Add a comment to JIRA (optional - for reference)
       comment_response = jira_client.link_issue(issue_key, conversation_data[:url], title)
@@ -73,7 +87,8 @@ class Integrations::Jira::ProcessorService
         conversation_data[:conversation], 
         issue_key, 
         comment_id: comment_id,
-        user: user
+        user: user,
+        message_ids: message_ids
       )
       
       # Update the initial status if we got it
@@ -168,7 +183,10 @@ class Integrations::Jira::ProcessorService
             url: "#{jira_site_url}/browse/#{issue_response['key']}",
             id: issue_response['key'], # Use key as ID for frontend compatibility
             commentId: link_record&.comment_id, # Use comment ID from database
-            linked_at: link_record&.linked_at&.iso8601 # Include the link date for sorting
+            linked_at: link_record&.linked_at&.iso8601, # Include the link date for sorting
+            message_ids: link_record&.message_ids || [],
+            escalated_to: link_record&.escalated_to,
+            escalated_from: link_record&.escalated_from
           }
         rescue StandardError => e
           Rails.logger.warn("JIRA: Error fetching issue #{issue_key}: #{e.message}")
@@ -180,7 +198,7 @@ class Integrations::Jira::ProcessorService
       # Sort by linked_at date (most recent first)
       issues.sort! { |a, b| (b[:linked_at] || '') <=> (a[:linked_at] || '') }
 
-      { data: issues }
+      { data: issues, second_line_project_key: jira_hook.settings['second_line_project_key'] }
     rescue StandardError => e
       Rails.logger.error("JIRA linked_issues error: #{e.message}")
       { error: e.message }
@@ -262,6 +280,120 @@ class Integrations::Jira::ProcessorService
     { data: { success: true, labels: labels } }
   end
 
+  # Escalate a JIRA issue: create a new issue in the 2nd line project, linked to the original
+  # reporter_email: the email of the user performing the escalation (they have a JIRA account)
+  def escalate_issue(issue_key, target_project_key = nil, target_issue_type_id = nil, reporter_email: nil)
+    # Use configured 2nd line project if not specified
+    target_project_key ||= jira_hook.settings['second_line_project_key']
+    return { error: 'No escalation project configured. Set the 2nd Line Project Key in JIRA integration settings.' } if target_project_key.blank?
+
+    response = jira_client.escalate_to_second_line(
+      issue_key, target_project_key, target_issue_type_id,
+      reporter_email: reporter_email
+    )
+
+    if response.is_a?(Hash) && (response[:error] || response['error'])
+      return response
+    end
+
+    { data: response }
+  end
+
+  # Update reporter on an existing issue
+  def update_issue_reporter(issue_key, reporter_email)
+    response = jira_client.update_issue_reporter(issue_key, reporter_email)
+
+    if response.is_a?(Hash) && (response[:error] || response['error'])
+      return response
+    end
+
+    { data: response }
+  end
+
+  # Find or create a JIRA Service Desk customer
+  def find_or_create_customer(email, display_name)
+    response = jira_client.find_or_create_customer(email, display_name)
+    return { error: 'Failed to find or create customer' } if response.nil?
+
+    { data: response }
+  end
+
+  # Add customer as participant to a Service Desk issue
+  def add_customer_to_issue(issue_key, customer_identifier)
+    response = jira_client.add_request_participant(issue_key, customer_identifier)
+    return { error: 'Failed to add customer to issue' } if response.nil?
+
+    { data: response }
+  end
+
+  # Find or create a JIRA Service Management organization by name
+  def find_or_create_organization(name)
+    org = jira_client.find_or_create_organization(name)
+    return { error: "Failed to find or create organization '#{name}'" } if org.nil?
+
+    { data: org }
+  end
+
+  # Add an organization to the service desk associated with a project
+  def add_organization_to_project_service_desk(project_key, organization_id)
+    service_desk_id = jira_client.get_service_desk_id(project_key)
+    return { error: "No service desk found for project #{project_key}" } if service_desk_id.nil?
+
+    result = jira_client.add_organization_to_service_desk(service_desk_id, organization_id)
+    result ? { data: true } : { error: 'Failed to add organization to service desk' }
+  end
+
+  # Add an organization to a specific JIRA Service Desk issue/request
+  def add_organization_to_issue(issue_key, organization_id)
+    result = jira_client.add_organization_to_request(issue_key, organization_id)
+    result ? { data: true } : { error: 'Failed to add organization to issue' }
+  end
+
+  # Remove an organization from a JIRA Service Desk issue/request
+  def remove_organization_from_issue(issue_key, organization_id)
+    result = jira_client.remove_organization_from_request(issue_key, organization_id)
+    result ? { data: true } : { error: 'Failed to remove organization from issue' }
+  end
+
+  # Get configured final/completion statuses
+  def final_statuses
+    statuses = jira_hook.settings['final_statuses']
+    if statuses.is_a?(String)
+      statuses.split(',').map(&:strip).reject(&:blank?)
+    elsif statuses.is_a?(Array)
+      statuses.map(&:strip).reject(&:blank?)
+    else
+      %w[Done Resolved Closed Complete Completed Canceled Solved]
+    end
+  end
+
+  # Check if a status is a final/completion status
+  def completed_status?(status)
+    return false if status.blank?
+
+    final_statuses.any? { |fs| status.downcase.include?(fs.downcase) }
+  end
+
+  # Get configured 1st line project key
+  def first_line_project_key
+    jira_hook.settings['first_line_project_key']
+  end
+
+  # Get configured 2nd line project key
+  def second_line_project_key
+    jira_hook.settings['second_line_project_key']
+  end
+
+  # Check if service desk customer management is enabled
+  def service_desk_enabled?
+    jira_hook.settings['service_desk_enabled'] != false
+  end
+
+  # Get deployment type
+  def deployment_type
+    jira_hook.settings['deployment_type'] || 'data_center'
+  end
+
   private
 
   def jira_hook
@@ -271,14 +403,26 @@ class Integrations::Jira::ProcessorService
   def jira_client
     @jira_client ||= begin
       hook_settings = jira_hook.settings
+      deployment_type = hook_settings['deployment_type'] || 'data_center'
+
+      # Always derive auth type from deployment type for consistency:
+      # - Cloud uses API token with Basic auth (email + token)
+      # - Data Center uses Personal Access Token with Bearer auth
+      auth_type = deployment_type == 'data_center' ? 'personal_access_token' : 'api_token'
+      # Allow explicit override only for oauth
+      auth_type = 'oauth' if hook_settings['auth_type'] == 'oauth'
+
       auth_config = {
         site_url: jira_site_url,
-        auth_type: hook_settings['auth_type'] || 'api_token'
+        auth_type: auth_type,
+        deployment_type: deployment_type
       }
       
       case auth_config[:auth_type]
       when 'api_token'
         auth_config[:email] = hook_settings['email']
+        auth_config[:api_token] = hook_settings['api_token']
+      when 'personal_access_token'
         auth_config[:api_token] = hook_settings['api_token']
       when 'oauth'
         auth_config[:access_token] = jira_hook.access_token

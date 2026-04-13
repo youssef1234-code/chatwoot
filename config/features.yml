@@ -139,6 +139,9 @@
 - name: jira_integration
   display_name: JIRA Integration
   enabled: true
+- name: plane_integration
+  display_name: Plane Integration
+  enabled: true
 - name: captain_integration
   display_name: Captain
   enabled: false
