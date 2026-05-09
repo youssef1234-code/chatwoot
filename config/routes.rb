@@ -323,6 +323,8 @@ Rails.application.routes.draw do
                 get :get_comments
                 get :get_settings
                 get :get_statuses
+                get :onboarding_status
+                delete :evict_onboarding_cache
                 patch :update_settings
                 post :add_comment
                 post :add_attachment

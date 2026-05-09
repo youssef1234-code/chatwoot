@@ -394,6 +394,11 @@ class Integrations::Jira::ProcessorService
     jira_hook.settings['deployment_type'] || 'data_center'
   end
 
+  # Fetch onboarding status from ScriptRunner for a given org name
+  def onboarding_status(org_name)
+    jira_client.onboarding_status(org_name)
+  end
+
   private
 
   def jira_hook

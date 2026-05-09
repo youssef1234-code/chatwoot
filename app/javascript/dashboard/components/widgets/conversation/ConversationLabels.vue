@@ -192,9 +192,9 @@ const remainingJiraCount = computed(() => {
 const loadJiraIssues = async () => {
   try {
     const response = await JiraAPI.getLinkedIssues(props.conversation.id);
-    // Backend already sorts JIRA issues by link date (linked_at) in descending order
-    // No need to re-sort on the frontend as the backend provides the correct order
-    jiraIssues.value = response.data || [];
+    // Backend now returns { issues: [...], second_line_project_key: "..." }
+    const payload = response.data || {};
+    jiraIssues.value = payload.issues || payload || [];
   } catch (error) {
     // Silent fail - not critical for UX
     console.error('Failed to load JIRA issues for conversation labels:', error);

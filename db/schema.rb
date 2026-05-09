@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_13_210000) do
+ActiveRecord::Schema[7.1].define(version: 2026_04_16_120000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -795,6 +795,34 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_13_210000) do
     t.index ["webhook_notifications_enabled"], name: "index_jira_issue_links_on_webhook_notifications_enabled"
   end
 
+  create_table "jira_onboarding_statuses", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "organization_name", null: false
+    t.string "onboarding_key"
+    t.string "onboarding_status"
+    t.string "onboarding_summary"
+    t.string "current_session"
+    t.string "contact_email"
+    t.string "onboarding_url"
+    t.string "stage"
+    t.integer "sessions_total", default: 0
+    t.integer "sessions_done", default: 0
+    t.integer "sessions_in_progress", default: 0
+    t.integer "tasks_total", default: 0
+    t.integer "tasks_done", default: 0
+    t.integer "overall_percent", default: 0
+    t.jsonb "sessions_data", default: []
+    t.jsonb "raw_response", default: {}
+    t.datetime "last_fetched_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "organization_name"], name: "idx_jira_onboarding_on_account_org", unique: true
+    t.index ["account_id"], name: "index_jira_onboarding_statuses_on_account_id"
+    t.index ["last_fetched_at"], name: "index_jira_onboarding_statuses_on_last_fetched_at"
+    t.index ["onboarding_key"], name: "index_jira_onboarding_statuses_on_onboarding_key"
+    t.index ["organization_name"], name: "index_jira_onboarding_statuses_on_organization_name"
+  end
+
   create_table "labels", force: :cascade do |t|
     t.string "title"
     t.text "description"
@@ -1249,6 +1277,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_13_210000) do
   add_foreign_key "jira_issue_links", "accounts"
   add_foreign_key "jira_issue_links", "conversations"
   add_foreign_key "jira_issue_links", "users"
+  add_foreign_key "jira_onboarding_statuses", "accounts"
   add_foreign_key "messages", "users", column: "pinned_by"
   add_foreign_key "messages", "users", column: "starred_by"
   add_foreign_key "nps_survey_responses", "accounts"

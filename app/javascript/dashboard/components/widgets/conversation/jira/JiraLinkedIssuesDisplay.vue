@@ -96,7 +96,8 @@ const loadLinkedIssues = async (isInitialLoad = false) => {
   if (isInitialLoad) isLoading.value = true;
   try {
     const response = await JiraAPI.getLinkedIssues(props.conversationId);
-    linkedIssues.value = response.data || [];
+    const payload = response.data || {};
+    linkedIssues.value = payload.issues || payload || [];
   } catch (error) {
     console.error('Failed to load linked JIRA issues:', error);
     if (isInitialLoad) linkedIssues.value = [];

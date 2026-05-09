@@ -219,6 +219,89 @@ class Api::V1::Accounts::Integrations::JiraController < Api::V1::Accounts::BaseC
     end
   end
 
+  ONBOARDING_CACHE_TTL = 5.minutes
+
+  def onboarding_status
+    conversation = Current.account.conversations.find_by(display_id: params[:conversation_id])
+    return render json: { error: 'Conversation not found' }, status: :not_found unless conversation
+
+    contact = conversation.contact
+    return render json: { data: nil }, status: :ok unless contact
+
+    org_name = extract_org_name_from_contact(contact)
+    Rails.logger.info("JIRA Onboarding: conv=#{params[:conversation_id]} org='#{org_name}' force=#{params[:force].present?}")
+    return render json: { data: nil }, status: :ok if org_name.blank?
+
+    force = params[:force].present?
+
+    # Layer 1: Redis cache (fast, short-lived)
+    unless force
+      cache_key = onboarding_cache_key(org_name)
+      cached = Redis::Alfred.get(cache_key)
+      if cached.present?
+        # "__not_in_onboarding__" sentinel means we cached a negative result
+        if cached == '__not_in_onboarding__'
+          render json: { data: nil, cached: true, source: 'redis' }, status: :ok
+        else
+          render json: { data: JSON.parse(cached), cached: true, source: 'redis' }, status: :ok
+        end
+        return
+      end
+    end
+
+    # Layer 2: DB record (persistent, check staleness)
+    db_record = JiraOnboardingStatus.find_by(account: Current.account, organization_name: org_name)
+
+    if db_record && !db_record.stale? && !force
+      response_data = db_record.to_api_response
+      # Cache with sentinel when not in onboarding so we don't try to parse nil as JSON
+      cached_value = response_data.nil? ? '__not_in_onboarding__' : response_data.to_json
+      Redis::Alfred.setex(onboarding_cache_key(org_name), cached_value, ONBOARDING_CACHE_TTL)
+      render json: { data: response_data, cached: true, source: 'db' }, status: :ok
+      return
+    end
+
+    # Layer 3: Fetch from JIRA ScriptRunner
+    result = jira_processor_service.onboarding_status(org_name)
+    Rails.logger.info("JIRA Onboarding: JIRA result for '#{org_name}' — error=#{result[:error].inspect} data_keys=#{result[:data]&.keys.inspect} onboarding=#{result[:data]&.dig('onboarding')&.slice('key','status').inspect}")
+
+    if result[:error]
+      # On JIRA error, serve stale DB data if available
+      if db_record
+        render json: { data: db_record.to_api_response, cached: true, source: 'db_stale', error: result[:error] }, status: :ok
+      else
+        render json: { error: result[:error] }, status: :unprocessable_entity
+      end
+    else
+      # Persist to DB
+      db_record ||= JiraOnboardingStatus.new(account: Current.account, organization_name: org_name)
+      db_record.update_from_jira(result[:data])
+
+      response_data = db_record.to_api_response
+      cached_value = response_data.nil? ? '__not_in_onboarding__' : response_data.to_json
+      Redis::Alfred.setex(onboarding_cache_key(org_name), cached_value, ONBOARDING_CACHE_TTL)
+
+      render json: { data: response_data, cached: false, source: 'jira' }, status: :ok
+    end
+  end
+
+  def evict_onboarding_cache
+    conversation = Current.account.conversations.find_by(display_id: params[:conversation_id])
+    return render json: { error: 'Conversation not found' }, status: :not_found unless conversation
+
+    contact = conversation.contact
+    org_name = extract_org_name_from_contact(contact) if contact
+
+    if org_name.present?
+      Redis::Alfred.delete(onboarding_cache_key(org_name))
+      # Also reset the DB record's last_fetched_at so next request refetches
+      db_record = JiraOnboardingStatus.find_by(account: Current.account, organization_name: org_name)
+      db_record&.update(last_fetched_at: nil)
+    end
+
+    render json: { success: true }, status: :ok
+  end
+
   def issue_messages
     issue_key = params[:issue_key]
     return render json: { error: 'issue_key is required' }, status: :bad_request if issue_key.blank?
@@ -648,6 +731,29 @@ class Api::V1::Accounts::Integrations::JiraController < Api::V1::Accounts::BaseC
     
     return nil if orgs.empty?
     orgs.uniq.join(', ')
+  end
+
+  def extract_org_name_from_contact(contact)
+    return nil unless contact
+
+    org_fields = ['organization', 'company', 'org', 'company_name', 'organisation', 'slug']
+
+    if contact.custom_attributes.present?
+      org_fields.each do |field|
+        return contact.custom_attributes[field] if contact.custom_attributes[field].present?
+      end
+    end
+
+    if contact.additional_attributes.present?
+      return contact.additional_attributes['company_name'] if contact.additional_attributes['company_name'].present?
+      return contact.additional_attributes['organization'] if contact.additional_attributes['organization'].present?
+    end
+
+    nil
+  end
+
+  def onboarding_cache_key(org_name)
+    "jira/onboarding/#{Current.account.id}/#{org_name.parameterize}"
   end
 
   def enhanced_comment_with_agent(comment_body)

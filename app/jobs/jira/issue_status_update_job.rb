@@ -16,7 +16,7 @@ class Jira::IssueStatusUpdateJob < ApplicationJob
     
     # Fetch current issue status from JIRA
     begin
-      jira_processor = Integrations::Jira::ProcessorService.new(hook: jira_hook, account: account)
+      jira_processor = Integrations::Jira::ProcessorService.new(account: account)
       issue_response = jira_processor.get_issue(issue_key)
       
       if issue_response[:error]

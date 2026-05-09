@@ -618,6 +618,37 @@ class Jira
     end
   end
 
+  # Fetch onboarding status from ScriptRunner REST endpoint
+  def onboarding_status(org_name)
+    return { error: 'Organization name is required' } if org_name.blank?
+
+    begin
+      encoded_org = ERB::Util.url_encode(org_name)
+      response = HTTParty.get(
+        "#{@site_url}/rest/scriptrunner/latest/custom/onboarding-status?org=#{encoded_org}",
+        headers: auth_headers.merge({
+          'Accept' => 'application/json'
+        }),
+        timeout: 30
+      )
+
+      if response.code.to_i == 200
+        data = response.parsed_response
+        Rails.logger.info("JIRA: Onboarding status fetched for org '#{org_name}': #{data&.dig('progress', 'stage')}")
+        { data: data }
+      elsif response.code.to_i == 404
+        Rails.logger.info("JIRA: Onboarding status 404 for org '#{org_name}' — org not found in ScriptRunner")
+        { data: nil }
+      else
+        Rails.logger.error("JIRA: Onboarding status HTTP error for '#{org_name}': #{response.code} - #{response.body}")
+        { error: "Failed to fetch onboarding status: HTTP #{response.code}" }
+      end
+    rescue StandardError => e
+      Rails.logger.error("JIRA: Onboarding status error for '#{org_name}': #{e.message}")
+      { error: e.message }
+    end
+  end
+
   # Convenience class methods for backward compatibility
   def self.search_issues(access_token, site_url, query)
     client = new(access_token, site_url)

@@ -109,6 +109,17 @@ class JiraAPI extends ApiClient {
     return axios.get(`${this.url}/get_settings`);
   }
 
+  getOnboardingStatus(conversationId, { force = false } = {}) {
+    const params = `conversation_id=${conversationId}${force ? '&force=1' : ''}`;
+    return axios.get(`${this.url}/onboarding_status?${params}`);
+  }
+
+  evictOnboardingCache(conversationId) {
+    return axios.delete(
+      `${this.url}/evict_onboarding_cache?conversation_id=${conversationId}`
+    );
+  }
+
   getStatuses() {
     return axios.get(`${this.url}/get_statuses`);
   }
