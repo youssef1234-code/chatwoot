@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 class Api::V1::Integrations::Orchestrator::WebhooksController < ApplicationController
-  skip_before_action :authenticate_user!, only: [:create]
-  skip_before_action :set_current_user, only: [:create]
+  skip_before_action :authenticate_user!, only: [:create], raise: false
+  skip_before_action :set_current_user, only: [:create], raise: false
   before_action :verify_orchestrator_token, only: [:create]
 
   def index

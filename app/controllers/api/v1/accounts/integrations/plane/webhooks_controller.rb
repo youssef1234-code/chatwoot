@@ -1,6 +1,6 @@
 class Api::V1::Accounts::Integrations::Plane::WebhooksController < Api::V1::Accounts::BaseController
-  skip_before_action :authenticate_user!, only: [:create]
-  skip_before_action :set_current_user, only: [:create]
+  skip_before_action :authenticate_user!, only: [:create], raise: false
+  skip_before_action :set_current_user, only: [:create], raise: false
   before_action :verify_webhook_source, only: [:create]
 
   def index
