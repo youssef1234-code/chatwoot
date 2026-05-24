@@ -1,4 +1,5 @@
 class Api::V2::Accounts::LiveReportsController < Api::V1::Accounts::BaseController
+  include ReportInboxScoping
   before_action :load_conversations, only: [:conversation_metrics, :grouped_conversation_metrics]
   before_action :set_group_scope, only: [:grouped_conversation_metrics]
 
@@ -55,6 +56,7 @@ class Api::V2::Accounts::LiveReportsController < Api::V1::Accounts::BaseControll
   def load_conversations
     scope = Current.account.conversations
     scope = scope.where(team_id: team.id) if team.present?
+    scope = scope.where(inbox_id: report_scoped_inbox_ids) if report_scoped_inbox_ids.present?
     @conversations = scope
   end
 

@@ -54,6 +54,7 @@ class V2::Reports::LabelSummaryBuilder < V2::Reports::BaseSummaryBuilder
   def build_conversation_filter
     conversation_filter = { account_id: account.id }
     conversation_filter[:created_at] = range if range.present?
+    conversation_filter[:inbox_id] = scoped_inbox_ids if scoped_inbox_ids.present?
 
     conversation_filter
   end

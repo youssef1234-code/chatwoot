@@ -12,7 +12,7 @@ class V2::Reports::AgentSummaryBuilder < V2::Reports::BaseSummaryBuilder
               :avg_resolution_time, :avg_first_response_time, :avg_reply_time
 
   def fetch_conversations_count
-    account.conversations.where(created_at: range).group('assignee_id').count
+    scope_by_inbox(account.conversations.where(created_at: range)).group('assignee_id').count
   end
 
   def prepare_report

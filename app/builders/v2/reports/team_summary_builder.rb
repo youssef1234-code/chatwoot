@@ -7,11 +7,11 @@ class V2::Reports::TeamSummaryBuilder < V2::Reports::BaseSummaryBuilder
               :avg_resolution_time, :avg_first_response_time, :avg_reply_time
 
   def fetch_conversations_count
-    account.conversations.where(created_at: range).group(:team_id).count
+    scope_by_inbox(account.conversations.where(created_at: range)).group(:team_id).count
   end
 
   def reporting_events
-    @reporting_events ||= account.reporting_events.where(created_at: range).joins(:conversation)
+    @reporting_events ||= scope_by_inbox(account.reporting_events.where(created_at: range)).joins(:conversation)
   end
 
   def prepare_report

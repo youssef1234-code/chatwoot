@@ -1,5 +1,6 @@
 class V2::Reports::BaseSummaryBuilder
   include DateRangeHelper
+  include V2::Reports::InboxScopable
 
   def build
     load_data
@@ -17,7 +18,7 @@ class V2::Reports::BaseSummaryBuilder
   end
 
   def reporting_events
-    @reporting_events ||= account.reporting_events.where(created_at: range)
+    @reporting_events ||= scope_by_inbox(account.reporting_events.where(created_at: range))
   end
 
   def fetch_conversations_count

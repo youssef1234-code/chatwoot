@@ -1,6 +1,7 @@
 class Api::V2::Accounts::ReportsController < Api::V1::Accounts::BaseController
   include Api::V2::Accounts::ReportsHelper
   include Api::V2::Accounts::HeatmapHelper
+  include ReportInboxScoping
 
   before_action :check_authorization
 
@@ -53,7 +54,8 @@ class Api::V2::Accounts::ReportsController < Api::V1::Accounts::BaseController
   end
 
   def bot_metrics
-    bot_metrics = V2::Reports::BotMetricsBuilder.new(Current.account, params).metrics
+    bot_params = params.merge(scoped_inbox_ids: report_scoped_inbox_ids)
+    bot_metrics = V2::Reports::BotMetricsBuilder.new(Current.account, bot_params).metrics
     render json: bot_metrics
   end
 
@@ -74,7 +76,8 @@ class Api::V2::Accounts::ReportsController < Api::V1::Accounts::BaseController
       type: params[:type].to_sym,
       id: params[:id],
       group_by: params[:group_by],
-      business_hours: ActiveModel::Type::Boolean.new.cast(params[:business_hours])
+      business_hours: ActiveModel::Type::Boolean.new.cast(params[:business_hours]),
+      scoped_inbox_ids: report_scoped_inbox_ids
     }
   end
 

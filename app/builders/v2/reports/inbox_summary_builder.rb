@@ -20,7 +20,7 @@ class V2::Reports::InboxSummaryBuilder < V2::Reports::BaseSummaryBuilder
   end
 
   def fetch_conversations_count
-    account.conversations.where(created_at: range).group(group_by_key).count
+    scope_by_inbox(account.conversations.where(created_at: range)).group(group_by_key).count
   end
 
   def prepare_report

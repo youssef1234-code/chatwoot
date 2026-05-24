@@ -53,7 +53,8 @@ module Api::V2::Accounts::ReportsHelper
       {
         since: params[:since],
         until: params[:until],
-        business_hours: ActiveModel::Type::Boolean.new.cast(params[:business_hours])
+        business_hours: ActiveModel::Type::Boolean.new.cast(params[:business_hours]),
+        scoped_inbox_ids: report_scoped_inbox_ids
       }
     )
   end

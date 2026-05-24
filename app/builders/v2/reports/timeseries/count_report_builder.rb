@@ -22,7 +22,7 @@ class V2::Reports::Timeseries::CountReportBuilder < V2::Reports::Timeseries::Bas
   end
 
   def object_scope
-    send("scope_for_#{metric}")
+    scope_by_inbox(send("scope_for_#{metric}"))
   end
 
   def scope_for_conversations_count

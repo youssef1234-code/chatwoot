@@ -1,4 +1,5 @@
 class Api::V2::Accounts::SummaryReportsController < Api::V1::Accounts::BaseController
+  include ReportInboxScoping
   before_action :check_authorization
   before_action :prepare_builder_params, only: [:agent, :team, :inbox, :label]
 
@@ -28,7 +29,8 @@ class Api::V2::Accounts::SummaryReportsController < Api::V1::Accounts::BaseContr
     @builder_params = {
       since: permitted_params[:since],
       until: permitted_params[:until],
-      business_hours: ActiveModel::Type::Boolean.new.cast(permitted_params[:business_hours])
+      business_hours: ActiveModel::Type::Boolean.new.cast(permitted_params[:business_hours]),
+      scoped_inbox_ids: report_scoped_inbox_ids
     }
   end
 

@@ -1,5 +1,6 @@
 class V2::Reports::BotMetricsBuilder
   include DateRangeHelper
+  include V2::Reports::InboxScopable
   attr_reader :account, :params
 
   def initialize(account, params)
@@ -23,7 +24,7 @@ class V2::Reports::BotMetricsBuilder
   end
 
   def bot_conversations
-    @bot_conversations ||= account.conversations.where(inbox_id: bot_activated_inbox_ids).where(created_at: range)
+    @bot_conversations ||= scope_by_inbox(account.conversations.where(inbox_id: bot_activated_inbox_ids).where(created_at: range))
   end
 
   def bot_messages
@@ -31,13 +32,13 @@ class V2::Reports::BotMetricsBuilder
   end
 
   def bot_resolutions_count
-    account.reporting_events.joins(:conversation).select(:conversation_id).where(account_id: account.id, name: :conversation_bot_resolved,
-                                                                                 created_at: range).distinct.count
+    scope_by_inbox(account.reporting_events.joins(:conversation).select(:conversation_id)
+      .where(account_id: account.id, name: :conversation_bot_resolved, created_at: range)).distinct.count
   end
 
   def bot_handoffs_count
-    account.reporting_events.joins(:conversation).select(:conversation_id).where(account_id: account.id, name: :conversation_bot_handoff,
-                                                                                 created_at: range).distinct.count
+    scope_by_inbox(account.reporting_events.joins(:conversation).select(:conversation_id)
+      .where(account_id: account.id, name: :conversation_bot_handoff, created_at: range)).distinct.count
   end
 
   def bot_resolution_rate
