@@ -822,8 +822,8 @@ class Api::V1::Accounts::Integrations::JiraController < Api::V1::Accounts::BaseC
   end
 
   def permitted_params
-    params.permit(:conversation_id, :project_key, :summary, :description, :issue_type_id, 
-                  :assignee_id, :priority_id, :issue_key, :title, :comment_id, :comment_body,
+    params.permit(:conversation_id, :project_key, :summary, :description, :issue_type_id,
+                  :assignee_id, :priority_id, :category, :issue_key, :title, :comment_id, :comment_body,
                   :target_project_key, :target_issue_type_id, labels: [], message_ids: [])
   end
 

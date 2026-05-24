@@ -186,6 +186,8 @@ class Jira
 
       issue_data['fields']['priority'] = { 'id' => params[:priority_id] } if params[:priority_id].present?
       issue_data['fields']['labels'] = params[:labels] if params[:labels].present?
+      # Issue Category custom field (PAYDS) — set from the Chatwoot ticket category
+      issue_data['fields']['customfield_20600'] = params[:category] if params[:category].present?
 
       Rails.logger.info("JIRA: Creating issue with data: #{issue_data.to_json}")
 
@@ -803,6 +805,11 @@ class Jira
       # Preserve labels/tags from the original 1st line issue
       if fields['labels'].is_a?(Array) && fields['labels'].present?
         create_params[:labels] = fields['labels']
+      end
+
+      # Preserve the Issue Category custom field on escalation
+      if fields['customfield_20600'].present?
+        create_params[:category] = fields['customfield_20600']
       end
 
       new_issue = create_issue(create_params)
