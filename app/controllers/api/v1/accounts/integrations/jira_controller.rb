@@ -45,7 +45,8 @@ class Api::V1::Accounts::Integrations::JiraController < Api::V1::Accounts::BaseC
 
   def project_metadata
     project_key = permitted_params[:project_key]
-    metadata = jira_processor_service.project_metadata(project_key)
+    include_all = ActiveModel::Type::Boolean.new.cast(params[:all])
+    metadata = jira_processor_service.project_metadata(project_key, include_all_issue_types: include_all)
     if metadata[:error]
       render json: { error: metadata[:error] }, status: :unprocessable_entity
     else
@@ -207,7 +208,8 @@ class Api::V1::Accounts::Integrations::JiraController < Api::V1::Accounts::BaseC
   end
 
   def linked_issues
-    issues = jira_processor_service.linked_issues(@conversation.id)
+    second_line_only = ActiveModel::Type::Boolean.new.cast(params[:second_line_only])
+    issues = jira_processor_service.linked_issues(@conversation.id, second_line_only: second_line_only)
 
     if issues[:error]
       render json: { error: issues[:error] }, status: :unprocessable_entity
@@ -226,11 +228,12 @@ class Api::V1::Accounts::Integrations::JiraController < Api::V1::Accounts::BaseC
     return render json: { error: 'Conversation not found' }, status: :not_found unless conversation
 
     contact = conversation.contact
-    return render json: { data: nil }, status: :ok unless contact
+    config = onboarding_status_config
+    return render json: { data: nil, config: config }, status: :ok unless contact
 
     org_name = extract_org_name_from_contact(contact)
     Rails.logger.info("JIRA Onboarding: conv=#{params[:conversation_id]} org='#{org_name}' force=#{params[:force].present?}")
-    return render json: { data: nil }, status: :ok if org_name.blank?
+    return render json: { data: nil, config: config }, status: :ok if org_name.blank?
 
     force = params[:force].present?
 
@@ -239,11 +242,10 @@ class Api::V1::Accounts::Integrations::JiraController < Api::V1::Accounts::BaseC
       cache_key = onboarding_cache_key(org_name)
       cached = Redis::Alfred.get(cache_key)
       if cached.present?
-        # "__not_in_onboarding__" sentinel means we cached a negative result
         if cached == '__not_in_onboarding__'
-          render json: { data: nil, cached: true, source: 'redis' }, status: :ok
+          render json: { data: nil, config: config, cached: true, source: 'redis' }, status: :ok
         else
-          render json: { data: JSON.parse(cached), cached: true, source: 'redis' }, status: :ok
+          render json: { data: JSON.parse(cached), config: config, cached: true, source: 'redis' }, status: :ok
         end
         return
       end
@@ -254,10 +256,9 @@ class Api::V1::Accounts::Integrations::JiraController < Api::V1::Accounts::BaseC
 
     if db_record && !db_record.stale? && !force
       response_data = db_record.to_api_response
-      # Cache with sentinel when not in onboarding so we don't try to parse nil as JSON
       cached_value = response_data.nil? ? '__not_in_onboarding__' : response_data.to_json
       Redis::Alfred.setex(onboarding_cache_key(org_name), cached_value, ONBOARDING_CACHE_TTL)
-      render json: { data: response_data, cached: true, source: 'db' }, status: :ok
+      render json: { data: response_data, config: config, cached: true, source: 'db' }, status: :ok
       return
     end
 
@@ -266,14 +267,12 @@ class Api::V1::Accounts::Integrations::JiraController < Api::V1::Accounts::BaseC
     Rails.logger.info("JIRA Onboarding: JIRA result for '#{org_name}' — error=#{result[:error].inspect} data_keys=#{result[:data]&.keys.inspect} onboarding=#{result[:data]&.dig('onboarding')&.slice('key','status').inspect}")
 
     if result[:error]
-      # On JIRA error, serve stale DB data if available
       if db_record
-        render json: { data: db_record.to_api_response, cached: true, source: 'db_stale', error: result[:error] }, status: :ok
+        render json: { data: db_record.to_api_response, config: config, cached: true, source: 'db_stale', error: result[:error] }, status: :ok
       else
         render json: { error: result[:error] }, status: :unprocessable_entity
       end
     else
-      # Persist to DB
       db_record ||= JiraOnboardingStatus.new(account: Current.account, organization_name: org_name)
       db_record.update_from_jira(result[:data])
 
@@ -281,7 +280,7 @@ class Api::V1::Accounts::Integrations::JiraController < Api::V1::Accounts::BaseC
       cached_value = response_data.nil? ? '__not_in_onboarding__' : response_data.to_json
       Redis::Alfred.setex(onboarding_cache_key(org_name), cached_value, ONBOARDING_CACHE_TTL)
 
-      render json: { data: response_data, cached: false, source: 'jira' }, status: :ok
+      render json: { data: response_data, config: config, cached: false, source: 'jira' }, status: :ok
     end
   end
 
@@ -538,6 +537,11 @@ class Api::V1::Accounts::Integrations::JiraController < Api::V1::Accounts::BaseC
           message_ids: original_link&.message_ids || []
         )
 
+        # Copy organizations/customers from the conversation contact onto the new 2nd line issue
+        # (mirrors create_issue so escalated issues keep their Service Desk org/customer links;
+        # the JIRA labels themselves are copied from the original issue in escalate_to_second_line)
+        handle_service_desk_customers(new_key)
+
         # Mark the new link as escalated_from the original
         new_link = JiraIssueLink.find_by(conversation_id: @conversation.id, issue_key: new_key)
         new_link&.update!(escalated_from: issue_key)
@@ -561,6 +565,9 @@ class Api::V1::Accounts::Integrations::JiraController < Api::V1::Accounts::BaseC
   end
 
   # Get JIRA integration settings (project keys, statuses, etc.)
+  ONBOARDING_DEFAULT_DONE_STATUSES = %w[Done Completed Closed Resolved].freeze
+  ONBOARDING_DEFAULT_IN_PROGRESS_STATUSES = ['In Progress', 'Partially Done', 'Active'].freeze
+
   def get_settings
     hook = Current.account.hooks.find_by(app_id: 'jira')
     return render json: { error: 'JIRA integration not configured' }, status: :not_found unless hook
@@ -571,10 +578,13 @@ class Api::V1::Accounts::Integrations::JiraController < Api::V1::Accounts::BaseC
       email: settings['email'],
       first_line_project_key: settings['first_line_project_key'],
       second_line_project_key: settings['second_line_project_key'],
+      allowed_issue_types: settings['allowed_issue_types'] || [],
       final_statuses: jira_processor_service.final_statuses,
       deployment_type: settings['deployment_type'] || 'data_center',
       service_desk_enabled: settings['service_desk_enabled'] != false,
-      status_color_mapping: settings['status_color_mapping'] || {}
+      status_color_mapping: settings['status_color_mapping'] || {},
+      onboarding_done_statuses: settings['onboarding_done_statuses'].presence || ONBOARDING_DEFAULT_DONE_STATUSES,
+      onboarding_in_progress_statuses: settings['onboarding_in_progress_statuses'].presence || ONBOARDING_DEFAULT_IN_PROGRESS_STATUSES
     }, status: :ok
   end
 
@@ -597,6 +607,9 @@ class Api::V1::Accounts::Integrations::JiraController < Api::V1::Accounts::BaseC
       :site_url, :api_token, :deployment_type, :email,
       :first_line_project_key, :second_line_project_key, :service_desk_enabled,
       final_statuses: [],
+      allowed_issue_types: [],
+      onboarding_done_statuses: [],
+      onboarding_in_progress_statuses: [],
       status_color_mapping: {}
     )
 
@@ -754,6 +767,16 @@ class Api::V1::Accounts::Integrations::JiraController < Api::V1::Accounts::BaseC
 
   def onboarding_cache_key(org_name)
     "jira/onboarding/#{Current.account.id}/#{org_name.parameterize}"
+  end
+
+  def onboarding_status_config
+    hook = Current.account.hooks.find_by(app_id: 'jira')
+    settings = hook&.settings || {}
+    {
+      done_statuses: settings['onboarding_done_statuses'].presence || ONBOARDING_DEFAULT_DONE_STATUSES,
+      in_progress_statuses: settings['onboarding_in_progress_statuses'].presence || ONBOARDING_DEFAULT_IN_PROGRESS_STATUSES,
+      status_color_mapping: settings['status_color_mapping'] || {}
+    }
   end
 
   def enhanced_comment_with_agent(comment_body)

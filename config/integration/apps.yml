@@ -81,9 +81,12 @@ jira:
         'deployment_type': { 'type': 'string', 'enum': ['cloud', 'data_center'] },
         'first_line_project_key': { 'type': 'string' },
         'second_line_project_key': { 'type': 'string' },
+        'allowed_issue_types': { 'type': 'array', 'items': { 'type': 'string' } },
         'final_statuses': { 'type': 'array', 'items': { 'type': 'string' } },
         'service_desk_enabled': { 'type': 'boolean' },
-        'status_color_mapping': { 'type': 'object', 'additionalProperties': { 'type': 'string' } }
+        'status_color_mapping': { 'type': 'object', 'additionalProperties': { 'type': 'string' } },
+        'onboarding_done_statuses': { 'type': 'array', 'items': { 'type': 'string' } },
+        'onboarding_in_progress_statuses': { 'type': 'array', 'items': { 'type': 'string' } }
       },
       'required': ['site_url', 'api_token'],
       'additionalProperties': false

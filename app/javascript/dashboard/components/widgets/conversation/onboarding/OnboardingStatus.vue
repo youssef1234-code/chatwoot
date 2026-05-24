@@ -20,6 +20,7 @@ const props = defineProps({
 const isLoading = ref(false);
 const isRefreshing = ref(false);
 const onboardingData = ref(null);
+const statusConfig = ref({ done_statuses: [], in_progress_statuses: [] });
 const error = ref(null);
 const expandedSession = ref(null);
 const lastUpdated = ref(null);
@@ -49,21 +50,48 @@ const overallPercent = computed(() => onboardingData.value?.progress?.overall_pe
 const sessions = computed(() => onboardingData.value?.sessions || []);
 const onboarding = computed(() => onboardingData.value?.onboarding || {});
 
-const stageColor = computed(() => {
-  const colors = {
-    'Completed': 'bg-green-100 text-green-800',
-    'In Progress': 'bg-blue-100 text-blue-800',
-    'Not Started': 'bg-gray-100 text-gray-800',
-    'Partially Done': 'bg-yellow-100 text-yellow-800',
-    'All Sessions Done': 'bg-green-100 text-green-800',
-  };
-  return colors[progressStage.value] || 'bg-gray-100 text-gray-800';
-});
+const isDone = (status) => {
+  const s = (status || '').toLowerCase().trim();
+  return statusConfig.value.done_statuses.some(d => d.toLowerCase().trim() === s);
+};
 
-const sessionDotClass = (session) => {
-  if (session.status === 'Done') return 'bg-green-500 text-white';
-  if (session.status === 'In Progress') return 'bg-blue-500 text-white ring-2 ring-blue-300';
-  return 'bg-n-alpha-2 text-n-slate-10';
+// Return the configured hex color for a status, with a sensible fallback
+const statusColor = (status) => {
+  if (!status) return '#6b7280';
+  const mapping = statusConfig.value.status_color_mapping || {};
+  // exact match first
+  if (mapping[status]) return mapping[status];
+  // case-insensitive fallback
+  const lower = status.toLowerCase();
+  const key = Object.keys(mapping).find(k => k.toLowerCase() === lower);
+  return key ? mapping[key] : '#6b7280';
+};
+
+// Derive a readable text color (white for dark bg, dark for light bg)
+const contrastColor = (hex) => {
+  const c = hex.replace('#', '');
+  const r = parseInt(c.substr(0, 2), 16);
+  const g = parseInt(c.substr(2, 2), 16);
+  const b = parseInt(c.substr(4, 2), 16);
+  return (r * 299 + g * 587 + b * 114) / 1000 > 150 ? '#1f2937' : '#ffffff';
+};
+
+// Badge style: colored border + text, transparent bg
+const badgeStyle = (status) => {
+  const color = statusColor(status);
+  return { color, borderColor: color, background: `${color}1a` };
+};
+
+// Dot style: filled with status color
+const dotStyle = (session) => {
+  const color = statusColor(session.status);
+  return { background: color, color: contrastColor(color), borderColor: color };
+};
+
+// Connector style between two adjacent session dots
+const connectorStyle = (session) => {
+  const color = statusColor(session.status);
+  return { background: color };
 };
 
 const toggleSession = (index) => {
@@ -87,6 +115,9 @@ const fetchOnboardingStatus = async ({ silent = false, force = false } = {}) => 
     const response = await JiraAPI.getOnboardingStatus(props.conversationId, { force });
     const result = response.data?.data;
     onboardingData.value = result || null;
+    if (response.data?.config) {
+      statusConfig.value = response.data.config;
+    }
     lastUpdated.value = new Date();
   } catch (err) {
     if (err.response?.status === 404) {
@@ -183,15 +214,15 @@ onBeforeUnmount(() => stopPolling());
 
     <!-- Onboarding status -->
     <div v-else class="p-4 space-y-4">
-      <!-- Header: status + refresh -->
-      <div class="flex items-center justify-between">
+      <!-- Header: status badge + refresh + % -->
+      <div class="flex items-center justify-between gap-2">
         <span
-          class="px-3 py-1 rounded-full text-xs font-medium"
-          :class="stageColor"
+          class="px-2.5 py-1 rounded-full text-xs font-semibold border shrink-0"
+          :style="badgeStyle(progressStage)"
         >
           {{ progressStage }}
         </span>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 ml-auto">
           <span v-if="timeAgo" class="text-[10px] text-n-slate-9">{{ timeAgo }}</span>
           <button
             class="p-1 rounded hover:bg-n-alpha-2 text-n-slate-10 hover:text-n-slate-12 transition-colors"
@@ -202,89 +233,94 @@ onBeforeUnmount(() => stopPolling());
           >
             <i class="ri-refresh-line text-sm" />
           </button>
-          <span class="text-xs text-n-slate-10 font-medium">
+          <span class="text-xs text-n-slate-10 font-medium tabular-nums">
             {{ overallPercent }}%
           </span>
         </div>
       </div>
 
       <!-- Overall progress bar -->
-      <div class="w-full bg-n-alpha-2 rounded-full h-2">
+      <div class="w-full bg-n-alpha-3 rounded-full h-1.5 overflow-hidden">
         <div
-          class="h-2 rounded-full transition-all duration-500"
-          :class="overallPercent === 100 ? 'bg-green-500' : 'bg-blue-500'"
-          :style="{ width: `${overallPercent}%` }"
+          class="h-full rounded-full transition-all duration-500 ease-out"
+          :style="{
+            width: `${overallPercent}%`,
+            background: statusColor(progressStage),
+          }"
         />
       </div>
 
-      <!-- Session dots row -->
-      <div class="flex items-center justify-between gap-1">
-        <button
-          v-for="(session, idx) in sessions"
-          :key="session.key"
-          class="relative flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold cursor-pointer transition-all duration-200 hover:scale-110"
-          :class="sessionDotClass(session)"
-          :title="`${session.title} — ${session.status}`"
-          @click="toggleSession(idx)"
-        >
-          <i v-if="session.status === 'Done'" class="ri-check-line text-sm" />
-          <span v-else>{{ session.number }}</span>
-        </button>
-      </div>
-
-      <!-- Connecting line under dots -->
-      <div v-if="sessions.length > 1" class="relative h-1 -mt-3 mx-4">
-        <div class="absolute inset-0 bg-n-alpha-2 rounded" />
-        <div
-          class="absolute left-0 top-0 h-full rounded transition-all duration-500"
-          :class="overallPercent === 100 ? 'bg-green-500' : 'bg-blue-500'"
-          :style="{ width: `${(onboardingData.progress.sessions_done / sessions.length) * 100}%` }"
-        />
+      <!-- Session steps -->
+      <div class="flex items-center gap-1.5">
+        <template v-for="(session, idx) in sessions" :key="session.key || idx">
+          <button
+            class="flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-bold shrink-0 transition-all duration-150 focus:outline-none border-2"
+            :class="{ 'scale-110 ring-2 ring-offset-1 ring-offset-n-bg': expandedSession === idx }"
+            :style="dotStyle(session)"
+            :title="`${session.title} — ${session.status}`"
+            @click="toggleSession(idx)"
+          >
+            <i v-if="isDone(session.status)" class="ri-check-line" style="font-size:10px" />
+            <span v-else class="leading-none">{{ session.number ?? (idx + 1) }}</span>
+          </button>
+          <!-- Connector between dots — colored by the left session's status -->
+          <div
+            v-if="idx < sessions.length - 1"
+            class="flex-1 h-0.5 min-w-0 rounded-full transition-colors duration-300 bg-n-alpha-3"
+            :style="isDone(session.status) ? connectorStyle(session) : {}"
+          />
+        </template>
       </div>
 
       <!-- Expanded session detail -->
       <div
         v-if="expandedSession !== null && sessions[expandedSession]"
-        class="border border-n-weak rounded-lg p-3 space-y-3 mt-2"
+        class="border border-n-weak rounded-lg p-3 space-y-3"
       >
-        <div class="flex items-center justify-between">
-          <span class="text-sm font-semibold text-n-slate-12">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-sm font-semibold text-n-slate-12 min-w-0 truncate">
             {{ sessions[expandedSession].title }}
           </span>
           <span
-            class="px-2 py-0.5 rounded text-xs font-medium"
-            :class="sessions[expandedSession].status === 'Done' ? 'bg-green-100 text-green-800' : sessions[expandedSession].status === 'In Progress' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'"
+            class="px-2 py-0.5 rounded text-xs font-medium border shrink-0"
+            :style="badgeStyle(sessions[expandedSession].status)"
           >
             {{ sessions[expandedSession].status }}
           </span>
         </div>
 
-        <!-- Session progress bar -->
-        <div class="w-full bg-n-alpha-2 rounded-full h-1.5">
+        <!-- Session progress bar (task-level) -->
+        <div class="w-full bg-n-alpha-3 rounded-full h-1 overflow-hidden">
           <div
-            class="h-1.5 rounded-full transition-all duration-300"
-            :class="sessions[expandedSession].tasks.percent === 100 ? 'bg-green-500' : 'bg-blue-500'"
-            :style="{ width: `${sessions[expandedSession].tasks.percent}%` }"
+            class="h-full rounded-full transition-all duration-300 ease-out"
+            :style="{
+              width: `${sessions[expandedSession].tasks?.percent ?? 0}%`,
+              background: statusColor(sessions[expandedSession].status),
+            }"
           />
         </div>
         <div class="text-xs text-n-slate-10">
-          {{ sessions[expandedSession].tasks.done }}/{{ sessions[expandedSession].tasks.total }} tasks done
+          {{ sessions[expandedSession].tasks?.done ?? 0 }}/{{ sessions[expandedSession].tasks?.total ?? 0 }} tasks done
         </div>
 
         <!-- Task list -->
         <div class="space-y-1.5 max-h-48 overflow-y-auto">
           <div
-            v-for="task in sessions[expandedSession].tasks.items"
+            v-for="task in sessions[expandedSession].tasks?.items ?? []"
             :key="task.key"
             class="flex items-center gap-2 text-xs"
           >
             <i
-              :class="task.done ? 'ri-checkbox-circle-fill text-green-500' : 'ri-checkbox-blank-circle-line text-n-slate-10'"
               class="text-sm flex-shrink-0"
+              :class="{
+                'ri-checkbox-circle-fill': task.done,
+                'ri-checkbox-blank-circle-line text-n-slate-10': !task.done,
+              }"
+              :style="task.done ? { color: statusColor(sessions[expandedSession].status) } : {}"
             />
             <span
-              :class="task.done ? 'text-n-slate-10 line-through' : 'text-n-slate-12'"
               class="truncate"
+              :class="task.done ? 'text-n-slate-9 line-through' : 'text-n-slate-12'"
             >
               {{ task.title }}
             </span>
@@ -294,7 +330,7 @@ onBeforeUnmount(() => stopPolling());
         <!-- Open in JIRA link -->
         <button
           v-if="sessions[expandedSession].url"
-          class="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-1"
+          class="text-xs text-n-slate-10 hover:text-n-slate-12 hover:underline flex items-center gap-1 mt-1"
           @click="openInJira(sessions[expandedSession].url)"
         >
           <i class="ri-external-link-line" />
@@ -302,13 +338,13 @@ onBeforeUnmount(() => stopPolling());
         </button>
       </div>
 
-      <!-- Current session + onboarding link -->
-      <div class="pt-3 border-t border-n-weak space-y-2">
-        <div v-if="onboarding.current_session" class="flex justify-between text-sm">
+      <!-- Footer: current session + counts -->
+      <div class="pt-2 border-t border-n-weak space-y-1.5">
+        <div v-if="onboarding.current_session" class="flex justify-between text-xs">
           <span class="text-n-slate-10">Current:</span>
           <span class="text-n-slate-12 font-medium">{{ onboarding.current_session }}</span>
         </div>
-        <div class="flex justify-between text-sm">
+        <div class="flex justify-between text-xs">
           <span class="text-n-slate-10">Sessions:</span>
           <span class="text-n-slate-12">
             {{ onboardingData.progress.sessions_done }}/{{ onboardingData.progress.sessions_total }} done
@@ -324,7 +360,7 @@ onBeforeUnmount(() => stopPolling());
         variant="ghost"
         @click="openInJira(onboarding.url)"
       >
-        <i class="ri-external-link-line mr-2" />
+        <i class="ri-external-link-line mr-1" />
         View in JIRA
       </NextButton>
     </div>

@@ -191,7 +191,11 @@ const remainingJiraCount = computed(() => {
 
 const loadJiraIssues = async () => {
   try {
-    const response = await JiraAPI.getLinkedIssues(props.conversation.id);
+    // Only show 2nd line issues as tags; filtered server-side to avoid fetching
+    // 1st line issue details we wouldn't display.
+    const response = await JiraAPI.getLinkedIssues(props.conversation.id, {
+      secondLineOnly: true,
+    });
     // Backend now returns { issues: [...], second_line_project_key: "..." }
     const payload = response.data || {};
     jiraIssues.value = payload.issues || payload || [];

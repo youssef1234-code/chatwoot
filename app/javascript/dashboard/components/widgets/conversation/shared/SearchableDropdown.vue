@@ -22,6 +22,10 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  disabled: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const emit = defineEmits(['select']);
@@ -74,6 +78,7 @@ const onInput = (event) => {
 };
 
 const onFocus = () => {
+  if (props.disabled) return;
   isOpen.value = true;
   // When focusing, show current search or clear for new search
   if (selectedItem.value && !searchText.value) {
@@ -135,7 +140,9 @@ watch(() => props.items, (newItems) => {
       <input
         :value="displayText"
         :placeholder="placeholder"
-        class="w-full px-3 py-2 pr-10 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+        :disabled="disabled"
+        :readonly="disabled"
+        class="w-full px-3 py-2 pr-10 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-slate-100 dark:disabled:bg-slate-700"
         :class="{
           'border-red-500 focus:ring-red-500 focus:border-red-500': errorMessage,
           'rounded-b-none border-b-0': isOpen
@@ -144,10 +151,10 @@ watch(() => props.items, (newItems) => {
         @focus="onFocus"
         @blur="onBlur"
       />
-      
+
       <!-- Clear button -->
       <button
-        v-if="selectedItem"
+        v-if="selectedItem && !disabled"
         type="button"
         class="absolute right-8 top-1/2 transform -translate-y-1/2 p-1 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
         @click="clearSelection"

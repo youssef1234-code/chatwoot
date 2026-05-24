@@ -31,18 +31,25 @@ class Integrations::Jira::ProcessorService
     end
   end
 
-  def project_metadata(project_key)
+  def project_metadata(project_key, include_all_issue_types: false)
     response = jira_client.project_metadata(project_key)
-    
+
     # Handle error responses (can have string or symbol keys)
     if response.is_a?(Hash) && (response[:error] || response['error'])
       return response
     end
 
+    issue_types = response['issue_types'] || []
+    # Restrict to the issue types configured in the JIRA integration settings (by name).
+    # Empty allowlist means all types are allowed. The settings UI passes
+    # include_all_issue_types so admins can pick from the full list.
+    allowed = allowed_issue_types
+    issue_types = issue_types.select { |type| allowed.include?(type['name']) } if allowed.present? && !include_all_issue_types
+
     {
       data: {
         project: response['project'],
-        issue_types: response['issue_types'] || [],
+        issue_types: issue_types,
         users: response['users'] || [],
         priorities: response['priorities'] || default_priorities
       }
@@ -149,13 +156,23 @@ class Integrations::Jira::ProcessorService
     { data: issues }
   end
 
-  def linked_issues(conversation_id)
+  def linked_issues(conversation_id, second_line_only: false)
     begin
+      second_line_key = jira_hook.settings['second_line_project_key']
+
       # Get linked issues from database
       linked_issue_keys = JiraIssueLink.linked_issues_for_conversation(conversation_id)
-      
+
+      # Restrict to 2nd line issues BEFORE hitting the JIRA API so we don't fetch
+      # (and pay for) 1st line issue details we'll throw away.
+      if second_line_only
+        return { data: [], second_line_project_key: second_line_key } if second_line_key.blank?
+
+        linked_issue_keys = linked_issue_keys.select { |key| key.split('-').first == second_line_key }
+      end
+
       if linked_issue_keys.empty?
-        return { data: [] }
+        return { data: [], second_line_project_key: second_line_key }
       end
       
       # Fetch issue details from JIRA for each linked issue
@@ -198,7 +215,7 @@ class Integrations::Jira::ProcessorService
       # Sort by linked_at date (most recent first)
       issues.sort! { |a, b| (b[:linked_at] || '') <=> (a[:linked_at] || '') }
 
-      { data: issues, second_line_project_key: jira_hook.settings['second_line_project_key'] }
+      { data: issues, second_line_project_key: second_line_key }
     rescue StandardError => e
       Rails.logger.error("JIRA linked_issues error: #{e.message}")
       { error: e.message }
@@ -372,6 +389,12 @@ class Integrations::Jira::ProcessorService
     return false if status.blank?
 
     final_statuses.any? { |fs| status.downcase.include?(fs.downcase) }
+  end
+
+  # Get configured allowed issue type names (empty = all allowed)
+  def allowed_issue_types
+    types = jira_hook.settings['allowed_issue_types']
+    types.is_a?(Array) ? types.map(&:to_s).reject(&:blank?) : []
   end
 
   # Get configured 1st line project key

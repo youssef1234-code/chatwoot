@@ -507,6 +507,18 @@
         "SUPPORTED_FORMATS": "Supported formats: JPG, PNG, PDF, DOC, DOCX"
       },
       "NO_LINKED_ISSUES": "No linked issues found",
+      "NO_FIRST_LINE_ISSUES": "No 1st line issues linked",
+      "NO_SECOND_LINE_ISSUES": "No 2nd line issues linked",
+      "REFRESH": "Refresh",
+      "TABS": {
+        "FIRST_LINE": "1st Line",
+        "SECOND_LINE": "2nd Line"
+      },
+      "PAGINATION": {
+        "PREV": "Previous",
+        "NEXT": "Next",
+        "PAGE_OF": "Page {current} of {total}"
+      },
       "MORE_ISSUES": "more",
       "VIEW_ALL": "View all JIRA issues",
       "SHOW_LESS": "Show less",

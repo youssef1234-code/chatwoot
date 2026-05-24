@@ -20,30 +20,48 @@ class Jira::IssueCompletionNotificationJob < ApplicationJob
                            end
     
     return if linked_conversations.empty?
-    
+
     Rails.logger.info("JIRA: Found #{linked_conversations.count} conversations linked to issue #{issue_key}")
-    
+
+    # 1st line issues should not trigger the "mention everyone" completion notification.
+    # Only escalated (2nd line) issues notify the whole inbox on completion.
+    notify_inbox = !first_line_issue?(issue_key, account)
+    Rails.logger.info("JIRA: Completion notification for #{issue_key} - notify_inbox: #{notify_inbox}")
+
     linked_conversations.each do |link|
       conversation = link.conversation
-      
+
       next unless conversation
       next unless link.webhook_notifications_enabled?
-      
-      # Get ALL inbox users for this conversation's inbox (not just linking agents)
-      all_inbox_users = get_all_inbox_users(conversation)
-      
-      # Create a private automated message in the conversation
-      create_completion_message(conversation, all_inbox_users, issue_key, issue_data)
-      
-      # Broadcast real-time update to agents
+
+      if notify_inbox
+        # Get ALL inbox users for this conversation's inbox (not just linking agents)
+        all_inbox_users = get_all_inbox_users(conversation)
+
+        # Create a private automated message in the conversation
+        create_completion_message(conversation, all_inbox_users, issue_key, issue_data)
+      end
+
+      # Broadcast real-time update to agents (keeps the UI in sync even for 1st line)
       broadcast_issue_update(conversation, issue_key, issue_data)
-      
+
       # Disable further notifications for this link to avoid spam
       link.update!(webhook_notifications_enabled: false)
     end
   end
 
   private
+
+  # Determine whether the issue belongs to the configured 1st line project.
+  def first_line_issue?(issue_key, account)
+    first_line_key = Integrations::Jira::ProcessorService.new(account: account).first_line_project_key
+    return false if first_line_key.blank?
+
+    issue_key.to_s.split('-').first == first_line_key
+  rescue StandardError => e
+    Rails.logger.warn("JIRA: could not determine 1st line project for #{issue_key}: #{e.message}")
+    false
+  end
 
   def get_all_linking_agents(conversation)
     # Get all unique users who have linked JIRA issues to this conversation

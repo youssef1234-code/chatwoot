@@ -10,8 +10,11 @@ class JiraAPI extends ApiClient {
     return axios.get(`${this.url}/projects`);
   }
 
-  getProjectMetadata(projectKey) {
-    return axios.get(`${this.url}/project_metadata?project_key=${projectKey}`);
+  getProjectMetadata(projectKey, { all = false } = {}) {
+    const allParam = all ? '&all=true' : '';
+    return axios.get(
+      `${this.url}/project_metadata?project_key=${projectKey}${allParam}`
+    );
   }
 
   createIssue(data) {
@@ -27,9 +30,10 @@ class JiraAPI extends ApiClient {
     });
   }
 
-  getLinkedIssues(conversationId) {
+  getLinkedIssues(conversationId, { secondLineOnly = false } = {}) {
+    const secondLineParam = secondLineOnly ? '&second_line_only=true' : '';
     return axios.get(
-      `${this.url}/linked_issues?conversation_id=${conversationId}`
+      `${this.url}/linked_issues?conversation_id=${conversationId}${secondLineParam}`
     );
   }
 

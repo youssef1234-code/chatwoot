@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useAlert } from 'dashboard/composables';
 import JiraAPI from 'dashboard/api/integrations/jira';
 import { resetStatusColors } from '../conversation/jira/helpers/statusColors';
@@ -62,9 +62,14 @@ const tokenLabel = computed(() =>
 
 const firstLineProjectKey = ref('');
 const secondLineProjectKey = ref('');
+const allowedIssueTypes = ref([]);
+const issueTypeOptions = ref([]);
+const isLoadingIssueTypes = ref(false);
 const selectedFinalStatuses = ref([]);
 const serviceDeskEnabled = ref(true);
 const statusColorMapping = ref({});
+const onboardingDoneStatuses = ref([]);
+const onboardingInProgressStatuses = ref([]);
 
 const projectOptions = computed(() =>
   projects.value.map(p => ({
@@ -86,9 +91,12 @@ const loadSettings = async () => {
     const settings = response.data;
     firstLineProjectKey.value = settings.first_line_project_key || '';
     secondLineProjectKey.value = settings.second_line_project_key || '';
+    allowedIssueTypes.value = settings.allowed_issue_types || [];
     selectedFinalStatuses.value = settings.final_statuses || [];
     serviceDeskEnabled.value = settings.service_desk_enabled !== false;
     statusColorMapping.value = settings.status_color_mapping || {};
+    onboardingDoneStatuses.value = settings.onboarding_done_statuses || [];
+    onboardingInProgressStatuses.value = settings.onboarding_in_progress_statuses || [];
     // Connection settings
     siteUrl.value = settings.site_url || '';
     deploymentType.value = settings.deployment_type || 'data_center';
@@ -108,6 +116,29 @@ const loadProjects = async () => {
     }));
   } catch {
     useAlert('Failed to load JIRA projects. Check your connection settings.');
+  }
+};
+
+// Load the full (unfiltered) list of issue types for the 1st line project so the
+// admin can choose which ones are allowed during issue creation.
+const loadIssueTypeOptions = async () => {
+  if (!firstLineProjectKey.value) {
+    issueTypeOptions.value = [];
+    return;
+  }
+  isLoadingIssueTypes.value = true;
+  try {
+    const response = await JiraAPI.getProjectMetadata(firstLineProjectKey.value, {
+      all: true,
+    });
+    issueTypeOptions.value = (response.data?.issue_types || []).map(type => ({
+      value: type.name,
+      label: type.name,
+    }));
+  } catch {
+    issueTypeOptions.value = [];
+  } finally {
+    isLoadingIssueTypes.value = false;
   }
 };
 
@@ -140,9 +171,12 @@ const saveSettings = async () => {
     const payload = {
       first_line_project_key: firstLineProjectKey.value,
       second_line_project_key: secondLineProjectKey.value,
+      allowed_issue_types: allowedIssueTypes.value,
       final_statuses: selectedFinalStatuses.value,
       service_desk_enabled: serviceDeskEnabled.value,
       status_color_mapping: statusColorMapping.value,
+      onboarding_done_statuses: onboardingDoneStatuses.value,
+      onboarding_in_progress_statuses: onboardingInProgressStatuses.value,
     };
     // Include connection settings if user edited them
     if (showConnectionEdit.value) {
@@ -163,9 +197,14 @@ const saveSettings = async () => {
   }
 };
 
+// Reload the allowed-issue-type options whenever the 1st line project changes.
+watch(firstLineProjectKey, () => {
+  loadIssueTypeOptions();
+});
+
 onMounted(async () => {
   await loadSettings();
-  await Promise.all([loadProjects(), loadStatuses()]);
+  await Promise.all([loadProjects(), loadStatuses(), loadIssueTypeOptions()]);
   isLoading.value = false;
 });
 </script>
@@ -280,6 +319,31 @@ onMounted(async () => {
         />
       </div>
 
+      <!-- Allowed Issue Types (Multi-select) -->
+      <div>
+        <label class="mb-1 block text-sm font-medium text-n-slate-12">
+          Allowed Issue Types
+        </label>
+        <p class="text-xs text-n-slate-10 mb-2">
+          Restrict which issue types agents can pick when creating an issue. Leave
+          empty to allow all types. Options come from the 1st Line project.
+        </p>
+        <p
+          v-if="!firstLineProjectKey"
+          class="text-xs text-n-amber-11 mb-2"
+        >
+          Select a 1st Line project first to choose allowed issue types.
+        </p>
+        <TagMultiSelectComboBox
+          v-else
+          v-model="allowedIssueTypes"
+          :options="issueTypeOptions"
+          :placeholder="isLoadingIssueTypes ? 'Loading issue types...' : 'Select issue types...'"
+          search-placeholder="Search issue types..."
+          empty-state="No issue types found"
+        />
+      </div>
+
       <!-- Final Statuses (Multi-select) -->
       <div>
         <label class="mb-1 block text-sm font-medium text-n-slate-12">
@@ -293,6 +357,40 @@ onMounted(async () => {
           v-model="selectedFinalStatuses"
           :options="statusOptions"
           placeholder="Select statuses..."
+          search-placeholder="Search statuses..."
+          empty-state="No statuses found"
+        />
+      </div>
+
+      <!-- Onboarding: Done Statuses -->
+      <div>
+        <label class="mb-1 block text-sm font-medium text-n-slate-12">
+          Onboarding &mdash; Done Statuses
+        </label>
+        <p class="text-xs text-n-slate-10 mb-2">
+          Sessions/tasks with these statuses are treated as completed (green) in the onboarding widget.
+        </p>
+        <TagMultiSelectComboBox
+          v-model="onboardingDoneStatuses"
+          :options="statusOptions"
+          placeholder="Select done statuses..."
+          search-placeholder="Search statuses..."
+          empty-state="No statuses found"
+        />
+      </div>
+
+      <!-- Onboarding: In-Progress Statuses -->
+      <div>
+        <label class="mb-1 block text-sm font-medium text-n-slate-12">
+          Onboarding &mdash; In Progress Statuses
+        </label>
+        <p class="text-xs text-n-slate-10 mb-2">
+          Sessions/tasks with these statuses are treated as active (blue) in the onboarding widget.
+        </p>
+        <TagMultiSelectComboBox
+          v-model="onboardingInProgressStatuses"
+          :options="statusOptions"
+          placeholder="Select in-progress statuses..."
           search-placeholder="Search statuses..."
           empty-state="No statuses found"
         />

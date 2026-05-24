@@ -800,6 +800,11 @@ class Jira
         create_params[:priority_id] = fields['priority']['id']
       end
 
+      # Preserve labels/tags from the original 1st line issue
+      if fields['labels'].is_a?(Array) && fields['labels'].present?
+        create_params[:labels] = fields['labels']
+      end
+
       new_issue = create_issue(create_params)
       if new_issue.is_a?(Hash) && (new_issue[:error] || new_issue['error'])
         return { error: new_issue[:error] || new_issue['error'] }

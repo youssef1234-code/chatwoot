@@ -68,6 +68,10 @@ const users = ref([]);
 const priorities = ref([]);
 const isLoading = ref(false);
 const isCreating = ref(false);
+// When a 1st line project is configured, new issues are forced into it and the
+// project selector is locked. Escalation is the only way to reach the 2nd line.
+const firstLineProjectKey = ref('');
+const isProjectLocked = computed(() => !!firstLineProjectKey.value);
 
 // Validation rules
 const rules = {
@@ -127,6 +131,7 @@ const dropdowns = computed(() => [
     items: projects.value,
     placeholder: 'INTEGRATION_SETTINGS.JIRA.ADD_OR_LINK.FORM.PROJECT.SEARCH',
     error: projectError.value,
+    disabled: isProjectLocked.value,
   },
   {
     type: 'issue_type_id',
@@ -167,15 +172,18 @@ const getProjects = async () => {
       key: project.key
     }));
 
-    // Auto-select 1st line project if configured
+    // Auto-select and lock to the 1st line project if configured
     try {
       const settingsResponse = await JiraAPI.getSettings();
       const firstLineKey = settingsResponse.data?.first_line_project_key;
-      if (firstLineKey && !formState.value.project_key) {
+      if (firstLineKey) {
         const firstLineProject = projects.value.find(p => p.key === firstLineKey);
         if (firstLineProject) {
-          formState.value.project_key = firstLineProject.id;
-          await getProjectMetadata();
+          firstLineProjectKey.value = firstLineProject.id;
+          if (!formState.value.project_key) {
+            formState.value.project_key = firstLineProject.id;
+            await getProjectMetadata();
+          }
         }
       }
     } catch {
@@ -633,6 +641,7 @@ onMounted(() => {
         :items="dropdown.items"
         :value="formState[dropdown.type]"
         :error-message="dropdown.error"
+        :disabled="dropdown.disabled"
         @select="item => onSelectItem(dropdown.type, item)"
       />
 
