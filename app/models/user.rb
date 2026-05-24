@@ -119,7 +119,15 @@ class User < ApplicationRecord
   end
 
   def assigned_inboxes
-    administrator? ? Current.account.inboxes : inboxes.where(account_id: Current.account.id)
+    ac_user = current_account_user
+    if ac_user&.inbox_access_restricted?
+      # Administrator with an optional channel allow-list: only those inboxes.
+      Current.account.inboxes.where(id: ac_user.cleaned_allowed_inbox_ids)
+    elsif administrator?
+      Current.account.inboxes
+    else
+      inboxes.where(account_id: Current.account.id)
+    end
   end
 
   def serializable_hash(options = nil)

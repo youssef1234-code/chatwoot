@@ -8,15 +8,27 @@ class Conversations::PermissionFilterService
   end
 
   def perform
-    return conversations if user_role == 'administrator'
+    # Administrators see everything unless they have an optional channel allow-list.
+    return conversations if user_role == 'administrator' && !admin_inbox_restricted?
 
     accessible_conversations
   end
 
   private
 
+  def admin_inbox_restricted?
+    account_user&.inbox_access_restricted?
+  end
+
   def accessible_conversations
-    conversations.where(inbox: user.inboxes.where(account_id: account.id))
+    conversations.where(inbox_id: accessible_inbox_ids)
+  end
+
+  # Channel-restricted admins use their allow-list; everyone else uses inbox membership.
+  def accessible_inbox_ids
+    return account_user.cleaned_allowed_inbox_ids if admin_inbox_restricted?
+
+    user.inboxes.where(account_id: account.id).select(:id)
   end
 
   def account_user

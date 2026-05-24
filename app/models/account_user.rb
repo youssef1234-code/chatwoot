@@ -55,6 +55,18 @@ class AccountUser < ApplicationRecord
     administrator? ? ['administrator'] : ['agent']
   end
 
+  # Optional per-administrator channel (inbox) allow-list.
+  # Returns configured inbox ids as integers, ignoring blanks.
+  def cleaned_allowed_inbox_ids
+    (allowed_inbox_ids || []).map(&:to_i).reject(&:zero?).uniq
+  end
+
+  # An administrator is "channel restricted" when they have a non-empty allow-list.
+  # Empty list => administrator sees everything (default behaviour).
+  def inbox_access_restricted?
+    administrator? && cleaned_allowed_inbox_ids.present?
+  end
+
   def push_event_data
     {
       id: id,

@@ -81,6 +81,11 @@
           "PLACEHOLDER": "Please select an availability status",
           "ERROR": "Availability is required"
         },
+        "ALLOWED_CHANNELS": {
+          "LABEL": "Allowed channels",
+          "HELP": "Restrict this administrator to the selected channels (inboxes). Leave empty to allow access to all channels.",
+          "EMPTY": "No channels available."
+        },
         "SUBMIT": "Edit Agent"
       },
       "BUTTON_TEXT": "Edit",

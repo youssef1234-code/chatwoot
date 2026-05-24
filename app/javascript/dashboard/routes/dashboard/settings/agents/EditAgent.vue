@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useVuelidate } from '@vuelidate/core';
 import { required, minLength } from '@vuelidate/validators';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
@@ -34,6 +34,10 @@ const props = defineProps({
     type: Number,
     default: null,
   },
+  allowedInboxIds: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 const emit = defineEmits(['close']);
@@ -47,6 +51,12 @@ const agentName = ref(props.name);
 const agentAvailability = ref(props.availability);
 const selectedRoleId = ref(props.customRoleId || props.type);
 const agentCredentials = ref({ email: props.email });
+const selectedInboxIds = ref([...(props.allowedInboxIds || [])]);
+
+const inboxes = useMapGetter('inboxes/getInboxes');
+onMounted(() => {
+  if (!inboxes.value.length) store.dispatch('inboxes/get');
+});
 
 const rules = {
   agentName: { required, minLength: minLength(1) },
@@ -97,6 +107,11 @@ const selectedRole = computed(() =>
   )
 );
 
+// Channel allow-list only applies to full administrators.
+const isAdministrator = computed(
+  () => selectedRole.value?.name === 'administrator'
+);
+
 const statusList = computed(() => {
   return [
     t('PROFILE_SETTINGS.FORM.AVAILABILITY.STATUS.ONLINE'),
@@ -130,6 +145,11 @@ const editAgent = async () => {
       payload.role = selectedRole.value.name;
       payload.custom_role_id = null;
     }
+
+    // Only administrators carry a channel allow-list; clear it otherwise.
+    payload.allowed_inbox_ids = isAdministrator.value
+      ? selectedInboxIds.value
+      : [];
 
     await store.dispatch('agents/update', payload);
     useAlert(t('AGENT_MGMT.EDIT.API.SUCCESS_MESSAGE'));
@@ -198,6 +218,33 @@ const resetPassword = async () => {
             {{ $t('AGENT_MGMT.EDIT.FORM.AGENT_AVAILABILITY.ERROR') }}
           </span>
         </label>
+      </div>
+
+      <div v-if="isAdministrator" class="w-full">
+        <label>{{ $t('AGENT_MGMT.EDIT.FORM.ALLOWED_CHANNELS.LABEL') }}</label>
+        <p class="text-xs text-n-slate-11 mb-2 mt-0">
+          {{ $t('AGENT_MGMT.EDIT.FORM.ALLOWED_CHANNELS.HELP') }}
+        </p>
+        <div
+          class="flex flex-col gap-1 p-2 overflow-y-auto border rounded-md max-h-40 border-n-weak"
+        >
+          <label
+            v-for="inbox in inboxes"
+            :key="inbox.id"
+            class="flex items-center gap-2 !mb-0 cursor-pointer font-normal"
+          >
+            <input
+              v-model="selectedInboxIds"
+              type="checkbox"
+              :value="inbox.id"
+              class="!mb-0 !mt-0"
+            />
+            <span class="text-sm">{{ inbox.name }}</span>
+          </label>
+          <p v-if="!inboxes.length" class="text-sm text-n-slate-11 !mb-0">
+            {{ $t('AGENT_MGMT.EDIT.FORM.ALLOWED_CHANNELS.EMPTY') }}
+          </p>
+        </div>
       </div>
 
       <div class="flex flex-row justify-start w-full gap-2 px-0 py-2">
