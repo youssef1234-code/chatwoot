@@ -280,6 +280,10 @@ en:
       name: "JIRA Service Management"
       short_description: "Create and link JIRA issues directly from conversations."
       description: "Create issues in JIRA Service Management directly from your conversation window. Alternatively, link existing JIRA issues for a more streamlined and efficient issue tracking process."
+    whatsapp_bridge:
+      name: "WhatsApp Bridge"
+      short_description: "Sync WhatsApp groups and configure team members, names and roles."
+      description: "Connect the WhatsApp Bridge to sync WhatsApp group conversations into Chatwoot. Configure team members with their phone numbers, display names and roles, and manage the sync and continue numbers."
     plane:
       name: "Plane"
       short_description: "Create and link Plane issues directly from conversations."

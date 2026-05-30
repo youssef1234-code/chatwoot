@@ -10,6 +10,7 @@ import JiraWebhookSetup from 'dashboard/components/widgets/jira/JiraWebhookSetup
 import JiraSettings from 'dashboard/components/widgets/jira/JiraSettings.vue';
 import JiraConnectionForm from 'dashboard/components/widgets/jira/JiraConnectionForm.vue';
 import PlaneWebhookSetup from 'dashboard/components/widgets/plane/PlaneWebhookSetup.vue';
+import WhatsAppBridgeSettings from 'dashboard/components/widgets/whatsappBridge/WhatsAppBridgeSettings.vue';
 
 export default {
   components: {
@@ -20,6 +21,7 @@ export default {
     JiraSettings,
     JiraConnectionForm,
     PlaneWebhookSetup,
+    WhatsAppBridgeSettings,
   },
   props: {
     integrationId: {
@@ -86,6 +88,9 @@ export default {
     isPlaneIntegration() {
       return this.integrationId === 'plane';
     },
+    isWhatsappBridgeIntegration() {
+      return this.integrationId === 'whatsapp_bridge';
+    },
   },
   methods: {
     openAddHookModal() {
@@ -137,6 +142,12 @@ export default {
       
       <!-- Plane-specific webhook setup -->
       <PlaneWebhookSetup v-if="isPlaneIntegration" />
+
+      <!-- WhatsApp Bridge settings (shown after connection) -->
+      <WhatsAppBridgeSettings
+        v-if="isWhatsappBridgeIntegration && hasConnectedHooks"
+        :hook-id="integration.hooks[0]?.id"
+      />
       
       <div v-if="isIntegrationMultiple">
         <MultipleIntegrationHooks

@@ -9,6 +9,7 @@ import Slack from './Slack.vue';
 import SettingsContent from '../Wrapper.vue';
 import Linear from './Linear.vue';
 import Jira from './Jira.vue';
+import WhatsappBridge from './WhatsappBridge.vue';
 import Plane from './Plane.vue';
 import Shopify from './Shopify.vue';
 
@@ -96,6 +97,14 @@ export default {
           path: 'jira',
           name: 'settings_integrations_jira',
           component: Jira,
+          meta: {
+            permissions: ['administrator'],
+          },
+        },
+        {
+          path: 'whatsapp_bridge',
+          name: 'settings_integrations_whatsapp_bridge',
+          component: WhatsappBridge,
           meta: {
             permissions: ['administrator'],
           },

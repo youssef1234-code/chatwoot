@@ -126,6 +126,36 @@ jira:
         'validationName': 'API Token'
       }
     ]
+whatsapp_bridge:
+  id: whatsapp_bridge
+  logo: whatsapp_bridge.png
+  i18n_key: whatsapp_bridge
+  action: /whatsapp_bridge
+  hook_type: account
+  allow_multiple_hooks: false
+  settings_json_schema:
+    {
+      'type': 'object',
+      'properties': {
+        'bridge_url': { 'type': 'string' },
+        'sync_number': { 'type': 'string' },
+        'continue_number': { 'type': 'string' },
+        'team_members': {
+          'type': 'array',
+          'items': {
+            'type': 'object',
+            'properties': {
+              'phone_number': { 'type': 'string' },
+              'role': { 'type': 'string' },
+              'display_name': { 'type': 'string' }
+            },
+            'required': ['phone_number', 'role'],
+            'additionalProperties': false
+          }
+        }
+      },
+      'additionalProperties': false
+    }
 plane:
   id: plane
   logo: plane.png

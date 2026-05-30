@@ -340,6 +340,15 @@ Rails.application.routes.draw do
               end
               resources :webhooks, only: %i[index create], controller: 'jira/webhooks'
             end
+            resource :whatsapp_bridge, controller: 'whatsapp_bridge', only: [] do
+              collection do
+                get :get_settings
+                patch :update_settings
+                get :team_members
+                post :upsert_team_member
+                delete :delete_team_member
+              end
+            end
             resource :plane, controller: 'plane', only: [] do
               collection do
                 delete :destroy
