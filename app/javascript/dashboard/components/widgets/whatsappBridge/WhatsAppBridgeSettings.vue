@@ -16,11 +16,17 @@ defineProps({
 
 const isLoading = ref(true);
 const isSaving = ref(false);
+const isSwitching = ref(false);
 
 const bridgeUrl = ref('');
 const syncNumber = ref('');
 const continueNumber = ref('');
 const teamMembers = ref([]);
+
+// Bridge session status
+const sessionReady = ref(false);
+const qrPending = ref(false);
+const bridgeReachable = ref(false);
 
 // New-member form
 const newPhone = ref('');
@@ -86,8 +92,41 @@ const removeMember = async phone => {
   }
 };
 
+const refreshStatus = async () => {
+  try {
+    const { data } = await WhatsappBridgeAPI.getSessionStatus();
+    sessionReady.value = !!data.ready;
+    qrPending.value = !!data.qr_pending;
+    bridgeReachable.value = !!data.reachable;
+  } catch {
+    bridgeReachable.value = false;
+  }
+};
+
+const switchToContinue = async () => {
+  // eslint-disable-next-line no-alert
+  if (
+    !window.confirm(
+      'This logs out the current (sync) number and starts pairing the continue number. Scan the new QR from the bridge to finish. Continue?'
+    )
+  ) {
+    return;
+  }
+  isSwitching.value = true;
+  try {
+    await WhatsappBridgeAPI.switchSession();
+    useAlert('Switching… scan the new QR from the bridge to pair the continue number.');
+    await refreshStatus();
+  } catch {
+    useAlert('Could not reach the bridge to switch the session.');
+  } finally {
+    isSwitching.value = false;
+  }
+};
+
 onMounted(async () => {
   await loadSettings();
+  await refreshStatus();
   isLoading.value = false;
 });
 </script>
@@ -137,6 +176,53 @@ onMounted(async () => {
             label="Save Settings"
             :is-loading="isSaving"
             @click="saveConnection"
+          />
+        </div>
+      </div>
+
+      <!-- Sync → Continue handoff -->
+      <div class="border border-n-weak rounded-lg p-4">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <label class="text-sm font-medium text-n-slate-12">
+              Number handoff
+            </label>
+            <p class="text-xs text-n-slate-10 mt-0.5">
+              <template v-if="!bridgeReachable">
+                Bridge not reachable at the configured URL.
+              </template>
+              <template v-else-if="sessionReady">
+                Connected. Once history has synced with the sync number, switch to
+                the continue number for ongoing messages.
+              </template>
+              <template v-else-if="qrPending">
+                Waiting for QR scan — scan the QR shown by the bridge.
+              </template>
+              <template v-else>
+                Not connected.
+              </template>
+            </p>
+          </div>
+          <NextButton
+            faded
+            slate
+            icon="i-lucide-refresh-cw"
+            label="Refresh"
+            @click="refreshStatus"
+          />
+        </div>
+        <p class="text-xs text-n-amber-11 mt-2">
+          Note: only groups the continue number is a member of will keep working
+          after the switch. Groups where only the sync number is present will stop.
+        </p>
+        <div class="flex justify-end mt-3">
+          <NextButton
+            ruby
+            icon="i-lucide-repeat"
+            label="Switch to continue number"
+            :is-loading="isSwitching"
+            :disabled="!bridgeReachable"
+            @click="switchToContinue"
           />
         </div>
       </div>

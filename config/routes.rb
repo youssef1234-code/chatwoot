@@ -347,6 +347,8 @@ Rails.application.routes.draw do
                 get :team_members
                 post :upsert_team_member
                 delete :delete_team_member
+                get :session_status
+                post :switch_session
               end
             end
             resource :plane, controller: 'plane', only: [] do

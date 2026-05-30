@@ -31,6 +31,14 @@ class WhatsappBridgeAPI extends ApiClient {
       params: { phone_number: phoneNumber },
     });
   }
+
+  getSessionStatus() {
+    return axios.get(`${this.url}/session_status`);
+  }
+
+  switchSession() {
+    return axios.post(`${this.url}/switch_session`);
+  }
 }
 
 export default new WhatsappBridgeAPI();

@@ -46,6 +46,24 @@ class Api::V1::Accounts::Integrations::WhatsappBridgeController < Api::V1::Accou
     render json: { team_members: members }, status: :ok
   end
 
+  # GET bridge session status (ready + whether a QR is pending)
+  def session_status
+    response = HTTParty.get("#{bridge_url}/session/status", timeout: 5)
+    body = response.parsed_response || {}
+    render json: { ready: body['ready'], qr_pending: body['latestQr'].present?, reachable: true }, status: :ok
+  rescue StandardError => e
+    Rails.logger.warn("WhatsAppBridge: status check failed: #{e.message}")
+    render json: { ready: false, qr_pending: false, reachable: false }, status: :ok
+  end
+
+  # POST switch from the sync number to the continue number
+  def switch_session
+    HTTParty.post("#{bridge_url}/session/switch", timeout: 10)
+    render json: { status: 'switching' }, status: :ok
+  rescue StandardError => e
+    render json: { error: "Bridge not reachable: #{e.message}" }, status: :unprocessable_entity
+  end
+
   private
 
   def fetch_hook
