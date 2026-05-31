@@ -156,6 +156,7 @@ whatsapp_bridge:
       },
       'additionalProperties': false
     }
+  settings_form_schema: []
 plane:
   id: plane
   logo: plane.png
