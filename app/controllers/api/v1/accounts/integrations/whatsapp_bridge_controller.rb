@@ -50,10 +50,15 @@ class Api::V1::Accounts::Integrations::WhatsappBridgeController < Api::V1::Accou
   def session_status
     response = HTTParty.get("#{bridge_url}/session/status", timeout: 5)
     body = response.parsed_response || {}
-    render json: { ready: body['ready'], qr_pending: body['latestQr'].present?, reachable: true }, status: :ok
+    render json: {
+      ready: body['ready'],
+      qr_pending: body['latestQr'].present?,
+      qr_image: body['latestQrImage'],
+      reachable: true
+    }, status: :ok
   rescue StandardError => e
     Rails.logger.warn("WhatsAppBridge: status check failed: #{e.message}")
-    render json: { ready: false, qr_pending: false, reachable: false }, status: :ok
+    render json: { ready: false, qr_pending: false, qr_image: nil, reachable: false }, status: :ok
   end
 
   # POST switch from the sync number to the continue number

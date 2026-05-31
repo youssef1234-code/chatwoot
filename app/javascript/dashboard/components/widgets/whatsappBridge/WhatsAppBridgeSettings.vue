@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { useAlert } from 'dashboard/composables';
 import WhatsappBridgeAPI from 'dashboard/api/integrations/whatsappBridge';
 
@@ -26,7 +26,9 @@ const teamMembers = ref([]);
 // Bridge session status
 const sessionReady = ref(false);
 const qrPending = ref(false);
+const qrImage = ref(null);
 const bridgeReachable = ref(false);
+let statusTimer = null;
 
 // New-member form
 const newPhone = ref('');
@@ -97,6 +99,7 @@ const refreshStatus = async () => {
     const { data } = await WhatsappBridgeAPI.getSessionStatus();
     sessionReady.value = !!data.ready;
     qrPending.value = !!data.qr_pending;
+    qrImage.value = data.qr_image || null;
     bridgeReachable.value = !!data.reachable;
   } catch {
     bridgeReachable.value = false;
@@ -128,6 +131,12 @@ onMounted(async () => {
   await loadSettings();
   await refreshStatus();
   isLoading.value = false;
+  // Poll while the page is open so the QR appears/updates and we detect connection.
+  statusTimer = setInterval(refreshStatus, 4000);
+});
+
+onBeforeUnmount(() => {
+  if (statusTimer) clearInterval(statusTimer);
 });
 </script>
 
@@ -211,6 +220,21 @@ onMounted(async () => {
             @click="refreshStatus"
           />
         </div>
+        <!-- QR to scan (appears after a switch / while not connected) -->
+        <div
+          v-if="qrImage && !sessionReady"
+          class="flex flex-col items-center gap-2 my-3 p-3 rounded-lg bg-white w-fit mx-auto"
+        >
+          <img
+            :src="qrImage"
+            alt="WhatsApp QR code"
+            class="w-[264px] h-[264px]"
+          />
+          <span class="text-xs text-n-slate-11">
+            Open WhatsApp on the continue number → Linked devices → Link a device.
+          </span>
+        </div>
+
         <p class="text-xs text-n-amber-11 mt-2">
           Note: only groups the continue number is a member of will keep working
           after the switch. Groups where only the sync number is present will stop.
