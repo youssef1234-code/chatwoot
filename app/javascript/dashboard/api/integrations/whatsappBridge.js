@@ -39,6 +39,10 @@ class WhatsappBridgeAPI extends ApiClient {
   switchSession() {
     return axios.post(`${this.url}/switch_session`);
   }
+
+  restartSession() {
+    return axios.post(`${this.url}/restart_session`);
+  }
 }
 
 export default new WhatsappBridgeAPI();

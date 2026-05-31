@@ -69,6 +69,14 @@ class Api::V1::Accounts::Integrations::WhatsappBridgeController < Api::V1::Accou
     render json: { error: "Bridge not reachable: #{e.message}" }, status: :unprocessable_entity
   end
 
+  # POST restart linking — force a fresh QR (re-resolves the web version)
+  def restart_session
+    HTTParty.post("#{bridge_url}/session/restart", timeout: 10)
+    render json: { status: 'restarting' }, status: :ok
+  rescue StandardError => e
+    render json: { error: "Bridge not reachable: #{e.message}" }, status: :unprocessable_entity
+  end
+
   private
 
   def fetch_hook

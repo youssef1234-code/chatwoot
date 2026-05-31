@@ -349,6 +349,7 @@ Rails.application.routes.draw do
                 delete :delete_team_member
                 get :session_status
                 post :switch_session
+                post :restart_session
               end
             end
             resource :plane, controller: 'plane', only: [] do

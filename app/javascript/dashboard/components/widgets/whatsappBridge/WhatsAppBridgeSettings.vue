@@ -17,6 +17,7 @@ defineProps({
 const isLoading = ref(true);
 const isSaving = ref(false);
 const isSwitching = ref(false);
+const isRestarting = ref(false);
 
 const bridgeUrl = ref('');
 const syncNumber = ref('');
@@ -127,6 +128,20 @@ const switchToContinue = async () => {
   }
 };
 
+const restartLinking = async () => {
+  isRestarting.value = true;
+  try {
+    await WhatsappBridgeAPI.restartSession();
+    useAlert('Restarting — a fresh QR will appear shortly. Scan it to link.');
+    qrImage.value = null;
+    await refreshStatus();
+  } catch {
+    useAlert('Could not reach the bridge to restart linking.');
+  } finally {
+    isRestarting.value = false;
+  }
+};
+
 onMounted(async () => {
   await loadSettings();
   await refreshStatus();
@@ -212,13 +227,24 @@ onBeforeUnmount(() => {
               </template>
             </p>
           </div>
-          <NextButton
-            faded
-            slate
-            icon="i-lucide-refresh-cw"
-            label="Refresh"
-            @click="refreshStatus"
-          />
+          <div class="flex items-center gap-2">
+            <NextButton
+              v-if="bridgeReachable && !sessionReady"
+              faded
+              amber
+              icon="i-lucide-rotate-ccw"
+              label="Restart linking"
+              :is-loading="isRestarting"
+              @click="restartLinking"
+            />
+            <NextButton
+              faded
+              slate
+              icon="i-lucide-refresh-cw"
+              label="Refresh"
+              @click="refreshStatus"
+            />
+          </div>
         </div>
         <!-- QR to scan (appears after a switch / while not connected) -->
         <div
