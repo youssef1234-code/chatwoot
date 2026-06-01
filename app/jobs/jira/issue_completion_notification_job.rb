@@ -103,7 +103,7 @@ class Jira::IssueCompletionNotificationJob < ApplicationJob
     linking_agents = get_all_linking_agents(conversation)
 
     # Include account administrators
-    account_admins = conversation.account.administrators.to_a
+    account_admins = conversation.inbox.administrators_with_access
 
     # Combine all users: inbox members + linking agents + account admins
     all_users = (inbox_members + linking_agents + account_admins).uniq
@@ -185,7 +185,7 @@ class Jira::IssueCompletionNotificationJob < ApplicationJob
   def user_tokens_for_conversation(conversation)
     # Get tokens for all users who have access to this conversation
     inbox_members = conversation.inbox.inbox_members.includes(:user)
-    account_admins = conversation.account.administrators
+    account_admins = conversation.inbox.administrators_with_access
     
     users = (inbox_members.map(&:user) + account_admins).uniq
     users.map(&:pubsub_token)

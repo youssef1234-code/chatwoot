@@ -406,7 +406,7 @@ class Api::V1::Accounts::Integrations::Jira::WebhooksController < Api::V1::Accou
   def user_tokens_for_conversation(conversation)
     # Get tokens for all users who have access to this conversation
     inbox_members = conversation.inbox.inbox_members.includes(:user)
-    account_admins = conversation.account.administrators
+    account_admins = conversation.inbox.administrators_with_access
 
     users = (inbox_members.map(&:user) + account_admins).uniq
     users.map(&:pubsub_token)

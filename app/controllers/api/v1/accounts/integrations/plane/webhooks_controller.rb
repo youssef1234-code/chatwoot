@@ -443,7 +443,7 @@ class Api::V1::Accounts::Integrations::Plane::WebhooksController < Api::V1::Acco
 
   def user_tokens_for_conversation(conversation)
     inbox_members = conversation.inbox.inbox_members.includes(:user)
-    account_admins = conversation.account.administrators
+    account_admins = conversation.inbox.administrators_with_access
 
     users = (inbox_members.map(&:user) + account_admins).uniq
     users.map(&:pubsub_token)

@@ -2,17 +2,18 @@
 #
 # Table name: account_users
 #
-#  id             :bigint           not null, primary key
-#  active_at      :datetime
-#  auto_offline   :boolean          default(TRUE), not null
-#  availability   :integer          default("online"), not null
-#  role           :integer          default("agent")
-#  created_at     :datetime         not null
-#  updated_at     :datetime         not null
-#  account_id     :bigint
-#  custom_role_id :bigint
-#  inviter_id     :bigint
-#  user_id        :bigint
+#  id                :bigint           not null, primary key
+#  active_at         :datetime
+#  allowed_inbox_ids :jsonb            not null
+#  auto_offline      :boolean          default(TRUE), not null
+#  availability      :integer          default("online"), not null
+#  role              :integer          default("agent")
+#  created_at        :datetime         not null
+#  updated_at        :datetime         not null
+#  account_id        :bigint
+#  custom_role_id    :bigint
+#  inviter_id        :bigint
+#  user_id           :bigint
 #
 # Indexes
 #
@@ -65,6 +66,15 @@ class AccountUser < ApplicationRecord
   # Empty list => administrator sees everything (default behaviour).
   def inbox_access_restricted?
     administrator? && cleaned_allowed_inbox_ids.present?
+  end
+
+  # Whether this account-user may access a given inbox. Channel-restricted admins
+  # are limited to their allow-list; everyone else is governed by inbox membership
+  # (so this only narrows access for restricted admins).
+  def can_access_inbox?(inbox_id)
+    return true unless inbox_access_restricted?
+
+    cleaned_allowed_inbox_ids.include?(inbox_id.to_i)
   end
 
   def push_event_data

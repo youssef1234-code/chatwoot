@@ -148,7 +148,27 @@ class Inbox < ApplicationRecord
   end
 
   def assignable_agents
-    (account.users.where(id: members.select(:user_id)) + account.administrators).uniq
+    (account.users.where(id: members.select(:user_id)) + administrators_with_access).uniq
+  end
+
+  # Administrators allowed to act on this inbox: all admins, minus channel-restricted
+  # admins whose allow-list excludes this inbox. (No-op when no admin is restricted.)
+  def administrators_with_access
+    account.account_users.where(role: AccountUser.roles[:administrator]).includes(:user)
+           .select { |account_user| account_user.can_access_inbox?(id) }
+           .map(&:user)
+  end
+
+  # Inbox members minus channel-restricted admins who aren't allowed this inbox.
+  # Used for notification/recipient selection so restricted admins don't leak.
+  def accessible_members
+    restricted_admin_user_ids = account.account_users
+                                       .where(role: AccountUser.roles[:administrator]).includes(:user)
+                                       .reject { |account_user| account_user.can_access_inbox?(id) }
+                                       .map(&:user_id)
+    return members if restricted_admin_user_ids.empty?
+
+    members.where.not(id: restricted_admin_user_ids)
   end
 
   def active_bot?
