@@ -253,6 +253,27 @@ class Jira
     end
   end
 
+  # Fetch multiple issues in ONE JQL query instead of one API call per key —
+  # the linked-issues panel paid an API round-trip per linked issue and hit the
+  # 15s request timeout once a conversation had several.
+  def get_issues_by_keys(keys)
+    keys = Array(keys).compact.uniq
+    return [] if keys.empty?
+
+    jql = "key in (#{keys.join(',')})"
+    @client.Issue.jql(jql, max_results: keys.size).map do |issue|
+      {
+        'id' => issue.id,
+        'key' => issue.key,
+        'self' => issue.self,
+        'fields' => issue.fields
+      }
+    end
+  rescue StandardError => e
+    Rails.logger.error("JIRA get_issues_by_keys error: #{e.message}")
+    []
+  end
+
   # Search for issues using JQL
   def search_issue(query)
     raise ArgumentError, 'Missing query' if query.blank?

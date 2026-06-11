@@ -175,43 +175,35 @@ class Integrations::Jira::ProcessorService
         return { data: [], second_line_project_key: second_line_key }
       end
       
-      # Fetch issue details from JIRA for each linked issue
-      issues = []
-      linked_issue_keys.each do |issue_key|
-        begin
-          issue_response = jira_client.get_issue(issue_key)
-          
-          # Skip if there's an error fetching this specific issue
-          if issue_response.is_a?(Hash) && (issue_response[:error] || issue_response['error'])
-            Rails.logger.warn("JIRA: Could not fetch details for linked issue #{issue_key}: #{issue_response[:error] || issue_response['error']}")
-            next
-          end
-          
-          # Get the link record for additional metadata
-          link_record = JiraIssueLink.find_by(conversation_id: conversation_id, issue_key: issue_key)
-          
-          issues << {
-            key: issue_response['key'],
-            summary: issue_response['fields']['summary'],
-            status: issue_response['fields']['status']['name'],
-            assignee: issue_response['fields']['assignee']&.dig('displayName'),
-            priority: issue_response['fields']['priority']&.dig('name'),
-            issueType: issue_response['fields']['issuetype']['name'],
-            url: "#{jira_site_url}/browse/#{issue_response['key']}",
-            id: issue_response['key'], # Use key as ID for frontend compatibility
-            commentId: link_record&.comment_id, # Use comment ID from database
-            linked_at: link_record&.linked_at&.iso8601, # Include the link date for sorting
-            message_ids: link_record&.message_ids || [],
-            escalated_to: link_record&.escalated_to,
-            escalated_from: link_record&.escalated_from
-          }
-        rescue StandardError => e
-          Rails.logger.warn("JIRA: Error fetching issue #{issue_key}: #{e.message}")
-          # Continue with other issues even if one fails
-          next
-        end
+      # Fetch ALL linked issues in a single JQL query instead of one API call per
+      # issue — the per-issue loop made the linked-issues panel hit the 15s request
+      # timeout once a conversation accumulated several linked issues.
+      issue_map = jira_client.get_issues_by_keys(linked_issue_keys).index_by { |i| i['key'] }
+      link_records = JiraIssueLink.where(conversation_id: conversation_id, issue_key: linked_issue_keys).index_by(&:issue_key)
+
+      issues = linked_issue_keys.filter_map do |issue_key|
+        issue_response = issue_map[issue_key]
+        next if issue_response.nil?
+
+        fields = issue_response['fields'] || {}
+        link_record = link_records[issue_key]
+        {
+          key: issue_response['key'],
+          summary: fields['summary'],
+          status: fields.dig('status', 'name'),
+          assignee: fields['assignee']&.dig('displayName'),
+          priority: fields['priority']&.dig('name'),
+          issueType: fields.dig('issuetype', 'name'),
+          url: "#{jira_site_url}/browse/#{issue_response['key']}",
+          id: issue_response['key'],
+          commentId: link_record&.comment_id,
+          linked_at: link_record&.linked_at&.iso8601,
+          message_ids: link_record&.message_ids || [],
+          escalated_to: link_record&.escalated_to,
+          escalated_from: link_record&.escalated_from
+        }
       end
-      
+
       # Sort by linked_at date (most recent first)
       issues.sort! { |a, b| (b[:linked_at] || '') <=> (a[:linked_at] || '') }
 
