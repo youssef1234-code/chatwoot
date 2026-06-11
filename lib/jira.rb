@@ -1268,16 +1268,24 @@ class Jira
 
   # ---- Service Desk Organization Management ----
 
-  # Find or create an organization in JIRA Service Management
+  # Find or create an organization in JIRA Service Management.
+  # Organizations only change on new-client onboarding, so we resolve names from a
+  # cached name->org map (per JIRA site) instead of paginating the whole org list on
+  # every call — that scan timed out once the list grew to hundreds of orgs.
   def find_or_create_organization(name)
     return nil if name.blank?
 
     begin
-      # Search existing organizations
+      # Cache hit — instant, no API call
       existing_org = find_organization_by_name(name)
       return existing_org if existing_org
 
-      # Create new organization
+      # Miss: refresh the cache once (the org may have been created out-of-band) and
+      # retry before creating, so we never create a duplicate organization.
+      existing_org = organization_name_map(force_refresh: true)[name.downcase]
+      return existing_org if existing_org
+
+      # Genuinely new — create it and add it to the cache for instant future lookups.
       response = HTTParty.post(
         "#{@site_url}/rest/servicedeskapi/organization",
         headers: auth_headers.merge({
@@ -1291,6 +1299,7 @@ class Jira
 
       if response.code.to_i >= 200 && response.code.to_i < 300
         org = response.parsed_response
+        cache_organization(org)
         Rails.logger.info("JIRA: Created organization '#{name}' with ID #{org['id']}")
         org
       else
@@ -1303,42 +1312,76 @@ class Jira
     end
   end
 
-  # Search for an organization by name
+  # Look up an organization by name from the cached name->org map (no API call on a hit).
   def find_organization_by_name(name)
     return nil if name.blank?
 
-    begin
-      start_at = 0
-      loop do
-        response = HTTParty.get(
-          "#{@site_url}/rest/servicedeskapi/organization",
-          headers: auth_headers.merge({
-            'Content-Type' => 'application/json',
-            'Accept' => 'application/json',
-            'X-ExperimentalApi' => 'opt-in'
-          }),
-          query: { start: start_at, limit: 50 },
-          timeout: 15
-        )
+    organization_name_map[name.downcase]
+  end
 
-        break unless response.code.to_i == 200
+  # Cached { downcased_name => org } for this JIRA site. Built once per TTL by paginating
+  # the org list, and updated in-place whenever we create an org — so the expensive scan
+  # runs at most ~twice a day instead of on every issue.
+  def organization_name_map(force_refresh: false)
+    key = organization_cache_key
+    Rails.cache.delete(key) if force_refresh
 
-        data = response.parsed_response
-        values = data['values'] || []
-        match = values.find { |o| o['name']&.downcase == name.downcase }
-        return match if match
+    cached = Rails.cache.read(key)
+    return cached if cached.is_a?(Hash)
 
-        # Check if there are more pages
-        break if values.size < 50 || (data['isLastPage'] == true)
+    map = fetch_all_organizations
+    Rails.cache.write(key, map, expires_in: 12.hours) if map.present?
+    map
+  rescue StandardError => e
+    Rails.logger.error("JIRA organization_name_map error: #{e.message}")
+    {}
+  end
 
-        start_at += values.size
-      end
+  # Paginate the full JIRA SM organization list into a { downcased_name => org } hash.
+  # Raises on a failed page so a partial result is never cached.
+  def fetch_all_organizations
+    map = {}
+    start_at = 0
+    loop do
+      response = HTTParty.get(
+        "#{@site_url}/rest/servicedeskapi/organization",
+        headers: auth_headers.merge({
+          'Content-Type' => 'application/json',
+          'Accept' => 'application/json',
+          'X-ExperimentalApi' => 'opt-in'
+        }),
+        query: { start: start_at, limit: 50 },
+        timeout: 15
+      )
+      raise "organization list returned #{response.code}" unless response.code.to_i == 200
 
-      nil
-    rescue StandardError => e
-      Rails.logger.error("JIRA find_organization_by_name error: #{e.message}")
-      nil
+      data = response.parsed_response
+      values = data['values'] || []
+      values.each { |o| map[o['name'].to_s.downcase] = o if o['name'].present? }
+
+      break if values.size < 50 || (data['isLastPage'] == true)
+
+      start_at += values.size
     end
+
+    map
+  end
+
+  # Add a freshly created org to the cached map so it's found without a re-scan.
+  # Only updates an already-built cache (never seeds a partial one).
+  def cache_organization(org)
+    return unless org.is_a?(Hash) && org['name'].present?
+
+    key = organization_cache_key
+    map = Rails.cache.read(key)
+    return unless map.is_a?(Hash)
+
+    map[org['name'].to_s.downcase] = org
+    Rails.cache.write(key, map, expires_in: 12.hours)
+  end
+
+  def organization_cache_key
+    "jira_org_map:#{@site_url}"
   end
 
   # Add an organization to a service desk
