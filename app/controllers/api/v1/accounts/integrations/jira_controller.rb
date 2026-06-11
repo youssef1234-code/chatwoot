@@ -838,88 +838,19 @@ class Api::V1::Accounts::Integrations::JiraController < Api::V1::Accounts::BaseC
     hook&.settings&.dig('email') || hook&.settings&.dig('username')
   end
 
-  # Handle Service Desk customer creation and linking instead of using labels
+  # Service Desk org/customer association is offloaded to a background job:
+  # find_or_create_organization paginates the ENTIRE JSM org list (O(N) API calls),
+  # so once that list grew large (the bulk migration created hundreds of orgs) the
+  # scan blew past the 15s request timeout — 500'ing create/link/escalate and leaving
+  # issues with no organization. Off the request path it completes reliably.
   def handle_service_desk_customers(issue_key)
-    return unless jira_processor_service.service_desk_enabled?
-    return unless @conversation&.contact
+    return if issue_key.blank? || @conversation.nil?
 
-    contact = @conversation.contact
-    org_names = extract_organization_names
-
-    # Handle JIRA Service Management organizations
-    handle_service_desk_organizations(issue_key, org_names)
-
-    if org_names.present?
-      org_names.each do |org_name|
-        # Try to find/create the customer in JIRA using org email or contact info
-        org_email = extract_org_email(org_name)
-        next if org_email.blank?
-
-        begin
-          customer_result = jira_processor_service.find_or_create_customer(org_email, org_name)
-          if customer_result[:data]
-            customer_id = customer_result[:data]['accountId'] || customer_result[:data]['name'] || customer_result[:data]['key']
-            if customer_id
-              jira_processor_service.add_customer_to_issue(issue_key, customer_id)
-              Rails.logger.info("JIRA: Added customer #{org_name} (#{customer_id}) to issue #{issue_key}")
-            end
-          end
-        rescue StandardError => e
-          Rails.logger.error("JIRA: Failed to add customer #{org_name} to issue #{issue_key}: #{e.message}")
-        end
-      end
-    else
-      # Use contact email/name as customer if no org present
-      contact_email = contact.email
-      contact_name = contact.name
-      if contact_email.present?
-        begin
-          customer_result = jira_processor_service.find_or_create_customer(contact_email, contact_name)
-          if customer_result[:data]
-            customer_id = customer_result[:data]['accountId'] || customer_result[:data]['name'] || customer_result[:data]['key']
-            if customer_id
-              jira_processor_service.add_customer_to_issue(issue_key, customer_id)
-              Rails.logger.info("JIRA: Added contact #{contact_name} (#{customer_id}) as customer to issue #{issue_key}")
-            end
-          end
-        rescue StandardError => e
-          Rails.logger.error("JIRA: Failed to add contact as customer to issue #{issue_key}: #{e.message}")
-        end
-      end
-    end
-  rescue StandardError => e
-    Rails.logger.error("JIRA: handle_service_desk_customers error for issue #{issue_key}: #{e.message}")
-  end
-
-  # Create/find JIRA SM organizations and link them to the issue
-  def handle_service_desk_organizations(issue_key, org_names)
-    return if org_names.blank?
-
-    # Determine the project key from the issue
-    project_key = issue_key.split('-').first
-
-    org_names.each do |org_name|
-      begin
-        # Find or create the organization in JIRA Service Management
-        org_result = jira_processor_service.find_or_create_organization(org_name)
-        next unless org_result[:data]
-
-        org_id = org_result[:data]['id']
-        next unless org_id
-
-        Rails.logger.info("JIRA: Found/created organization '#{org_name}' with ID #{org_id}")
-
-        # Add organization to the project's service desk
-        jira_processor_service.add_organization_to_project_service_desk(project_key, org_id)
-
-        # Add organization to the issue/request
-        jira_processor_service.add_organization_to_issue(issue_key, org_id)
-
-        Rails.logger.info("JIRA: Linked organization '#{org_name}' (#{org_id}) to issue #{issue_key}")
-      rescue StandardError => e
-        Rails.logger.error("JIRA: Failed to handle organization '#{org_name}' for issue #{issue_key}: #{e.message}")
-      end
-    end
+    Jira::ServiceDeskAssociationJob.perform_later(
+      account_id: Current.account.id,
+      conversation_id: @conversation.id,
+      issue_key: issue_key
+    )
   end
 
   # Extract organization names (not sanitized for labels)
@@ -942,27 +873,6 @@ class Api::V1::Accounts::Integrations::JiraController < Api::V1::Accounts::BaseC
     end
 
     org_names.uniq.compact
-  end
-
-  # Try to derive an org email from contact or custom attributes
-  def extract_org_email(org_name)
-    return nil if org_name.blank?
-
-    contact = @conversation&.contact
-    return nil unless contact
-
-    # If the contact has an email, use it (the contact represents the customer/org)
-    return contact.email if contact.email.present?
-
-    # Try to find email in custom attributes
-    if contact.custom_attributes.present?
-      email_fields = ['email', 'customer_email', 'org_email', 'company_email']
-      email_fields.each do |field|
-        return contact.custom_attributes[field] if contact.custom_attributes[field].present?
-      end
-    end
-
-    nil
   end
 
   def extract_organization_labels
