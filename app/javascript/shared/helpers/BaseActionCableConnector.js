@@ -1,19 +1,26 @@
 import { createConsumer } from '@rails/actioncable';
 
 const PRESENCE_INTERVAL = 20000;
-// ActionCable's server pings every ~3s. If we haven't seen a ping in this long
-// the socket is almost certainly half-open (dead TCP path, still readyState
-// OPEN), so force a reconnect. ~4 missed pings keeps it well clear of healthy
-// connections and avoids false reopens.
+const RECONNECT_POLL_INTERVAL = 1000;
+// `connected` and the isOpen poll can both signal the same reconnect; collapse
+// them so we only re-sync once.
+const RECONNECT_DEDUP_INTERVAL = 3000;
+// ActionCable pings every ~3s. No ping in this long => the socket is almost
+// certainly half-open; force a reconnect. ~4 missed pings stays clear of
+// healthy connections.
 const STALE_CONNECTION_THRESHOLD = 12000;
 const LIVENESS_CHECK_INTERVAL = 10000;
 
 class BaseActionCableConnector {
+  static isDisconnected = false;
+
   constructor(app, pubsubToken, websocketHost = '') {
     const websocketURL = websocketHost ? `${websocketHost}/cable` : undefined;
 
     this.consumer = createConsumer(websocketURL);
     this.hasConnectedOnce = false;
+    this.lastReconnectAt = null;
+    this.reconnectTimer = null;
     this.subscription = this.consumer.subscriptions.create(
       {
         channel: 'RoomChannel',
@@ -43,44 +50,84 @@ class BaseActionCableConnector {
     this.setupConnectionWatchdog();
   }
 
-  // ActionCable invokes this every time the server confirms our RoomChannel
-  // subscription: once on the initial page-load connect, and again after every
-  // reconnect (reopen -> welcome -> resubscribe -> confirmation). Messages
-  // broadcast while we were disconnected are gone for good — ActionCable has no
-  // replay — so on any reconnect we must re-fetch what we missed. Keying the
-  // re-sync off this subscription confirmation, rather than the old "wait for a
-  // `disconnected` event, then poll until isOpen()" heuristic, is what makes it
-  // fire even on silent half-open reopens where no `disconnected` reaches us —
-  // the case that left agents staring at a live-but-stale socket until they
-  // manually refreshed.
+  // Re-sync the data we missed while disconnected (ActionCable has no replay).
+  // Driven from TWO signals because neither alone is sufficient:
+  //   - handleConnected: the server re-confirmed our subscription. Catches
+  //     reopen-from-closed reconnects, where ActionCable does not re-fire the
+  //     `disconnected` callback.
+  //   - checkConnection (isOpen poll): the socket is open again but ActionCable
+  //     sometimes does NOT re-send the subscription confirmation on reconnect
+  //     (a known race, rails/rails#38668), so `connected` never fires even
+  //     though message delivery has already resumed. Without this poll the gap
+  //     messages are silently lost until a manual page reload.
+  // The time-based dedup keeps the two paths from double-fetching.
+  triggerReconnect = () => {
+    const now = Date.now();
+    if (
+      this.lastReconnectAt &&
+      now - this.lastReconnectAt < RECONNECT_DEDUP_INTERVAL
+    ) {
+      return;
+    }
+    this.lastReconnectAt = now;
+    BaseActionCableConnector.isDisconnected = false;
+    this.clearReconnectTimer();
+    this.onReconnect();
+  };
+
   handleConnected = () => {
+    // Skip the very first confirmation (initial page load already has data).
     if (this.hasConnectedOnce) {
-      this.onReconnect();
+      this.triggerReconnect();
     }
     this.hasConnectedOnce = true;
   };
 
   handleDisconnected = () => {
+    BaseActionCableConnector.isDisconnected = true;
     this.onDisconnected();
+    this.initReconnectTimer();
   };
 
-  // Belt-and-suspenders liveness watchdog. ActionCable's own ConnectionMonitor
-  // can be slow or stalled at detecting a half-open socket: its poll backs off
-  // up to 30s, browsers throttle/freeze its timers in backgrounded tabs, and it
-  // never listens for the `online` event. We proactively force a reconnect the
-  // moment the connection looks stale (no server ping within the threshold),
-  // re-checking on the events that matter: tab refocus, network coming back,
-  // and a short periodic timer. A forced reopen still flows through ActionCable's
-  // disconnected/connected callbacks, so handleConnected's re-sync runs.
+  checkConnection = () => {
+    if (!BaseActionCableConnector.isDisconnected) {
+      this.clearReconnectTimer();
+      return;
+    }
+    if (this.consumer.connection.isOpen()) {
+      this.triggerReconnect();
+    } else {
+      this.initReconnectTimer();
+    }
+  };
+
+  clearReconnectTimer = () => {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+  };
+
+  initReconnectTimer = () => {
+    this.clearReconnectTimer();
+    this.reconnectTimer = setTimeout(() => {
+      this.checkConnection();
+    }, RECONNECT_POLL_INTERVAL);
+  };
+
+  // Liveness watchdog: ActionCable's own monitor can be slow (its staleness
+  // poll backs off up to 30s), frozen in a backgrounded tab, and never reacts
+  // to `online`. Force a reopen when no ping has arrived within the threshold,
+  // re-checked on tab refocus, network restore, and a short timer. The reopen
+  // flows through the disconnected/connected callbacks and the poll above, so
+  // the re-sync still fires. The isOpen() guard avoids piling a reopen onto an
+  // in-progress reconnect.
   setupConnectionWatchdog = () => {
     this.reopenIfStale = () => {
       const { connection } = this.consumer;
-      if (!connection || !connection.monitor) return;
+      if (!connection || !connection.monitor || !connection.isOpen()) return;
       const { pingedAt } = connection.monitor;
-      // No pingedAt yet => never finished connecting; let the initial connect
-      // (and ActionCable's own logic) run without interference.
-      if (!pingedAt) return;
-      if (Date.now() - pingedAt > STALE_CONNECTION_THRESHOLD) {
+      if (pingedAt && Date.now() - pingedAt > STALE_CONNECTION_THRESHOLD) {
         connection.reopen();
       }
     };
@@ -102,6 +149,7 @@ class BaseActionCableConnector {
   onDisconnected = () => {};
 
   disconnect() {
+    this.clearReconnectTimer();
     if (this.livenessInterval) clearInterval(this.livenessInterval);
     document.removeEventListener('visibilitychange', this.handleVisibilityChange);
     window.removeEventListener('online', this.reopenIfStale);
